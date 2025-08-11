@@ -31,13 +31,14 @@ export function generateRSAKeyPair(keySize: number = 2048): RSAKeyPair {
     expiresAt.setMonth(expiresAt.getMonth() + 1); // Default 1 month expiry
 
     return {
-      publicKey: publicKeyPem,
-      privateKey: privateKeyPem,
+      publicKey: publicKeyPem.trim(),
+      privateKey: privateKeyPem.trim(),
       version: 1,
       createdAt: now,
       expiresAt,
     };
   } catch (error) {
+    console.log('Error generating RSA key pair:', error);
     throw new Error(
       `Key generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );

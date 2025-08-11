@@ -1,14 +1,13 @@
 import { gcm } from '@noble/ciphers/aes';
 import forge from 'node-forge';
+import { forgePadding } from '../constants';
 import {
   EncryptedData,
   EncryptionOptions,
   ForgePaddingType,
   RSAKeyPair,
-} from '../types/core.types';
-import { forgePadding } from './constants';
-import { fromBase64, toBase64 } from './utils/conversion.util';
-import { getRandomBytes } from './utils/generation.util';
+} from '../types/encryption.types';
+import { fromBase64, getRandomBytes, toBase64 } from '../utils';
 
 export class HybridEncryption {
   private static readonly DEFAULT_OPTIONS: Required<EncryptionOptions> = {

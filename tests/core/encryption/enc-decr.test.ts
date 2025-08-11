@@ -1,6 +1,6 @@
-import { decrypt, encrypt, generateRSAKeyPair, validateKeyPair } from '../../src/client';
-import { HybridEncryption } from '../../src/core';
-import { RSAKeyPair } from '../../src/types/core.types';
+import { decrypt, encrypt, generateRSAKeyPair, validateKeyPair } from '../../../src/client';
+import { HybridEncryption } from '../../../src/core';
+import { RSAKeyPair } from '../../../src/core/types/encryption.types';
 
 describe('Core Tests | Encryption/Decryption', () => {
   let testKeyPair: RSAKeyPair;

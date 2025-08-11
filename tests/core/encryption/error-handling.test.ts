@@ -1,5 +1,5 @@
-import { decrypt, encrypt, generateRSAKeyPair } from '../../src/client';
-import { EncryptedData, RSAKeyPair } from '../../src/types/core.types';
+import { decrypt, encrypt, generateRSAKeyPair } from '../../../src/client';
+import { EncryptedData, RSAKeyPair } from '../../../src/core/types/encryption.types';
 
 describe('Core Tests | Error Handling', () => {
   let testKeyPair: RSAKeyPair;

@@ -1,4 +1,4 @@
-import { HybridEncryption } from './encryption.js';
-import * as  utils  from './utils/index.js';
 import * as constants from './constants.js';
-export { HybridEncryption, utils, constants };
+import { HybridEncryption } from './encryption';
+import * as utils from './utils/index.js';
+export { constants, HybridEncryption, utils };
