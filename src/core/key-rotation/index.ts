@@ -4,7 +4,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { directoryExists } from '../../debug/filesystem';
+import { directoryExists } from '../../../tests/debug/filesystem';
 import { HybridEncryption } from '../encryption';
 import { RSAKeyPair } from '../types/encryption.types';
 import {
@@ -29,6 +29,7 @@ export class KeyManager {
   private rotationState: KeyRotationState;
   public lastValidation: Date | null = null;
   private isInitialized = false;
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   private constructor(config: KeyManagerConfig = {}) {
     this.config = {
@@ -39,6 +40,8 @@ export class KeyManager {
       enableFileBackup: config.enableFileBackup ?? true,
       rotationGracePeriod: config.rotationGracePeriod || 5,
     };
+
+    // Note: Configuration validation is deferred to initialize() to match test expectations
 
     this.rotationState = {
       isRotating: false,
@@ -63,7 +66,36 @@ export class KeyManager {
    * Reset singleton instance (useful for testing)
    */
   public static resetInstance(): void {
+    if (KeyManager.instance) {
+      // Clean up any running timers
+      KeyManager.instance.cleanup();
+    }
     KeyManager.instance = null;
+  }
+
+  /**
+   * Clean up all timers and state (for testing)
+   */
+  private cleanup(): void {
+    // Clear any pending cleanup timer
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+
+    // Reset all internal state
+    this.currentKeys = null;
+    this.lastValidation = null;
+    this.isInitialized = false;
+
+    // Reset rotation state
+    this.rotationState = {
+      isRotating: false,
+      rotationPromise: null,
+      rotationStartTime: null,
+      previousKeys: null,
+      newKeys: null,
+    };
   }
 
   // ============================================================================
@@ -77,10 +109,14 @@ export class KeyManager {
     if (this.isInitialized) return;
 
     try {
+      // Validate configuration first
+      this.validateConfig();
+      console.log('1. Directory Created:', await directoryExists(this.config.certPath));
+
       // Ensure cert directory exists
       await this.ensureCertDirectory();
 
-      console.log('Directory Created:', await directoryExists(this.config.certPath));
+      console.log('2. Directory Created:', await directoryExists(this.config.certPath));
 
       // Load existing keys or generate new ones
       await this.loadOrGenerateKeys();
@@ -104,15 +140,20 @@ export class KeyManager {
    * Check if rotation is needed and wait for completion if in progress
    */
   public async ensureValidKeys(): Promise<RSAKeyPair> {
+    console.log('[ensureValidKeys]: Is rotation in progress?', this.rotationState.isRotating);
     // If rotation is in progress, wait for it to complete
     if (this.rotationState.isRotating && this.rotationState.rotationPromise) {
       await this.rotationState.rotationPromise;
     }
 
+    console.log('[ensureValidKeys]: Needs Rotation:', this.needsRotation());
+
     // Check if we need rotation
     if (this.needsRotation()) {
       await this.rotateKeys();
     }
+
+    console.log('[ensureValidKeys]: Current Keys:', this.currentKeys);
 
     if (!this.currentKeys) {
       throw new Error('No valid keys available after rotation attempt');
@@ -178,12 +219,15 @@ export class KeyManager {
    * Manually trigger key rotation
    */
   public async rotateKeys(): Promise<void> {
+    console.log('[rotateKeys]: isRotating: ', this.rotationState.isRotating);
+    console.log('[rotateKeys]: Rotation Promise: ', this.rotationState.rotationPromise);
     // If already rotating, wait for completion
     if (this.rotationState.isRotating && this.rotationState.rotationPromise) {
       return this.rotationState.rotationPromise;
     }
 
     // Start rotation
+    console.log('[rotateKeys]: Starting key rotation...');
     this.rotationState.rotationPromise = this.performKeyRotation();
     return this.rotationState.rotationPromise;
   }
@@ -237,7 +281,7 @@ export class KeyManager {
       console.log(`✅ Key rotation completed successfully (version ${nextVersion})`);
 
       // Clean up rotation state after grace period
-      setTimeout(
+      this.cleanupTimer = setTimeout(
         () => {
           this.cleanupRotationState();
         },
@@ -275,6 +319,7 @@ export class KeyManager {
     this.rotationState.rotationStartTime = null;
     this.rotationState.previousKeys = null;
     this.rotationState.newKeys = null;
+    this.cleanupTimer = null; // Clear timer reference
     console.log('🧹 Rotation state cleaned up');
   }
 
@@ -312,7 +357,7 @@ export class KeyManager {
         expiresAt: keyPair.expiresAt!.toISOString(),
         keySize: this.config.keySize,
         rotatedAt: new Date().toISOString(),
-        reason: (this.currentKeys
+        reason: (history.rotations.length > 0
           ? 'scheduled_rotation'
           : 'initial_generation') as RotationHistoryEntry['reason'],
       };
@@ -437,6 +482,11 @@ export class KeyManager {
     if (this.config.autoGenerate) {
       console.log('🔑 Generating new RSA key pair...');
 
+      console.log(
+        'Checking Directory Write Permissions:',
+        await fs.access(this.config.certPath, fs.constants.W_OK) // undefined
+      );
+
       // Get next version number
       const nextVersion = await this.getNextVersionNumber();
 
@@ -489,16 +539,16 @@ export class KeyManager {
         metadata = JSON.parse(metadataStr);
       } catch {
         // Ignore metadata parsing errors
-        console.warn('⚠️ Failed to parse key metadata, using defaults');
+        console.log('⚠️ Failed to parse key metadata, using defaults');
       }
 
       if (!publicKey || !privateKey) {
-        console.warn('⚠️ Missing key material, generating new keys');
+        console.log('⚠️ Missing key material, generating new keys');
         return null;
       }
 
       if (!metadata.createdAt || !metadata.expiresAt) {
-        console.warn('2. ⚠️ Missing key metadata, generating new keys');
+        console.log('⚠️ Missing metadata properties, generating new keys');
         return null;
       }
 
@@ -541,8 +591,17 @@ export class KeyManager {
         fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8'),
       ]);
 
-      // Set restrictive permissions on private key
-      await fs.chmod(privateKeyPath, 0o600);
+      if (process.platform === 'win32') {
+        // Windows: Set file as read-only and try to set NTFS permissions
+        try {
+          await fs.chmod(privateKeyPath, 0o600);
+        } catch (error) {
+          console.warn('⚠️ Could not set Windows file permissions:', error);
+        }
+      } else {
+        // Unix-like systems: Set proper octal permissions
+        await fs.chmod(privateKeyPath, 0o600);
+      }
     } catch (error) {
       console.log('❌ Failed to save keys to filesystem:', error);
       throw new Error(
@@ -607,6 +666,39 @@ export class KeyManager {
   // ============================================================================
   // VALIDATION & STATUS
   // ============================================================================
+
+  /**
+   * Validate configuration parameters
+   */
+  private validateConfig(): void {
+    const errors: string[] = [];
+
+    // Validate key size (minimum 2048 for security)
+    if (this.config.keySize < 2048) {
+      errors.push(`Key size ${this.config.keySize} is too small (minimum 2048 bits)`);
+    }
+
+    // Validate key expiry months
+    if (this.config.keyExpiryMonths <= 0) {
+      errors.push(`Key expiry months must be positive (got ${this.config.keyExpiryMonths})`);
+    }
+
+    // Validate rotation grace period
+    if (this.config.rotationGracePeriod < 0) {
+      errors.push(
+        `Rotation grace period cannot be negative (got ${this.config.rotationGracePeriod})`
+      );
+    }
+
+    // Validate cert path
+    if (!this.config.certPath || this.config.certPath.trim() === '') {
+      errors.push('Certificate path cannot be empty');
+    }
+
+    if (errors.length > 0) {
+      throw new Error(`Invalid configuration: ${errors.join(', ')}`);
+    }
+  }
 
   /**
    * Validate current keys

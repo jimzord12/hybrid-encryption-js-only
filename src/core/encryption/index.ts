@@ -78,6 +78,7 @@ export class HybridEncryption {
 
   /**
    * Decrypt data using hybrid AES-GCM + RSA approach
+   * It is meant for internal use, use decryptWithMultipleKeys to decrypt in your app
    * @param encryptedData - Encrypted data structure
    * @param privateKeyPem - RSA private key in PEM format
    * @param options - Decryption options
@@ -132,6 +133,46 @@ export class HybridEncryption {
         `Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
+  }
+
+  // DIM - Needs Unit Testing 🧪🚨
+  /**
+   * Decrypt data using multiple private keys (supports grace period)
+   * @param encryptedData - Encrypted data structure
+   * @param privateKeys - Array of RSA private keys to try
+   * @param options - Decryption options
+   */
+  static decryptWithMultipleKeys<T = any>(
+    encryptedData: EncryptedData,
+    privateKeys: string[],
+    options: EncryptionOptions = {}
+  ): T {
+    if (!privateKeys || privateKeys.length === 0) {
+      throw new Error('At least one private key is required for decryption');
+    }
+
+    if (encryptedData == null) {
+      throw new Error('Encrypted data is required for decryption');
+    }
+
+    let lastError: Error | null = null;
+
+    // Try each private key until one works
+    for (let i = 0; i < privateKeys.length; i++) {
+      try {
+        const result = this.decrypt<T>(encryptedData, privateKeys[i], options);
+        console.log(`✅ Decryption successful with key #${i + 1}`);
+        return result;
+      } catch (error) {
+        lastError = error as Error;
+        console.log(`❌ Decryption failed with key #${i + 1}: ${(error as Error).message}`);
+        continue;
+      }
+    }
+
+    throw new Error(
+      `Decryption failed with all ${privateKeys.length} available keys. Last error: ${lastError ? lastError.message : 'Unknown error'}`
+    );
   }
 
   /**

@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    setupFiles: ['./tests/setup/test-setup.ts'],
     coverage: {
       provider: 'v8', // Required in newer versions
       reporter: ['text', 'html', 'json'],
@@ -15,6 +16,13 @@ export default defineConfig({
     reporters: ['verbose', 'html'],
     outputFile: {
       html: './test-results/index.html',
+    },
+    // Force sequential execution to prevent race conditions
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
     },
   },
   define: {
