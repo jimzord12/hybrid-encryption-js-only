@@ -1,8 +1,10 @@
-import { RSAKeyPair } from './encryption.types';
+import { CryptoKeyPair } from './crypto-provider.types';
 
 export interface KeyManagerConfig {
   certPath?: string; // Path to certificate directory (default: ./config/certs)
-  keySize?: number; // RSA key size (default: 2048)
+  algorithm?: 'rsa' | 'ecc' | 'ed25519'; // Cryptographic algorithm (default: 'rsa')
+  keySize?: number; // Key size in bits (default: 2048 for RSA)
+  curve?: string | undefined; // ECC curve (e.g., 'P-256', 'P-384', 'P-521')
   keyExpiryMonths?: number; // Key expiry in months (default: 1)
   autoGenerate?: boolean; // Auto-generate keys if missing (default: true)
   enableFileBackup?: boolean; // Backup keys to filesystem (default: true)
@@ -13,8 +15,8 @@ export interface KeyRotationState {
   isRotating: boolean;
   rotationPromise: Promise<void> | null;
   rotationStartTime: Date | null;
-  previousKeys: RSAKeyPair | null;
-  newKeys: RSAKeyPair | null;
+  previousKeys: CryptoKeyPair | null;
+  newKeys: CryptoKeyPair | null;
 }
 
 export interface KeyManagerStatus {
@@ -52,13 +54,4 @@ export interface RotationStats {
   newestRotation: RotationHistoryEntry | null;
   rotationsThisYear: number;
   rotationsThisMonth: number;
-}
-
-export interface KeyValidationResult {
-  isValid: boolean;
-  errors: string[];
-  publicKeyValid: boolean;
-  privateKeyValid: boolean;
-  keyPairMatches: boolean;
-  notExpired: boolean;
 }

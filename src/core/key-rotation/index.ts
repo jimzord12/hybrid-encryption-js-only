@@ -4,42 +4,52 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { directoryExists } from '../../../tests/debug/filesystem';
-import { HybridEncryption } from '../encryption';
+import { KeyProviderFactory } from '../providers';
+import {
+  CryptoKeyPair,
+  KeyGenerationConfig,
+  KeyProvider,
+  KeyValidationResult,
+} from '../types/crypto-provider.types';
 import { RSAKeyPair } from '../types/encryption.types';
 import {
   KeyManagerConfig,
   KeyManagerStatus,
   KeyRotationState,
-  KeyValidationResult,
   RotationHistory,
   RotationHistoryEntry,
   RotationStats,
 } from '../types/key-rotation.types';
-import { generateRSAKeyPair } from '../utils';
 
 // ============================================================================
 // KEY MANAGER SINGLETON CLASS
 // ============================================================================
 
 export class KeyManager {
-  private static instance: KeyManager | null = null;
-  private config: Required<KeyManagerConfig>;
-  private currentKeys: RSAKeyPair | null = null;
-  private rotationState: KeyRotationState;
+  public static instance: KeyManager | null = null;
+  public config: Required<KeyManagerConfig>;
+  public currentKeys: CryptoKeyPair | null = null;
+  public rotationState: KeyRotationState;
   public lastValidation: Date | null = null;
-  private isInitialized = false;
-  private cleanupTimer: NodeJS.Timeout | null = null;
+  public isInitialized = false;
+  public cleanupTimer: NodeJS.Timeout | null = null;
+  private keyProvider: KeyProvider;
 
   private constructor(config: KeyManagerConfig = {}) {
+    // Set default configuration with new algorithm support
     this.config = {
+      algorithm: config.algorithm || 'rsa',
       certPath: config.certPath || path.join(process.cwd(), 'config', 'certs'),
       keySize: config.keySize || 2048,
+      curve: config.curve,
       keyExpiryMonths: config.keyExpiryMonths || 1,
       autoGenerate: config.autoGenerate ?? true,
       enableFileBackup: config.enableFileBackup ?? true,
       rotationGracePeriod: config.rotationGracePeriod || 5,
     };
+
+    // Initialize the key provider based on algorithm
+    this.keyProvider = KeyProviderFactory.createProvider(this.config.algorithm);
 
     // Note: Configuration validation is deferred to initialize() to match test expectations
 
@@ -59,6 +69,7 @@ export class KeyManager {
     if (!KeyManager.instance) {
       KeyManager.instance = new KeyManager(config);
     }
+    console.log('KeyManager instance created: ASA:', KeyManager.instance.isInitialized);
     return KeyManager.instance;
   }
 
@@ -87,6 +98,7 @@ export class KeyManager {
     this.currentKeys = null;
     this.lastValidation = null;
     this.isInitialized = false;
+    this.config = {} as Required<KeyManagerConfig>;
 
     // Reset rotation state
     this.rotationState = {
@@ -111,12 +123,9 @@ export class KeyManager {
     try {
       // Validate configuration first
       this.validateConfig();
-      console.log('1. Directory Created:', await directoryExists(this.config.certPath));
 
       // Ensure cert directory exists
       await this.ensureCertDirectory();
-
-      console.log('2. Directory Created:', await directoryExists(this.config.certPath));
 
       // Load existing keys or generate new ones
       await this.loadOrGenerateKeys();
@@ -139,7 +148,7 @@ export class KeyManager {
   /**
    * Check if rotation is needed and wait for completion if in progress
    */
-  public async ensureValidKeys(): Promise<RSAKeyPair> {
+  public async ensureValidKeys(): Promise<CryptoKeyPair> {
     console.log('[ensureValidKeys]: Is rotation in progress?', this.rotationState.isRotating);
     // If rotation is in progress, wait for it to complete
     if (this.rotationState.isRotating && this.rotationState.rotationPromise) {
@@ -152,8 +161,6 @@ export class KeyManager {
     if (this.needsRotation()) {
       await this.rotateKeys();
     }
-
-    console.log('[ensureValidKeys]: Current Keys:', this.currentKeys);
 
     if (!this.currentKeys) {
       throw new Error('No valid keys available after rotation attempt');
@@ -185,14 +192,15 @@ export class KeyManager {
   /**
    * Get current key pair (server-side only)
    */
-  public async getKeyPair(): Promise<RSAKeyPair> {
+  public async getKeyPair(): Promise<CryptoKeyPair> {
     return await this.ensureValidKeys();
   }
 
   /**
    * Get keys for decryption (includes previous keys during rotation)
+   * This is meant to be used by the Encryption Core Module
    */
-  public async getDecryptionKeys(): Promise<RSAKeyPair[]> {
+  public async getDecryptionKeys(): Promise<CryptoKeyPair[]> {
     const keys = [await this.ensureValidKeys()];
 
     // During rotation, also include previous keys for decrypting in-flight requests
@@ -212,7 +220,7 @@ export class KeyManager {
    */
   public needsRotation(): boolean {
     if (!this.currentKeys) return true;
-    return HybridEncryption.isKeyPairExpired(this.currentKeys);
+    return this.keyProvider.isKeyPairExpired(this.currentKeys);
   }
 
   /**
@@ -220,14 +228,12 @@ export class KeyManager {
    */
   public async rotateKeys(): Promise<void> {
     console.log('[rotateKeys]: isRotating: ', this.rotationState.isRotating);
-    console.log('[rotateKeys]: Rotation Promise: ', this.rotationState.rotationPromise);
     // If already rotating, wait for completion
     if (this.rotationState.isRotating && this.rotationState.rotationPromise) {
       return this.rotationState.rotationPromise;
     }
 
     // Start rotation
-    console.log('[rotateKeys]: Starting key rotation...');
     this.rotationState.rotationPromise = this.performKeyRotation();
     return this.rotationState.rotationPromise;
   }
@@ -243,19 +249,25 @@ export class KeyManager {
     this.rotationState.previousKeys = this.currentKeys;
 
     try {
-      // Generate new keys
-      console.log('🔑 Generating new RSA key pair...');
-      const newKeys = generateRSAKeyPair(this.config.keySize);
+      // Generate new keys using the key provider
+      console.log(`🔑 Generating new ${this.config.algorithm.toUpperCase()} key pair...`);
+      const keyGenConfig: KeyGenerationConfig = {
+        algorithm: this.config.algorithm,
+        keySize: this.config.keySize,
+        expiryMonths: this.config.keyExpiryMonths,
+      };
 
-      // Validate new keys
-      if (!HybridEncryption.validateKeyPair(newKeys)) {
-        throw new Error('Generated invalid key pair');
+      // Only add curve if it's defined (for ECC algorithms)
+      if (this.config.curve !== undefined) {
+        keyGenConfig.curve = this.config.curve;
       }
 
-      // Set expiry date and increment version
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + this.config.keyExpiryMonths);
-      newKeys.expiresAt = expiresAt;
+      const newKeys = this.keyProvider.generateKeyPair(keyGenConfig);
+
+      // Validate new keys using the key provider
+      if (!this.keyProvider.validateKeyPair(newKeys)) {
+        throw new Error('Generated invalid key pair');
+      }
 
       // Get next version number
       const nextVersion = await this.getNextVersionNumber();
@@ -345,7 +357,7 @@ export class KeyManager {
   /**
    * Update rotation history with new key information
    */
-  private async updateRotationHistory(keyPair: RSAKeyPair): Promise<void> {
+  private async updateRotationHistory(keyPair: CryptoKeyPair): Promise<void> {
     const historyPath = path.join(this.config.certPath, 'rotation-history.json');
 
     try {
@@ -355,7 +367,7 @@ export class KeyManager {
         version: keyPair.version!,
         createdAt: keyPair.createdAt!.toISOString(),
         expiresAt: keyPair.expiresAt!.toISOString(),
-        keySize: this.config.keySize,
+        keySize: keyPair.keySize || this.config.keySize,
         rotatedAt: new Date().toISOString(),
         reason: (history.rotations.length > 0
           ? 'scheduled_rotation'
@@ -466,10 +478,42 @@ export class KeyManager {
   private async loadOrGenerateKeys(): Promise<void> {
     try {
       // Try to load existing keys
-      this.currentKeys = await this.loadKeysFromFile();
+      const loadedKeys = await this.loadKeysFromFile();
 
-      console.log('Current keys loaded:', this.currentKeys);
-      if (this.currentKeys) {
+      if (loadedKeys) {
+        // Convert RSAKeyPair to CryptoKeyPair format
+        const convertedKeys: CryptoKeyPair = {
+          publicKey: loadedKeys.publicKey,
+          privateKey: loadedKeys.privateKey,
+          algorithm: this.config.algorithm,
+        };
+
+        // Only set optional properties if they exist
+        if (loadedKeys.version !== undefined) {
+          convertedKeys.version = loadedKeys.version;
+        } else {
+          convertedKeys.version = 1;
+        }
+
+        if (loadedKeys.createdAt !== undefined) {
+          convertedKeys.createdAt = loadedKeys.createdAt;
+        }
+
+        if (loadedKeys.expiresAt !== undefined) {
+          convertedKeys.expiresAt = loadedKeys.expiresAt;
+        }
+
+        if (this.config.keySize !== undefined) {
+          convertedKeys.keySize = this.config.keySize;
+        }
+
+        // Only add curve if it's defined and algorithm supports it
+        if (this.config.curve !== undefined) {
+          convertedKeys.curve = this.config.curve;
+        }
+
+        this.currentKeys = convertedKeys;
+
         console.log('📂 Loaded existing keys from filesystem');
         console.log(`🔢 Current key version: ${this.currentKeys.version}`);
         return;
@@ -480,7 +524,7 @@ export class KeyManager {
 
     // Generate new keys if none found or auto-generate is enabled
     if (this.config.autoGenerate) {
-      console.log('🔑 Generating new RSA key pair...');
+      console.log(`🔑 Generating new ${this.config.algorithm.toUpperCase()} key pair...`);
 
       console.log(
         'Checking Directory Write Permissions:',
@@ -490,12 +534,19 @@ export class KeyManager {
       // Get next version number
       const nextVersion = await this.getNextVersionNumber();
 
-      this.currentKeys = generateRSAKeyPair(this.config.keySize);
+      // Generate keys using the key provider
+      const keyGenConfig: KeyGenerationConfig = {
+        algorithm: this.config.algorithm,
+        keySize: this.config.keySize,
+        expiryMonths: this.config.keyExpiryMonths,
+      };
 
-      // Set expiry and version
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + this.config.keyExpiryMonths);
-      this.currentKeys.expiresAt = expiresAt;
+      // Only add curve if it's defined (for ECC algorithms)
+      if (this.config.curve !== undefined) {
+        keyGenConfig.curve = this.config.curve;
+      }
+
+      this.currentKeys = this.keyProvider.generateKeyPair(keyGenConfig);
       this.currentKeys.version = nextVersion;
 
       // Save to filesystem and update rotation history
@@ -519,14 +570,13 @@ export class KeyManager {
     const metadataPath = path.join(this.config.certPath, 'key-metadata.json');
 
     try {
-      console.log('start loading key files');
+      console.log('🚛 Start Loading key files...');
+      console.log('');
       const [publicKey, privateKey, metadataStr] = await Promise.all([
         fs.readFile(publicKeyPath, 'utf8'),
         fs.readFile(privateKeyPath, 'utf8'),
         fs.readFile(metadataPath, 'utf8').catch(() => '{}'),
       ]);
-
-      console.log('Loaded Metadata:', metadataStr);
 
       console.log('1. Loaded key files:', {
         publicKey: publicKey ? '✔️' : '❌',
@@ -560,7 +610,7 @@ export class KeyManager {
         expiresAt: new Date(metadata.expiresAt),
       };
 
-      console.log('3. Loaded key pair:', keyPair);
+      console.log('3. Loaded key pair (version):', keyPair.version);
       return keyPair;
     } catch (error) {
       console.log('⚠️ Failed to load keys from filesystem');
@@ -571,23 +621,24 @@ export class KeyManager {
   /**
    * Save keys to PEM files
    */
-  private async saveKeysToFile(keyPair: RSAKeyPair): Promise<void> {
+  private async saveKeysToFile(keyPair: CryptoKeyPair): Promise<void> {
     const publicKeyPath = path.join(this.config.certPath, 'pub-key.pem');
     const privateKeyPath = path.join(this.config.certPath, 'priv-key.pem');
     const metadataPath = path.join(this.config.certPath, 'key-metadata.json');
 
+    // Use the key provider to serialize the key pair
+    const serialized = this.keyProvider.serializeKeyPair(keyPair);
+
     const metadata = {
-      version: keyPair.version,
-      createdAt: keyPair.createdAt?.toISOString(),
-      expiresAt: keyPair.expiresAt?.toISOString(),
-      keySize: this.config.keySize,
+      ...serialized.metadata,
+      keySize: keyPair.keySize || this.config.keySize,
       lastRotation: new Date().toISOString(),
     };
 
     try {
       await Promise.all([
-        fs.writeFile(publicKeyPath, keyPair.publicKey, 'utf8'),
-        fs.writeFile(privateKeyPath, keyPair.privateKey, 'utf8'),
+        fs.writeFile(publicKeyPath, serialized.publicKey, 'utf8'),
+        fs.writeFile(privateKeyPath, serialized.privateKey, 'utf8'),
         fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8'),
       ]);
 
@@ -613,7 +664,7 @@ export class KeyManager {
   /**
    * Backup expired keys
    */
-  private async backupExpiredKeys(keyPair: RSAKeyPair): Promise<void> {
+  private async backupExpiredKeys(keyPair: CryptoKeyPair): Promise<void> {
     const timestamp = new Date().toISOString().slice(0, 7); // YYYY-MM format
     const backupDir = path.join(this.config.certPath, 'backup');
 
@@ -673,10 +724,20 @@ export class KeyManager {
   private validateConfig(): void {
     const errors: string[] = [];
 
-    // Validate key size (minimum 2048 for security)
-    if (this.config.keySize < 2048) {
-      errors.push(`Key size ${this.config.keySize} is too small (minimum 2048 bits)`);
+    // Use key provider for algorithm-specific validation
+    const keyGenConfig: KeyGenerationConfig = {
+      algorithm: this.config.algorithm,
+      keySize: this.config.keySize,
+      expiryMonths: this.config.keyExpiryMonths,
+    };
+
+    // Only add curve if it's defined
+    if (this.config.curve !== undefined) {
+      keyGenConfig.curve = this.config.curve;
     }
+
+    const providerErrors = this.keyProvider.validateConfig(keyGenConfig);
+    errors.push(...providerErrors);
 
     // Validate key expiry months
     if (this.config.keyExpiryMonths <= 0) {
@@ -728,23 +789,25 @@ export class KeyManager {
         result.publicKeyValid = true;
       }
 
-      if (!this.currentKeys.privateKey.includes('BEGIN RSA PRIVATE KEY')) {
+      // Get expected private key format from provider
+      const expectedPrivateKeyFormat = this.keyProvider.getPrivateKeyFormat();
+      if (!this.currentKeys.privateKey.includes(expectedPrivateKeyFormat)) {
         result.errors.push('Invalid private key format');
       } else {
         result.privateKeyValid = true;
       }
 
-      // Key pair validation
+      // Key pair validation using the provider
       if (result.publicKeyValid && result.privateKeyValid) {
-        if (HybridEncryption.validateKeyPair(this.currentKeys)) {
+        if (this.keyProvider.validateKeyPair(this.currentKeys)) {
           result.keyPairMatches = true;
         } else {
           result.errors.push('Key pair mismatch - public and private keys do not match');
         }
       }
 
-      // Expiry validation
-      if (!HybridEncryption.isKeyPairExpired(this.currentKeys)) {
+      // Expiry validation using the provider
+      if (!this.keyProvider.isKeyPairExpired(this.currentKeys)) {
         result.notExpired = true;
       } else {
         result.errors.push('Keys have expired');
@@ -776,7 +839,7 @@ export class KeyManager {
     return {
       hasKeys: this.currentKeys !== null,
       keysValid: validation.isValid,
-      keysExpired: this.currentKeys ? HybridEncryption.isKeyPairExpired(this.currentKeys) : false,
+      keysExpired: this.currentKeys ? this.keyProvider.isKeyPairExpired(this.currentKeys) : false,
       isRotating: this.rotationState.isRotating,
       currentKeyVersion: this.currentKeys?.version || null,
       createdAt: this.currentKeys?.createdAt || null,

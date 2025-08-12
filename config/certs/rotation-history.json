@@ -1,0 +1,15 @@
+{
+  "totalRotations": 1,
+  "rotations": [
+    {
+      "version": 1,
+      "createdAt": "2025-08-12T08:43:02.725Z",
+      "expiresAt": "2025-09-12T08:43:02.725Z",
+      "keySize": 2048,
+      "rotatedAt": "2025-08-12T08:43:02.732Z",
+      "reason": "initial_generation"
+    }
+  ],
+  "createdAt": "2025-08-12T08:43:02.732Z",
+  "lastUpdated": "2025-08-12T08:43:02.732Z"
+}

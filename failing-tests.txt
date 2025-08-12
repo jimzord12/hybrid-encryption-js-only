@@ -1,58 +1,6 @@
 Failing Tests Summary
 ===================
 
-Total Tests: 44
-Passed: 32
-Failed: 12
-
-Failing Test Titles:
-===================
-
-1. KeyManager Core Tests > Version Tracking and Rotation History > should track version numbers correctly
-
-2. KeyManager Core Tests > Version Tracking and Rotation History > should maintain rotation history
-
-3. KeyManager Core Tests > Version Tracking and Rotation History > should provide rotation statistics
-
-4. Memory Caching > should cache keys in memory after loading
-
-5. Key Rotation > should validate configuration values
-
-6. Configuration Management > should handle filesystem permission errors
-
-7. Configuration Management > should handle corrupted key files
-
-8. Configuration Management > should recover from rotation failures
-
-9. Configuration Management > should handle network/filesystem interruptions
-
-10. Status and Monitoring > should provide comprehensive status information
-
-11. Status and Monitoring > should detect unhealthy states
-
-12. Performance Tests > should handle multiple rotation attempts efficiently
-
-Categories of Failures:
-======================
-
-Version Tracking Issues: 3 tests
-- Version numbering and rotation history problems
-
-Memory/Caching Issues: 1 test
-- Cache performance expectations not met
-
-Configuration Issues: 5 tests
-- Permission handling, validation, error recovery
-
-Status/Monitoring Issues: 2 tests
-- Status reporting and health checks
-
-Performance Issues: 1 test
-- Concurrent rotation efficiency
-
-Notes:
-======
-- Tests are taking longer than expected (500ms delays per test)
-- Some failures may be related to test isolation and state pollution
-- Windows-specific permission handling may need adjustment
-- Configuration validation and error handling needs review
+1. should handle corrupted key files (When solo it passes)
+3. should validate configuration values (When solo it passes)
+4. should detect unhealthy states (When solo it passes)

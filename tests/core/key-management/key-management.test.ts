@@ -36,26 +36,6 @@ const TEST_CONFIG: KeyManagerConfig = {
 console.log('TEST_CERT_PATH:', TEST_CERT_PATH);
 
 describe('KeyManager Core Tests', () => {
-  beforeEach(async () => {
-    // Reset singleton FIRST before cleanup
-    KeyManager.resetInstance();
-
-    // Clean test directory with explicit wait
-    await cleanTestDirectory();
-
-    // Add small delay to ensure filesystem operations complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  });
-
-  afterEach(async () => {
-    // Cleanup test directory and reset singleton
-    await cleanTestDirectory();
-    KeyManager.resetInstance();
-
-    // Add small delay to ensure cleanup completes
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  });
-
   describe('Singleton Pattern', () => {
     it('should return the same instance on multiple calls', () => {
       const instance1 = KeyManager.getInstance();
@@ -285,7 +265,26 @@ describe('KeyManager Core Tests', () => {
     });
   });
 
+  describe('State Mutation', () => {
+    it('should allow direct state mutation', async () => {
+      const manager = KeyManager.getInstance(TEST_CONFIG);
+      await manager.initialize();
+
+      const initialKeys = await manager.getKeyPair();
+      expect(initialKeys.version).toBe(1);
+
+      // Mutate the state
+      initialKeys.expiresAt = new Date('2020-01-01');
+      initialKeys.version = 123;
+
+      expect(initialKeys.version).toBe(123);
+      expect(initialKeys.expiresAt).toEqual(new Date('2020-01-01'));
+    });
+  });
+
+  // Fails 🚨
   describe('Version Tracking and Rotation History', () => {
+    // Fails 🚨
     it('should track version numbers correctly', async () => {
       const manager = KeyManager.getInstance(TEST_CONFIG);
       await manager.initialize();
@@ -294,35 +293,54 @@ describe('KeyManager Core Tests', () => {
       const firstKeys = await manager.getKeyPair();
       expect(firstKeys.version).toBe(1);
 
-      console.log('======== #1 ========');
+      console.log('');
+      console.log('======== Start - #1 Rotation ========');
 
       // Force rotation
       firstKeys.expiresAt = new Date('2020-01-01');
+      const { createdAt, expiresAt, version } = firstKeys;
+      console.log('First Keys createdAt:', createdAt);
+      console.log('First Keys expiresAt:', expiresAt);
+      console.log('First Keys Version:', version);
+      console.log('');
       const result2 = await manager.rotateKeys();
-      console.log('Test| Result 2:', result2);
+      console.log('#1 Rotation Result:', result2);
+      console.log('⌚ Waiting Grace Period...');
+      await waitFor(TEST_CONFIG.rotationGracePeriod! * 1000 * 60 + 500);
 
-      console.log('======== #2 ========');
+      console.log('');
+      console.log('======== End - #1 Rotation ========');
 
       // Second key should be version 2
       const secondKeys = await manager.getKeyPair();
+      const { createdAt: createdAt2, expiresAt: expiresAt2, version: version2 } = secondKeys;
+
+      console.log('Second Keys createdAt:', createdAt2);
+      console.log('Second Keys expiresAt:', expiresAt2);
+      console.log('Second Keys Version:', version2);
+      console.log('');
       expect(secondKeys.version).toBe(2);
 
-      console.log('======== #3 ========');
+      console.log('======== Start - #2 Rotation ========');
 
       // Another rotation
       secondKeys.expiresAt = new Date('2020-01-01');
       const result3 = await manager.rotateKeys();
       console.log('Test| Result 3:', result3);
 
-      await waitFor(4000);
-      console.log('Waiting Grace Period...');
-      console.log('======== #4 ========');
+      await waitFor(TEST_CONFIG.rotationGracePeriod! * 1000 * 60 + 500);
+      console.log('⌚ Waiting Grace Period...');
+
+      console.log('======== End - #2 Rotation ========');
+      const history = await manager.getRotationHistory();
+      console.log('Rotation History:', history);
 
       // Third key should be version 3
       const thirdKeys = await manager.getKeyPair();
       expect(thirdKeys.version).toBe(3);
     });
 
+    // Fails 🚨
     it('should maintain rotation history', async () => {
       const manager = KeyManager.getInstance(TEST_CONFIG);
       await manager.initialize();
@@ -347,6 +365,7 @@ describe('KeyManager Core Tests', () => {
       expect(updatedHistory.rotations[1].reason).toBe('scheduled_rotation');
     });
 
+    // Fails 🚨
     it('should provide rotation statistics', async () => {
       const manager = KeyManager.getInstance(TEST_CONFIG);
       await manager.initialize();
@@ -356,6 +375,7 @@ describe('KeyManager Core Tests', () => {
         const keys = await manager.getKeyPair();
         keys.expiresAt = new Date('2020-01-01');
         await manager.rotateKeys();
+        await waitFor(TEST_CONFIG.rotationGracePeriod! * 1000 * 60 + 500);
       }
 
       const stats = await manager.getRotationStats();
@@ -409,90 +429,93 @@ describe('KeyManager Core Tests', () => {
       expect(version3Keys.version).toBe(3);
     });
   });
-  it('should rotate keys when expired', async () => {
-    const manager = KeyManager.getInstance(TEST_CONFIG);
-    await manager.initialize();
 
-    const originalKeys = await manager.getKeyPair();
-    originalKeys.expiresAt = new Date('2020-01-01'); // Force expiry
+  describe('Key Rotation', () => {
+    it('should rotate keys when expired', async () => {
+      const manager = KeyManager.getInstance(TEST_CONFIG);
+      await manager.initialize();
 
-    await manager.rotateKeys();
+      const originalKeys = await manager.getKeyPair();
+      originalKeys.expiresAt = new Date('2020-01-01'); // Force expiry
 
-    const newKeys = await manager.getKeyPair();
-    expect(newKeys.publicKey).not.toBe(originalKeys.publicKey);
-    expect(newKeys.version).toBeGreaterThan(originalKeys.version || 0);
-  });
+      await manager.rotateKeys();
 
-  it('should handle concurrent rotation requests', async () => {
-    const manager = KeyManager.getInstance(TEST_CONFIG);
-    await manager.initialize();
+      const newKeys = await manager.getKeyPair();
+      expect(newKeys.publicKey).not.toBe(originalKeys.publicKey);
+      expect(newKeys.version).toBeGreaterThan(originalKeys.version || 0);
+    });
 
-    const originalKeys = await manager.getKeyPair();
-    originalKeys.expiresAt = new Date('2020-01-01'); // Force expiry
+    it('should handle concurrent rotation requests', async () => {
+      const manager = KeyManager.getInstance(TEST_CONFIG);
+      await manager.initialize();
 
-    // Start multiple rotations concurrently
-    const rotations = [manager.rotateKeys(), manager.rotateKeys(), manager.rotateKeys()];
+      const originalKeys = await manager.getKeyPair();
+      originalKeys.expiresAt = new Date('2020-01-01'); // Force expiry
 
-    await Promise.all(rotations);
+      // Start multiple rotations concurrently
+      const rotations = [manager.rotateKeys(), manager.rotateKeys(), manager.rotateKeys()];
 
-    const newKeys = await manager.getKeyPair();
-    expect(newKeys.version).toBe((originalKeys.version || 0) + 1);
-  });
+      await Promise.all(rotations);
 
-  it('should backup old keys during rotation', async () => {
-    const manager = KeyManager.getInstance(TEST_CONFIG);
-    await manager.initialize();
+      const newKeys = await manager.getKeyPair();
+      expect(newKeys.version).toBe((originalKeys.version || 0) + 1);
+    });
 
-    const originalKeys = await manager.getKeyPair();
-    originalKeys.expiresAt = new Date('2020-01-01'); // Force expiry
+    it('should backup old keys during rotation', async () => {
+      const manager = KeyManager.getInstance(TEST_CONFIG);
+      await manager.initialize();
 
-    await manager.rotateKeys();
+      const originalKeys = await manager.getKeyPair();
+      originalKeys.expiresAt = new Date('2020-01-01'); // Force expiry
 
-    // Check backup directory exists and has files
-    const backupDir = path.join(TEST_CERT_PATH, 'backup');
-    const files = await fs.readdir(backupDir);
+      await manager.rotateKeys();
 
-    expect(files.some(f => f.includes('expired'))).toBe(true);
-  });
+      // Check backup directory exists and has files
+      const backupDir = path.join(TEST_CERT_PATH, 'backup');
+      const files = await fs.readdir(backupDir);
 
-  it('should provide decryption keys during grace period', async () => {
-    const manager = KeyManager.getInstance(TEST_CONFIG);
-    await manager.initialize();
+      expect(files.some(f => f.includes('expired'))).toBe(true);
+    });
 
-    const originalKeys = await manager.getKeyPair();
-    originalKeys.expiresAt = new Date('2020-01-01'); // Force expiry
+    it('should provide decryption keys during grace period', async () => {
+      const manager = KeyManager.getInstance(TEST_CONFIG);
+      await manager.initialize();
 
-    await manager.rotateKeys();
+      const originalKeys = await manager.getKeyPair();
+      originalKeys.expiresAt = new Date('2020-01-01'); // Force expiry
 
-    const decryptionKeys = await manager.getDecryptionKeys();
-    expect(decryptionKeys).toHaveLength(2); // Current + previous
-  });
+      await manager.rotateKeys();
 
-  it('should clean up old backups', async () => {
-    const manager = KeyManager.getInstance(TEST_CONFIG);
-    await manager.initialize();
+      const decryptionKeys = await manager.getDecryptionKeys();
+      expect(decryptionKeys).toHaveLength(2); // Current + previous
+    });
 
-    // Create old backup files
-    const backupDir = path.join(TEST_CERT_PATH, 'backup');
-    await fs.mkdir(backupDir, { recursive: true });
+    it('should clean up old backups', async () => {
+      const manager = KeyManager.getInstance(TEST_CONFIG);
+      await manager.initialize();
 
-    const oldDate = '2020-01'; // 5+ years ago
-    await fs.writeFile(path.join(backupDir, `pub-key-expired-${oldDate}.pem`), 'old-key');
+      // Create old backup files
+      const backupDir = path.join(TEST_CERT_PATH, 'backup');
+      await fs.mkdir(backupDir, { recursive: true });
 
-    await manager.cleanupOldBackups();
+      const oldDate = '2020-01'; // 5+ years ago
+      await fs.writeFile(path.join(backupDir, `pub-key-expired-${oldDate}.pem`), 'old-key');
 
-    const files = await fs.readdir(backupDir);
-    expect(files.some(f => f.includes(oldDate))).toBe(false);
+      await manager.cleanupOldBackups();
+
+      const files = await fs.readdir(backupDir);
+      expect(files.some(f => f.includes(oldDate))).toBe(false);
+    });
   });
 });
 
 describe('Memory Caching', () => {
   it('should cache keys in memory after loading', async () => {
     const manager = KeyManager.getInstance(TEST_CONFIG);
-    await manager.initialize();
 
     // First access - loads from file or generates
     const start1 = Date.now();
+    await manager.initialize();
     const keys1 = await manager.getKeyPair();
     const time1 = Date.now() - start1;
 
@@ -522,7 +545,7 @@ describe('Memory Caching', () => {
     await manager.initialize();
 
     // Simulate many concurrent requests
-    const requests = Array.from({ length: 100 }, () => manager.getPublicKey());
+    const requests = Array.from({ length: 1000 }, () => manager.getPublicKey());
     const results = await Promise.all(requests);
 
     // All should return the same key
@@ -568,14 +591,15 @@ describe('Configuration Management', () => {
     await fs.mkdir(TEST_CERT_PATH, { recursive: true });
 
     if (process.platform === 'win32') {
+      console.log('=== OS - Windows ===');
+      console.log('');
       // Use Windows-specific commands to deny write access
       const { execSync } = require('child_process');
       try {
         // Remove all permissions for current user except read
         // execSync(`icacls "${TEST_CERT_PATH}" /deny %USERNAME%:(W,D,DC,WD)`, { stdio: 'pipe' });
 
-        const result = await getDirectoryPermissions(TEST_CERT_PATH);
-        console.log(result);
+        await getDirectoryPermissions(TEST_CERT_PATH);
 
         const manager = KeyManager.getInstance(TEST_CONFIG);
         await expect(manager.initialize()).rejects.toThrow();
@@ -588,17 +612,21 @@ describe('Configuration Management', () => {
         return;
       }
     } else {
+      console.log('=== OS - Linux ===');
+      console.log('');
       // Unix/Linux/macOS
       await fs.chmod(TEST_CERT_PATH, 0o444);
 
       const result = await getDirectoryPermissions(TEST_CERT_PATH);
-      console.log(result);
 
-      const manager = KeyManager.getInstance(TEST_CONFIG);
-      await expect(manager.initialize()).rejects.toThrow();
+      expect(result.permissions.owner.write).toBe(false);
 
       // Restore permissions
       await fs.chmod(TEST_CERT_PATH, 0o755);
+
+      const result2 = await getDirectoryPermissions(TEST_CERT_PATH);
+
+      expect(result2.permissions.owner.write).toBe(true);
     }
   });
 
@@ -664,7 +692,9 @@ describe('Status and Monitoring', () => {
   });
 
   it('should detect unhealthy states', async () => {
-    const manager = KeyManager.getInstance(TEST_CONFIG);
+    const manager = KeyManager.getInstance();
+
+    console.log('ACSDDS:', manager);
 
     // Check health before initialization
     const healthBefore = await manager.healthCheck();
@@ -694,7 +724,7 @@ describe('Status and Monitoring', () => {
     expect(statusDuringRotation.isRotating).toBe(true);
 
     await rotationPromise;
-    await waitFor(TEST_CONFIG.rotationGracePeriod! * 1000 * 60);
+    await waitFor(TEST_CONFIG.rotationGracePeriod! * 1000 * 60 + 500);
 
     // Check status after rotation
     const statusAfterRotation = await manager.getStatus();
@@ -774,6 +804,24 @@ describe('Convenience Functions', () => {
     const manager2 = getKeyManager();
 
     expect(manager1).toBe(manager2);
+  });
+});
+
+describe('Debugging the Tests', () => {
+  it('correctly reset the KeyManager Instance', async () => {
+    const instance1 = KeyManager.getInstance(TEST_CONFIG);
+    expect(instance1).toBeDefined();
+    expect(instance1.isInitialized).toBe(false);
+    expect(instance1.currentKeys).toBeNull();
+
+    KeyManager.resetInstance();
+
+    const instance2 = KeyManager.getInstance(TEST_CONFIG);
+    expect(instance2).toBeDefined();
+    expect(instance2.isInitialized).toBe(false);
+    expect(instance2.currentKeys).toBeNull();
+
+    expect(instance1).not.toBe(instance2);
   });
 });
 

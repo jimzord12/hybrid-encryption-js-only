@@ -11,7 +11,7 @@ export async function directoryExists(path: string): Promise<boolean> {
   }
 }
 
-export async function getDirectoryPermissions(dirPath: string): Promise<Object> {
+export async function getDirectoryPermissions(dirPath: string) {
   try {
     const stats = await fs.stat(dirPath);
 
