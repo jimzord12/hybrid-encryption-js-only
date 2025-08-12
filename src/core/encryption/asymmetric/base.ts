@@ -38,6 +38,6 @@ export abstract class AsymmetricAlgorithm {
    * @returns Algorithm identifier
    */
   getAlgorithmId(): string {
-    return `${this.name}-${this.version}`;
+    return `${this.name}@${this.version}`;
   }
 }

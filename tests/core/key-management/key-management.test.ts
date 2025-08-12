@@ -3,8 +3,7 @@
 // File: tests/core/key-management.test.ts
 
 import fs from 'fs/promises';
-import path, { dirname } from 'path';
-import { fileURLToPath } from 'url';
+import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   KeyManager,
@@ -14,28 +13,31 @@ import {
   healthCheck,
   initializeKeyManagement,
 } from '../../../src/core/key-rotation';
-import { KeyManagerConfig } from '../../../src/core/types/key-rotation.types';
 import { waitFor } from '../../debug/async';
 import { getDirectoryPermissions } from '../../debug/filesystem';
-
-// Compute __dirname equivalent
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Test configuration
-const TEST_CERT_PATH = path.join(__dirname, 'test-certs');
-const TEST_CONFIG: KeyManagerConfig = {
-  certPath: TEST_CERT_PATH,
-  keySize: 2048,
-  keyExpiryMonths: 1,
-  autoGenerate: true,
-  enableFileBackup: true,
-  rotationGracePeriod: 0.05, // 3 seconds for testing
-};
+import { TEST_CERT_PATH, TEST_CONFIG, cleanTestDirectory } from './test-utils';
 
 console.log('TEST_CERT_PATH:', TEST_CERT_PATH);
 
 describe('KeyManager Core Tests', () => {
+  beforeEach(async () => {
+    // Reset singleton FIRST before cleanup
+    KeyManager.resetInstance();
+
+    // Clean test directory with explicit wait
+    await cleanTestDirectory();
+
+    // Add small delay to ensure filesystem operations complete
+    await waitFor(150);
+  });
+
+  afterEach(async () => {
+    KeyManager.resetInstance();
+
+    // Add small delay to ensure cleanup completes
+    await waitFor(150);
+  });
+
   describe('Singleton Pattern', () => {
     it('should return the same instance on multiple calls', () => {
       const instance1 = KeyManager.getInstance();
@@ -823,65 +825,4 @@ describe('Debugging the Tests', () => {
 
     expect(instance1).not.toBe(instance2);
   });
-});
-
-// Test utilities
-async function cleanTestDirectory(): Promise<void> {
-  try {
-    // More aggressive cleanup - ensure directory is completely removed
-    const exists = await fs
-      .access(TEST_CERT_PATH)
-      .then(() => true)
-      .catch(() => false);
-    if (exists) {
-      // On Windows, we need to fix permissions before deletion
-      if (process.platform === 'win32') {
-        try {
-          // Restore write permissions recursively
-          await fs.chmod(TEST_CERT_PATH, 0o755);
-
-          // Also fix permissions for all subdirectories and files
-          const fixPermissions = async (dirPath: string) => {
-            try {
-              const items = await fs.readdir(dirPath, { withFileTypes: true });
-              for (const item of items) {
-                const fullPath = path.join(dirPath, item.name);
-                if (item.isDirectory()) {
-                  await fs.chmod(fullPath, 0o755);
-                  await fixPermissions(fullPath); // Recursive
-                } else {
-                  await fs.chmod(fullPath, 0o644);
-                }
-              }
-            } catch {
-              // Ignore permission errors during cleanup
-            }
-          };
-
-          await fixPermissions(TEST_CERT_PATH);
-        } catch {
-          // Ignore permission errors
-        }
-      }
-
-      await fs.rm(TEST_CERT_PATH, { recursive: true, force: true });
-
-      // Wait a bit for filesystem to catch up
-      let attempts = 0;
-      while (attempts < 10) {
-        try {
-          await fs.access(TEST_CERT_PATH);
-          await new Promise(resolve => setTimeout(resolve, 5));
-          attempts++;
-        } catch {
-          break; // Directory successfully removed
-        }
-      }
-    }
-  } catch {
-    // Ignore errors - directory might not exist
-  }
-}
-
-// Export test utilities for integration tests
-export { TEST_CERT_PATH, TEST_CONFIG, cleanTestDirectory };
+}); // End of KeyManager Core Tests
