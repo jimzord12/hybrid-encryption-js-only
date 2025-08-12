@@ -1,5 +1,7 @@
 # Run lint-staged for code quality checks
+echo "🔍 Running code quality checks on staged files..."
 npx lint-staged
 
-# Run tests to ensure nothing is broken
-npm run test:run
+# Quick quality check (errors only) to catch critical issues
+echo "⚡ Running fast quality check..."
+npm run quality-check

@@ -1,0 +1,7 @@
+# Run the full test suite before pushing
+echo "🧪 Running full test suite before push..."
+npm run test:run
+
+# Optional: Run a build check to ensure TypeScript compiles
+echo "🔨 Checking TypeScript compilation..."
+npm run build

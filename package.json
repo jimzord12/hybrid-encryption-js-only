@@ -15,8 +15,11 @@
     "clean": "rm -rf dist",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint:errors": "eslint . --ext .ts,.tsx --quiet",
+    "type-check": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "quality-check": "npm run lint:errors && npm run type-check",
     "prepare": "husky",
     "pre-commit": "lint-staged"
   },
