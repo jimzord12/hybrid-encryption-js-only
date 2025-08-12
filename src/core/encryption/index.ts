@@ -189,6 +189,7 @@ export class HybridEncryption {
 
       return JSON.stringify(testData) === JSON.stringify(decrypted);
     } catch (error) {
+      console.log('🔒 Key pair validation failed: ', error);
       return false;
     }
   }

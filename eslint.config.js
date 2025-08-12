@@ -35,7 +35,7 @@ export default [
     rules: {
       // TypeScript specific rules
       '@typescript-eslint/no-unused-vars': [
-        'warn', // Changed from 'error' to 'warn'
+        'error',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_|^error$', // Allow unused 'error' variables

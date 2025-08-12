@@ -519,7 +519,7 @@ export class KeyManager {
         return;
       }
     } catch (error) {
-      console.log('📂 No existing keys found, will generate new ones');
+      console.log('📂 No existing keys found, will generate new ones | ', error);
     }
 
     // Generate new keys if none found or auto-generate is enabled
@@ -613,7 +613,7 @@ export class KeyManager {
       console.log('3. Loaded key pair (version):', keyPair.version);
       return keyPair;
     } catch (error) {
-      console.log('⚠️ Failed to load keys from filesystem');
+      console.log('⚠️ Failed to load keys from filesystem | ', error);
       return null;
     }
   }

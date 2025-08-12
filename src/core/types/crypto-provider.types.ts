@@ -18,7 +18,7 @@ export interface KeyGenerationConfig {
   keySize?: number;
   curve?: string; // For ECC (e.g., 'P-256', 'P-384', 'P-521')
   expiryMonths?: number;
-  [key: string]: any;
+  // [key: string]: any;
 }
 
 export interface SerializedKeyMetadata {

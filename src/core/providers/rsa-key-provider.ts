@@ -65,6 +65,7 @@ export class RSAKeyProvider implements KeyProvider {
 
       return HybridEncryption.validateKeyPair(rsaKeyPair);
     } catch (error) {
+      console.log(error);
       return false;
     }
   }
