@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { KeyManager } from '../src/core/key-rotation';
-import { KeyProviderFactory } from '../src/core/providers';
+import { KeyManager } from '../../src/core/key-rotation';
+import { KeyProviderFactory } from '../../src/core/providers';
 
 async function demonstrateStrategyPattern() {
   console.log('🎯 Strategy Pattern Demonstration for KeyManager\n');
