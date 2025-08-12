@@ -10,13 +10,15 @@ describe('MLKEMAlgorithm', () => {
 
   describe('Algorithm Properties', () => {
     it('should have correct algorithm identifier', () => {
-      expect(algorithm.getAlgorithmId()).toBe('ML-KEM-768@1.0.0');
+      expect(algorithm.getAlgorithmId()).toBe('ML-KEM-768');
     });
 
     it('should have correct algorithm version', () => {
-      const [name, version] = algorithm.getAlgorithmId().split('@');
-      expect(name).toBe('ML-KEM-768');
-      expect(version).toBe('1.0.0');
+      const lastHyphenIdx = algorithm.getAlgorithmId().lastIndexOf('-');
+      const name = algorithm.getAlgorithmId().slice(0, lastHyphenIdx);
+      const version = algorithm.getAlgorithmId().slice(lastHyphenIdx + 1);
+      expect(name).toBe('ML-KEM');
+      expect(version).toBe('768');
     });
   });
 

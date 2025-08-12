@@ -12,7 +12,7 @@ import {
   getPublicKey,
   healthCheck,
   initializeKeyManagement,
-} from '../../../src/core/key-rotation';
+} from '../../../src/core/key-management';
 import { waitFor } from '../../debug/async';
 import { getDirectoryPermissions } from '../../debug/filesystem';
 import { TEST_CERT_PATH, TEST_CONFIG, cleanTestDirectory } from './test-utils';

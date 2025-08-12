@@ -12,7 +12,7 @@ export {
   healthCheck,
   initializeKeyManagement,
   KeyManager,
-} from './key-rotation';
+} from './key-management/index.js';
 
 // Export provider system for extensibility
 export { KeyProviderFactory, RSAKeyProvider } from './providers';

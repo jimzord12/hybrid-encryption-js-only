@@ -5,7 +5,7 @@
 export abstract class AsymmetricAlgorithm {
   constructor(
     protected readonly name: string,
-    protected readonly version: string,
+    protected readonly type: string,
   ) {}
 
   /**
@@ -38,6 +38,6 @@ export abstract class AsymmetricAlgorithm {
    * @returns Algorithm identifier
    */
   getAlgorithmId(): string {
-    return `${this.name}@${this.version}`;
+    return `${this.name}-${this.type}`;
   }
 }

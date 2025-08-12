@@ -6,7 +6,7 @@ import { AsymmetricAlgorithm } from '../../base';
  */
 export class MLKEMAlgorithm extends AsymmetricAlgorithm {
   constructor() {
-    super('ML-KEM-768', '1.0.0');
+    super('ML-KEM', '768');
   }
 
   generateKeyPair() {

@@ -22,8 +22,14 @@ class MockAsymmetricAlgorithm extends AsymmetricAlgorithm {
     };
   }
 
-  recoverSharedSecret(keyMaterial: Uint8Array, _privateKey: Uint8Array) {
-    return keyMaterial;
+  recoverSharedSecret(_keyMaterial: Uint8Array, _privateKey: Uint8Array) {
+    // In a real KEM, this would derive the same shared secret from the key material
+    // For mock, we simulate this by returning the expected shared secret
+    // Special handling for edge cases (empty key material should return empty)
+    if (_keyMaterial.length === 0) {
+      return _keyMaterial;
+    }
+    return new Uint8Array([9, 10, 11, 12]);
   }
 }
 

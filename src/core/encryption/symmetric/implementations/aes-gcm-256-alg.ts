@@ -38,6 +38,16 @@ export class AES256GCMAlgorithm extends SymmetricAlgorithm {
    * @returns Encrypted data with authentication tag
    */
   encrypt(data: Uint8Array, keyMaterial: KeyMaterial): SymmetricEncryptionResult {
+    // Validate key size for AES-256
+    if (keyMaterial.key.length !== 32) {
+      throw new Error(`AES-256-GCM requires a 32-byte key, got ${keyMaterial.key.length} bytes`);
+    }
+
+    // Validate nonce size for GCM
+    if (keyMaterial.nonce.length !== 12) {
+      throw new Error(`AES-GCM requires a 12-byte nonce, got ${keyMaterial.nonce.length} bytes`);
+    }
+
     try {
       const cipher = gcm(keyMaterial.key, keyMaterial.nonce);
       const encryptedData = cipher.encrypt(data);
@@ -62,6 +72,16 @@ export class AES256GCMAlgorithm extends SymmetricAlgorithm {
    * @returns Decrypted plaintext data
    */
   decrypt(encryptedData: Uint8Array, keyMaterial: KeyMaterial, _authData?: Uint8Array): Uint8Array {
+    // Validate key size for AES-256
+    if (keyMaterial.key.length !== 32) {
+      throw new Error(`AES-256-GCM requires a 32-byte key, got ${keyMaterial.key.length} bytes`);
+    }
+
+    // Validate nonce size for GCM
+    if (keyMaterial.nonce.length !== 12) {
+      throw new Error(`AES-GCM requires a 12-byte nonce, got ${keyMaterial.nonce.length} bytes`);
+    }
+
     try {
       const cipher = gcm(keyMaterial.key, keyMaterial.nonce);
       return cipher.decrypt(encryptedData);

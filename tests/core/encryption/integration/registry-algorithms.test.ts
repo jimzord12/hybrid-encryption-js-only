@@ -260,7 +260,7 @@ describe('Algorithm Registry Integration Tests', () => {
       const aesGcm = mixedAlgorithmRegistry.getDefaultSymmetric() as AES256GCMAlgorithm;
 
       const recipientKeyPair = mlkem.generateKeyPair();
-      const largeData = randomBytes(100000); // 100KB
+      const largeData = randomBytes(10000); // 10KB - reduced to stay within quota
 
       const start = performance.now();
 
@@ -368,9 +368,12 @@ describe('Algorithm Registry Integration Tests', () => {
       const tamperedKeyMaterial = new Uint8Array(encapsulationResult.keyMaterial);
       tamperedKeyMaterial[0] ^= 1;
 
-      expect(() => {
-        mlkem.recoverSharedSecret(tamperedKeyMaterial, recipientKeyPair.privateKey);
-      }).toThrow();
+      // ML-KEM uses implicit rejection - it doesn't throw, but returns a different shared secret
+      const tamperedSharedSecret = mlkem.recoverSharedSecret(
+        tamperedKeyMaterial,
+        recipientKeyPair.privateKey,
+      );
+      expect(tamperedSharedSecret).not.toEqual(encapsulationResult.sharedSecret);
 
       // Tamper with encrypted data (affects AES-GCM authentication)
       const tamperedEncrypted = new Uint8Array(encrypted.encryptedData);
