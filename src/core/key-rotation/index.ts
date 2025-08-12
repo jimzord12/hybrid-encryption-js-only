@@ -140,7 +140,7 @@ export class KeyManager {
       console.log('✅ KeyManager initialized successfully');
     } catch (error) {
       throw new Error(
-        `KeyManager initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `KeyManager initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -297,7 +297,7 @@ export class KeyManager {
         () => {
           this.cleanupRotationState();
         },
-        this.config.rotationGracePeriod * 60 * 1000
+        this.config.rotationGracePeriod * 60 * 1000,
       );
     } catch (error) {
       console.error('❌ Key rotation failed:', error);
@@ -305,7 +305,7 @@ export class KeyManager {
       this.rotationState.rotationPromise = null;
       this.rotationState.newKeys = null;
       throw new Error(
-        `Key rotation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Key rotation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -428,7 +428,7 @@ export class KeyManager {
     const thisMonth = now.getMonth();
 
     const rotationsThisYear = history.rotations.filter(
-      r => new Date(r.createdAt).getFullYear() === thisYear
+      r => new Date(r.createdAt).getFullYear() === thisYear,
     ).length;
 
     const rotationsThisMonth = history.rotations.filter(r => {
@@ -467,7 +467,7 @@ export class KeyManager {
       await fs.mkdir(this.config.certPath, { recursive: true });
     } catch (error) {
       throw new Error(
-        `Failed to create cert directory: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to create cert directory: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -528,7 +528,7 @@ export class KeyManager {
 
       console.log(
         'Checking Directory Write Permissions:',
-        await fs.access(this.config.certPath, fs.constants.W_OK) // undefined
+        await fs.access(this.config.certPath, fs.constants.W_OK), // undefined
       );
 
       // Get next version number
@@ -656,7 +656,7 @@ export class KeyManager {
     } catch (error) {
       console.log('❌ Failed to save keys to filesystem:', error);
       throw new Error(
-        `Failed to save keys: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to save keys: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -747,7 +747,7 @@ export class KeyManager {
     // Validate rotation grace period
     if (this.config.rotationGracePeriod < 0) {
       errors.push(
-        `Rotation grace period cannot be negative (got ${this.config.rotationGracePeriod})`
+        `Rotation grace period cannot be negative (got ${this.config.rotationGracePeriod})`,
       );
     }
 
@@ -823,7 +823,7 @@ export class KeyManager {
       return result;
     } catch (error) {
       result.errors.push(
-        `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       console.log('❌ Key validation failed:', result.errors);
       return result;

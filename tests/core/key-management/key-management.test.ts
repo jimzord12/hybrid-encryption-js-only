@@ -100,7 +100,7 @@ describe('KeyManager Core Tests', () => {
       const manager = KeyManager.getInstance(config);
 
       await expect(manager.initialize()).rejects.toThrow(
-        'No keys found and auto-generation is disabled'
+        'No keys found and auto-generation is disabled',
       );
     });
 
@@ -160,7 +160,7 @@ describe('KeyManager Core Tests', () => {
 
         // Optionally check if file is accessible
         await expect(
-          fs.access(privateKeyPath, fs.constants.R_OK | fs.constants.W_OK)
+          fs.access(privateKeyPath, fs.constants.R_OK | fs.constants.W_OK),
         ).resolves.not.toThrow();
       } else {
         // On Unix-like systems (Linux, macOS), check octal permissions
@@ -193,7 +193,7 @@ describe('KeyManager Core Tests', () => {
       await fs.writeFile(path.join(TEST_CERT_PATH, 'priv-key.pem'), 'invalid-private-key');
       await fs.writeFile(
         path.join(TEST_CERT_PATH, 'key-metadata.json'),
-        JSON.stringify(invalidMetadata)
+        JSON.stringify(invalidMetadata),
       );
 
       const manager = KeyManager.getInstance({ ...TEST_CONFIG, autoGenerate: false });
@@ -216,7 +216,7 @@ describe('KeyManager Core Tests', () => {
       await fs.writeFile(path.join(TEST_CERT_PATH, 'priv-key.pem'), 'invalid-private-key');
       await fs.writeFile(
         path.join(TEST_CERT_PATH, 'key-metadata.json'),
-        JSON.stringify(invalidMetadata)
+        JSON.stringify(invalidMetadata),
       );
 
       const manager = KeyManager.getInstance(TEST_CONFIG);
@@ -227,7 +227,7 @@ describe('KeyManager Core Tests', () => {
 
       // Check that the specific message was logged to stdout
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '⚠️ Missing metadata properties, generating new keys'
+        '⚠️ Missing metadata properties, generating new keys',
       );
     });
 
@@ -240,7 +240,7 @@ describe('KeyManager Core Tests', () => {
       const manager = KeyManager.getInstance({ ...TEST_CONFIG, autoGenerate: false });
 
       await expect(manager.initialize()).rejects.toThrow(
-        'No keys found and auto-generation is disabled'
+        'No keys found and auto-generation is disabled',
       );
     });
 

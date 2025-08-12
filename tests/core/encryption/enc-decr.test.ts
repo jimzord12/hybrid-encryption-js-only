@@ -55,20 +55,20 @@ describe('Core Tests | Encryption/Decryption', () => {
     it('should handle null and undefined', () => {
       // Encryption
       expect(() => encrypt(null, testKeyPair.publicKey)).toThrowError(
-        'Invalid data: Data must be a non-null object'
+        'Invalid data: Data must be a non-null object',
       );
       expect(() => encrypt(undefined, testKeyPair.publicKey)).toThrowError(
-        'Invalid data: Data must be a non-null object'
+        'Invalid data: Data must be a non-null object',
       );
 
       // Decryption
       //@ts-ignore
       expect(() => decrypt(null, testKeyPair.privateKey)).toThrowError(
-        'Encrypted data is required for decryption'
+        'Encrypted data is required for decryption',
       );
       //@ts-ignore
       expect(() => decrypt(undefined, testKeyPair.privateKey)).toThrowError(
-        'Encrypted data is required for decryption'
+        'Encrypted data is required for decryption',
       );
     });
   });
@@ -145,7 +145,7 @@ describe('Core Tests | Encryption/Decryption', () => {
       // Should decrypt with matching padding
       expect(decrypt(encryptedOAEP, testKeyPair.privateKey, { rsaPadding: 'OAEP' })).toEqual(data);
       expect(decrypt(encryptedPKCS1, testKeyPair.privateKey, { rsaPadding: 'PKCS1' })).toEqual(
-        data
+        data,
       );
     });
 

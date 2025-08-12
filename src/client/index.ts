@@ -7,7 +7,7 @@ import { EncryptedData, EncryptionOptions, RSAKeyPair } from '../types/core.type
 export const encrypt = (
   data: any,
   publicKeyPem: string,
-  options?: EncryptionOptions
+  options?: EncryptionOptions,
 ): EncryptedData => {
   return HybridEncryption.encrypt(data, publicKeyPem, options);
 };
@@ -18,7 +18,7 @@ export const encrypt = (
 export const decrypt = <T = any>(
   encryptedData: EncryptedData,
   privateKeyPem: string,
-  options?: EncryptionOptions
+  options?: EncryptionOptions,
 ): T => {
   return HybridEncryption.decrypt<T>(encryptedData, privateKeyPem, options);
 };

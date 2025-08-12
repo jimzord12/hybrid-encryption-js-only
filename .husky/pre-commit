@@ -1,0 +1,5 @@
+# Run lint-staged for code quality checks
+npx lint-staged
+
+# Run tests to ensure nothing is broken
+npm run test:run

@@ -1,6 +1,2 @@
 Failing Tests Summary
 ===================
-
-1. should handle corrupted key files (When solo it passes)
-3. should validate configuration values (When solo it passes)
-4. should detect unhealthy states (When solo it passes)

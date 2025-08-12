@@ -58,7 +58,7 @@ export class HybridEncryption {
       const paddingScheme = opts.rsaPadding === 'OAEP' ? forgePadding.OAEP : forgePadding.PKCS1;
       const encryptedAESKey = publicKey.encrypt(
         forge.util.binary.raw.encode(aesKey),
-        paddingScheme as ForgePaddingType
+        paddingScheme as ForgePaddingType,
       );
 
       // Step 5: Return encrypted data structure
@@ -71,7 +71,7 @@ export class HybridEncryption {
       };
     } catch (error) {
       throw new Error(
-        `Encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -86,7 +86,7 @@ export class HybridEncryption {
   static decrypt<T = any>(
     encryptedData: EncryptedData,
     privateKeyPem: string,
-    options: EncryptionOptions = {}
+    options: EncryptionOptions = {},
   ): T {
     if (!privateKeyPem) {
       throw new Error('Private key is required for decryption');
@@ -130,7 +130,7 @@ export class HybridEncryption {
       return JSON.parse(jsonString) as T;
     } catch (error) {
       throw new Error(
-        `Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -145,7 +145,7 @@ export class HybridEncryption {
   static decryptWithMultipleKeys<T = any>(
     encryptedData: EncryptedData,
     privateKeys: string[],
-    options: EncryptionOptions = {}
+    options: EncryptionOptions = {},
   ): T {
     if (!privateKeys || privateKeys.length === 0) {
       throw new Error('At least one private key is required for decryption');
@@ -171,7 +171,7 @@ export class HybridEncryption {
     }
 
     throw new Error(
-      `Decryption failed with all ${privateKeys.length} available keys. Last error: ${lastError ? lastError.message : 'Unknown error'}`
+      `Decryption failed with all ${privateKeys.length} available keys. Last error: ${lastError ? lastError.message : 'Unknown error'}`,
     );
   }
 

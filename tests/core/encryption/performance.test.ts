@@ -83,7 +83,7 @@ describe('Core Tests | Performance', () => {
             const decrypted = decrypt(encrypted, testKeyPair.privateKey);
             expect(decrypted.id).toBe(i);
             resolve();
-          })
+          }),
       );
 
       // All should complete successfully

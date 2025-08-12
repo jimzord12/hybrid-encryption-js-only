@@ -2,7 +2,9 @@
 
 ## Overview
 
-The KeyManager has been successfully refactored to use the **Strategy Pattern**, making it algorithm-agnostic and easily extensible for different cryptographic schemes like RSA, ECC, Ed25519, etc.
+The KeyManager has been successfully refactored to use the **Strategy Pattern**,
+making it algorithm-agnostic and easily extensible for different cryptographic
+schemes like RSA, ECC, Ed25519, etc.
 
 ## Architecture
 
@@ -51,7 +53,8 @@ class KeyManager {
 
 ### 2. Strategy Implementation
 
-- **`RSAKeyProvider`**: Maintains backward compatibility with existing RSA implementation
+- **`RSAKeyProvider`**: Maintains backward compatibility with existing RSA
+  implementation
 - **`KeyProviderFactory`**: Creates appropriate providers based on algorithm
 
 ### 3. Algorithm Support
@@ -231,4 +234,7 @@ interface CryptoKeyPair {
 
 ## Conclusion
 
-The Strategy Pattern implementation successfully decouples the KeyManager from specific cryptographic implementations while maintaining full backward compatibility. This architecture is now ready for future cryptographic algorithm support without requiring changes to the core key management logic.
+The Strategy Pattern implementation successfully decouples the KeyManager from
+specific cryptographic implementations while maintaining full backward
+compatibility. This architecture is now ready for future cryptographic algorithm
+support without requiring changes to the core key management logic.

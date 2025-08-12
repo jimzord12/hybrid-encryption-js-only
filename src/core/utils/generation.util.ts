@@ -40,7 +40,7 @@ export function generateRSAKeyPair(keySize: number = 2048): RSAKeyPair {
   } catch (error) {
     console.log('Error generating RSA key pair:', error);
     throw new Error(
-      `Key generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Key generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
   }
 }

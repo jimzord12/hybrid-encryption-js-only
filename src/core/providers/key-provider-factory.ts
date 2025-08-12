@@ -18,12 +18,12 @@ export class KeyProviderFactory {
    */
   static createProvider(algorithm: SupportedAlgorithms): KeyProvider {
     const providerFactory = this.providers.get(
-      algorithm.toLocaleLowerCase() as SupportedAlgorithms
+      algorithm.toLocaleLowerCase() as SupportedAlgorithms,
     );
 
     if (!providerFactory) {
       throw new Error(
-        `Unsupported algorithm: ${algorithm}. Supported algorithms: ${Array.from(this.providers.keys()).join(', ')}`
+        `Unsupported algorithm: ${algorithm}. Supported algorithms: ${Array.from(this.providers.keys()).join(', ')}`,
       );
     }
 
