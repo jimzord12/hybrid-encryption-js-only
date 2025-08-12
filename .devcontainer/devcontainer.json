@@ -13,7 +13,8 @@
         "ms-vscode.vscode-typescript-next",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
-        "rvest.vs-code-prettier-eslint"
+        "rvest.vs-code-prettier-eslint",
+        "vitest.explorer"
       ]
     }
   },
