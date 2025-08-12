@@ -79,29 +79,45 @@ implemented for the hybrid encryption TypeScript library.
 
 ## 🚀 How It Works
 
-### Pre-commit Workflow
+### Pre-commit Workflow (Fast - ~10 seconds)
 
 1. **Developer runs** `git commit`
 2. **Husky triggers** the pre-commit hook
 3. **lint-staged identifies** staged files
 4. **ESLint runs** on TypeScript files with auto-fix
 5. **Prettier formats** all relevant files
-6. **Full test suite** executes (313 tests)
-7. **Commit proceeds** only if all checks pass
-8. **Commit blocked** if any step fails
+6. **Quality check** runs (TypeScript errors + ESLint errors only)
+7. **Commit proceeds** if no critical errors found
+8. **Commit blocked** if ESLint errors or TypeScript errors exist
+
+### Pre-push Workflow (Comprehensive - ~3-5 minutes)
+
+1. **Developer runs** `git push`
+2. **Husky triggers** the pre-push hook
+3. **Full test suite** executes (313 tests)
+4. **TypeScript compilation** check runs
+5. **Push proceeds** only if all tests pass and code compiles
+6. **Push blocked** if any tests fail or compilation errors exist
 
 ### Development Workflow
 
 ```bash
-# Check code quality manually
-npm run lint                 # Check for linting issues
-npm run lint:fix            # Fix auto-fixable issues
-npm run format              # Format all files
-npm run format:check        # Check if files are properly formatted
-
-# Normal development
+# Fast development cycle - commit frequently
 git add .                   # Stage files
-git commit -m "message"     # Triggers automatic quality checks
+git commit -m "message"     # ⚡ Fast quality checks (~10 seconds)
+git commit -m "another"     # ⚡ Keep working quickly
+git commit -m "more work"   # ⚡ No waiting!
+
+# Comprehensive validation before sharing
+git push origin main        # 🧪 Full test suite (~3-5 minutes)
+
+# Manual quality checks
+npm run quality-check       # Fast error-only check (~5 seconds)
+npm run lint               # Full lint with warnings
+npm run lint:fix           # Fix auto-fixable issues
+npm run format             # Format all files
+npm run test:run           # Full test suite (~3 minutes)
+npm run build              # TypeScript compilation check
 ```
 
 ## ✅ Quality Standards Enforced
