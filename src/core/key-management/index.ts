@@ -4,6 +4,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { createAppropriateError } from '../errors/modern-encryption.errors.js';
 import { KeyProviderFactory } from '../providers';
 import {
   CryptoKeyPair,
@@ -166,20 +167,26 @@ export class KeyManager {
       // Validate current keys
       const validation = await this.validateCurrentKeys();
       if (!validation.isValid) {
-        throw new Error(`Key validation failed: ${validation.errors.join(', ')}`);
+        throw createAppropriateError(`Key validation failed: ${validation.errors.join(', ')}`, {
+          errorType: 'keymanager',
+          operation: 'initialization',
+          algorithm: this.config.algorithm,
+          cause: new Error('Key validation failed'),
+        });
       }
 
       this.isInitialized = true;
       console.log('✅ KeyManager initialized successfully');
     } catch (error) {
-      const initError = new Error(
+      const initError = createAppropriateError(
         `KeyManager initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          errorType: 'keymanager',
+          operation: 'initialization',
+          algorithm: this.config.algorithm,
+          cause: error instanceof Error ? error : new Error('Unknown initialization error'),
+        },
       );
-
-      // Preserve original error stack trace if available
-      if (error instanceof Error && error.stack) {
-        initError.stack = `${initError.stack}\nCaused by: ${error.stack}`;
-      }
 
       throw initError;
     }
@@ -203,7 +210,12 @@ export class KeyManager {
     }
 
     if (!this.currentKeys) {
-      throw new Error('No valid keys available after rotation attempt');
+      throw createAppropriateError('No valid keys available after rotation attempt', {
+        errorType: 'keymanager',
+        operation: 'retrieval',
+        algorithm: this.config.algorithm,
+        rotationState: this.rotationState.isRotating ? 'rotating' : 'idle',
+      });
     }
 
     return this.currentKeys;
@@ -236,7 +248,12 @@ export class KeyManager {
    */
   public async getPrivateKey(): Promise<Uint8Array> {
     const keys = await this.ensureValidKeys();
-    return keys.privateKey;
+    // Handle both ML-KEM (secretKey) and RSA/ECC (privateKey) formats
+    const privateKey = keys.secretKey || keys.privateKey;
+    if (!privateKey) {
+      throw new Error('No private/secret key found in key pair');
+    }
+    return privateKey;
   }
 
   /**
@@ -324,7 +341,12 @@ export class KeyManager {
 
       // Validate new keys using the key provider
       if (!this.keyProvider.validateKeyPair(newKeys)) {
-        throw new Error('Generated invalid key pair');
+        throw createAppropriateError('Generated invalid key pair', {
+          errorType: 'keymanager',
+          operation: 'rotation',
+          algorithm: this.config.algorithm,
+          keyVersion: this.currentKeys?.version,
+        });
       }
 
       // Set rotation state only after keys are generated and validated
@@ -368,16 +390,17 @@ export class KeyManager {
       this.rotationState.rotationStartTime = null;
       this.rotationState.newKeys = null;
 
-      const rotationError = new Error(
+      throw createAppropriateError(
         `Key rotation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          errorType: 'keymanager',
+          operation: 'rotation',
+          algorithm: this.config.algorithm,
+          keyVersion: this.currentKeys?.version,
+          rotationState: 'failed',
+          cause: error instanceof Error ? error : new Error('Unknown rotation error'),
+        },
       );
-
-      // Preserve original error stack trace if available
-      if (error instanceof Error && error.stack) {
-        rotationError.stack = `${rotationError.stack}\nCaused by: ${error.stack}`;
-      }
-
-      throw rotationError;
     }
   }
 
@@ -575,16 +598,16 @@ export class KeyManager {
       // Create directory if it doesn't exist
       await fs.mkdir(this.config.certPath, { recursive: true });
     } catch (error) {
-      const certError = new Error(
+      throw createAppropriateError(
         `Failed to create cert directory: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          errorType: 'keymanager',
+          operation: 'storage',
+          filePath: this.config.certPath,
+          algorithm: this.config.algorithm,
+          cause: error instanceof Error ? error : new Error('Directory creation failed'),
+        },
       );
-
-      // Preserve original error stack trace if available
-      if (error instanceof Error && error.stack) {
-        certError.stack = `${certError.stack}\nCaused by: ${error.stack}`;
-      }
-
-      throw certError;
     }
   }
 
@@ -597,9 +620,17 @@ export class KeyManager {
       const loadedKeys = await this.loadKeysFromFile();
 
       if (loadedKeys) {
+        // Handle both key formats during conversion
+        const loadedKeysWithBothFormats = loadedKeys as CryptoKeyPair & { secretKey?: Uint8Array };
+        const privateKeyData = loadedKeysWithBothFormats.secretKey || loadedKeys.privateKey;
+
+        if (!privateKeyData) {
+          throw new Error('Loaded keys missing both secretKey and privateKey data');
+        }
+
         const convertedKeys: CryptoKeyPair = {
           publicKey: loadedKeys.publicKey,
-          privateKey: loadedKeys.privateKey,
+          secretKey: privateKeyData, // Use secretKey for ML-KEM compatibility
           algorithm: this.config.algorithm,
         };
 
@@ -672,7 +703,11 @@ export class KeyManager {
 
       console.log(`✅ Generated and saved new key pair (version ${nextVersion})`);
     } else {
-      throw new Error('No keys found and auto-generation is disabled');
+      throw createAppropriateError('No keys found and auto-generation is disabled', {
+        errorType: 'keymanager',
+        operation: 'initialization',
+        algorithm: this.config.algorithm,
+      });
     }
   }
 
@@ -723,7 +758,7 @@ export class KeyManager {
 
       const keyPair: CryptoKeyPair = {
         publicKey: new Uint8Array(publicKeyBinary),
-        privateKey: new Uint8Array(privateKeyBinary),
+        secretKey: new Uint8Array(privateKeyBinary), // Use secretKey for ML-KEM compatibility
         algorithm: metadata.algorithm,
         version: metadata.version || 1,
         keySize: metadata.keySize || this.config.keySize,
@@ -735,6 +770,11 @@ export class KeyManager {
         algorithm: keyPair.algorithm,
         version: keyPair.version,
         keySize: keyPair.keySize,
+        allProperties: Object.keys(keyPair),
+        publicKeyType: typeof keyPair.publicKey,
+        publicKeyLength: keyPair.publicKey?.length,
+        secretKeyType: typeof (keyPair as any).secretKey,
+        secretKeyLength: (keyPair as any).secretKey?.length,
       });
 
       return keyPair;
@@ -754,15 +794,23 @@ export class KeyManager {
     const metadataPath = path.join(this.config.certPath, 'key-metadata.json');
 
     try {
-      // Handle both formats during transition
+      // Handle both key formats (secretKey for ML-KEM, privateKey for RSA/ECC)
       const publicKeyData =
-        keyPair.publicKey instanceof Uint8Array
-          ? keyPair.publicKey
-          : BufferUtils.stringToBinary(JSON.stringify(keyPair.publicKey));
+        keyPair.publicKey instanceof Uint8Array ? keyPair.publicKey : new Uint8Array(); // This shouldn't happen with modern keys
+
+      // Type assertion to access both possible key formats
+      const keyPairWithBothFormats = keyPair as CryptoKeyPair & { secretKey?: Uint8Array };
       const privateKeyData =
-        keyPair.privateKey instanceof Uint8Array
-          ? keyPair.privateKey
-          : BufferUtils.stringToBinary(JSON.stringify(keyPair.privateKey));
+        keyPairWithBothFormats.secretKey instanceof Uint8Array
+          ? keyPairWithBothFormats.secretKey
+          : keyPair.privateKey instanceof Uint8Array
+            ? keyPair.privateKey
+            : new Uint8Array();
+
+      // Validate that we have proper binary keys
+      if (publicKeyData.length === 0 || privateKeyData.length === 0) {
+        throw new Error('Invalid key data: Keys must be Uint8Array with non-zero length');
+      }
 
       // Create metadata with key information
       const metadata: KeyMetadata = {
@@ -798,16 +846,17 @@ export class KeyManager {
       console.log('✅ Successfully saved binary keys to filesystem');
     } catch (error) {
       console.log('❌ Failed to save keys to filesystem:', error);
-      const saveError = new Error(
+      throw createAppropriateError(
         `Failed to save binary keys: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          errorType: 'keymanager',
+          operation: 'storage',
+          algorithm: this.config.algorithm,
+          filePath: this.config.certPath,
+          keyVersion: 'version' in keyPair && keyPair.version ? keyPair.version : 1,
+          cause: error instanceof Error ? error : new Error('Key save operation failed'),
+        },
       );
-
-      // Preserve original error stack trace if available
-      if (error instanceof Error && error.stack) {
-        saveError.stack = `${saveError.stack}\nCaused by: ${error.stack}`;
-      }
-
-      throw saveError;
     }
   }
 
@@ -833,9 +882,17 @@ export class KeyManager {
       const backupPublicPath = path.join(backupDir, `pub-key-expired-${timestamp}.pem`);
       const backupPrivatePath = path.join(backupDir, `priv-key-expired-${timestamp}.pem`);
 
+      // Handle both key formats for backup
+      const keyPairWithBothFormats = keyPair as CryptoKeyPair & { secretKey?: Uint8Array };
+      const privateKeyForBackup = keyPairWithBothFormats.secretKey || keyPair.privateKey;
+
+      if (!privateKeyForBackup) {
+        throw new Error('No private key data found for backup');
+      }
+
       await Promise.all([
-        fs.writeFile(backupPublicPath, keyPair.publicKey, 'utf8'),
-        fs.writeFile(backupPrivatePath, keyPair.privateKey, 'utf8'),
+        fs.writeFile(backupPublicPath, keyPair.publicKey),
+        fs.writeFile(backupPrivatePath, privateKeyForBackup),
       ]);
 
       await fs.chmod(backupPrivatePath, 0o600);
@@ -931,7 +988,12 @@ export class KeyManager {
     }
 
     if (errors.length > 0) {
-      throw new Error(`Invalid configuration: ${errors.join(', ')}`);
+      throw createAppropriateError(`Invalid configuration: ${errors.join(', ')}`, {
+        errorType: 'config',
+        algorithm: this.config.algorithm,
+        parameterName: 'configuration',
+        validValues: ['Valid algorithm, positive expiry months, valid cert path'],
+      });
     }
   }
 
@@ -963,7 +1025,20 @@ export class KeyManager {
         result.publicKeyValid = true;
       }
 
-      if (!this.currentKeys.privateKey || this.currentKeys.privateKey.length === 0) {
+      // Check for private key data (support both ML-KEM secretKey and RSA/ECC privateKey)
+      const keyPairWithBothFormats = this.currentKeys as CryptoKeyPair & { secretKey?: Uint8Array };
+      const privateKeyData = keyPairWithBothFormats.secretKey || this.currentKeys.privateKey;
+
+      console.log('🔍 Key validation debug:', {
+        hasSecretKey: !!keyPairWithBothFormats.secretKey,
+        secretKeyLength: keyPairWithBothFormats.secretKey?.length,
+        hasPrivateKey: !!this.currentKeys.privateKey,
+        privateKeyLength: this.currentKeys.privateKey?.length,
+        hasPrivateKeyData: !!privateKeyData,
+        privateKeyDataLength: privateKeyData?.length,
+      });
+
+      if (!privateKeyData || privateKeyData.length === 0) {
         result.errors.push('Invalid or empty private key data');
       } else {
         result.privateKeyValid = true;
@@ -1058,11 +1133,19 @@ export class KeyManager {
     } catch (error) {
       console.error('Health check failed with error:', error);
 
+      const healthError = createAppropriateError(
+        `Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          errorType: 'keymanager',
+          operation: 'validation',
+          algorithm: this.config.algorithm,
+          cause: error instanceof Error ? error : new Error('Health check failed'),
+        },
+      );
+
       return {
         healthy: false,
-        issues: [
-          `Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        ],
+        issues: [healthError.message],
       };
     }
   }

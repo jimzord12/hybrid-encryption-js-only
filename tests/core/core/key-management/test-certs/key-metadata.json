@@ -1,0 +1,9 @@
+{
+  "algorithm": "ml-kem-768",
+  "keySize": 768,
+  "created": "2025-08-13T16:05:39.401Z",
+  "lastRotation": "2025-08-13T16:05:39.401Z",
+  "version": 1,
+  "publicKeyPath": "/workspaces/hybrid-encryption-js-only/tests/core/core/key-management/test-certs/public-key.bin",
+  "privateKeyPath": "/workspaces/hybrid-encryption-js-only/tests/core/core/key-management/test-certs/private-key.bin"
+}

@@ -5,6 +5,7 @@ import {
   SerializedKeys,
   SupportedAlgorithms,
 } from '../types/crypto-provider.types';
+import { ml_kem768 } from '@noble/post-quantum/ml-kem';
 
 /**
  * ML-KEM (Kyber) Key Provider
@@ -17,25 +18,23 @@ export class MlKemKeyProvider implements KeyProvider {
    * Full post-quantum implementation will be added in later phases
    */
   generateKeyPair(config: KeyGenerationConfig): CryptoKeyPair {
-    // For now, generate binary keys using secure random data
-    // This maintains the binary format for Phase 3.1 testing
+    // Generate real ML-KEM key pair using the @noble/post-quantum library
     const keySize = config.keySize || 768;
-    const publicKeySize = keySize === 768 ? 1184 : 1568; // ML-KEM public key sizes
-    const privateKeySize = keySize === 768 ? 2400 : 3168; // ML-KEM private key sizes
-
-    // Generate random key material (placeholder for actual ML-KEM implementation)
-    const publicKey = new Uint8Array(publicKeySize);
-    const privateKey = new Uint8Array(privateKeySize);
-    crypto.getRandomValues(publicKey);
-    crypto.getRandomValues(privateKey);
+    
+    if (keySize !== 768) {
+      throw new Error(`ML-KEM key size ${keySize} not supported. Only 768-bit keys are currently implemented.`);
+    }
+    
+    // Generate a real ML-KEM-768 key pair
+    const nativeKeyPair = ml_kem768.keygen();
 
     const now = new Date();
     const expiryDate = new Date(now);
     expiryDate.setMonth(expiryDate.getMonth() + (config.expiryMonths || 1));
 
     return {
-      publicKey,
-      privateKey,
+      publicKey: nativeKeyPair.publicKey,
+      secretKey: nativeKeyPair.secretKey,
       algorithm: config.algorithm,
       keySize: keySize,
       version: 1,
@@ -48,12 +47,14 @@ export class MlKemKeyProvider implements KeyProvider {
    * Validate that a key pair is properly formatted
    */
   validateKeyPair(keyPair: CryptoKeyPair): boolean {
-    if (!keyPair.publicKey || !keyPair.privateKey) {
+    // Check for private key material (either secretKey or privateKey)
+    const privateKeyData = keyPair.secretKey || keyPair.privateKey;
+    if (!keyPair.publicKey || !privateKeyData) {
       return false;
     }
 
     // Check that keys are binary (Uint8Array)
-    if (!(keyPair.publicKey instanceof Uint8Array) || !(keyPair.privateKey instanceof Uint8Array)) {
+    if (!(keyPair.publicKey instanceof Uint8Array) || !(privateKeyData instanceof Uint8Array)) {
       return false;
     }
 
@@ -64,7 +65,7 @@ export class MlKemKeyProvider implements KeyProvider {
 
     return (
       keyPair.publicKey.length === expectedPublicSize &&
-      keyPair.privateKey.length === expectedPrivateSize
+      privateKeyData.length === expectedPrivateSize
     );
   }
 

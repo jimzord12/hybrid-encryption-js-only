@@ -292,6 +292,63 @@ export class AlgorithmConfigurationError extends Error {
 }
 
 /**
+ * Error for KeyManager operation failures
+ * Covers key rotation, key storage, initialization, and lifecycle management
+ */
+export class KeyManagerError extends Error {
+  public readonly timestamp: Date;
+  public readonly errorId: string;
+
+  constructor(
+    message: string,
+    public readonly operation:
+      | 'initialization'
+      | 'rotation'
+      | 'storage'
+      | 'validation'
+      | 'retrieval'
+      | 'backup'
+      | 'cleanup',
+    public readonly keyVersion?: number,
+    public readonly algorithm?: string,
+    public readonly filePath?: string,
+    public readonly rotationState?: string,
+    public readonly cause?: Error,
+  ) {
+    super(message);
+    this.name = 'KeyManagerError';
+    this.timestamp = new Date();
+    this.errorId = `km-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, KeyManagerError);
+    }
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      operation: this.operation,
+      keyVersion: this.keyVersion,
+      algorithm: this.algorithm,
+      filePath: this.filePath,
+      rotationState: this.rotationState,
+      timestamp: this.timestamp.toISOString(),
+      errorId: this.errorId,
+      stack: this.stack,
+      cause: this.cause
+        ? {
+            name: this.cause.name,
+            message: this.cause.message,
+            stack: this.cause.stack,
+          }
+        : undefined,
+    };
+  }
+}
+
+/**
  * Utility function to create appropriate error based on context
  * Helps choose the right error type for different scenarios
  */
@@ -300,7 +357,7 @@ export function createAppropriateError(
   context: {
     operation?: string;
     algorithm?: string;
-    errorType?: 'validation' | 'algorithm' | 'operation' | 'format' | 'config';
+    errorType?: 'validation' | 'algorithm' | 'operation' | 'format' | 'config' | 'keymanager';
     cause?: Error;
     [key: string]: any;
   },
@@ -351,6 +408,17 @@ export function createAppropriateError(
         additionalContext.parameterName,
         additionalContext.parameterValue,
         additionalContext.validValues,
+        cause,
+      );
+
+    case 'keymanager':
+      return new KeyManagerError(
+        message,
+        (additionalContext.operation as any) || 'initialization',
+        additionalContext.keyVersion,
+        algorithm,
+        additionalContext.filePath,
+        additionalContext.rotationState,
         cause,
       );
 

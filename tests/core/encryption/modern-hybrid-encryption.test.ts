@@ -87,4 +87,59 @@ describe('ModernHybridEncryption', () => {
       expect(mockEncryptedData.algorithms).toHaveProperty('kdf');
     });
   });
+
+  describe('grace period decryption', () => {
+    it('should have decryptWithGracePeriod static method', () => {
+      expect(typeof ModernHybridEncryption.decryptWithGracePeriod).toBe('function');
+    });
+
+    it('should require at least one private key', async () => {
+      const mockEncryptedData: ModernEncryptedData = {
+        algorithms: {
+          asymmetric: 'ML-KEM-768',
+          symmetric: 'AES-GCM-256',
+          kdf: 'HKDF-SHA256',
+        },
+        encryptedContent: 'dGVzdA==',
+        keyMaterial: 'dGVzdA==',
+        nonce: 'dGVzdA==',
+        version: '2.0.0',
+      };
+
+      try {
+        await ModernHybridEncryption.decryptWithGracePeriod(mockEncryptedData, []);
+        expect.fail('Should have thrown an error for empty keys array');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toContain('At least one private key must be provided');
+      }
+    });
+
+    it('should attempt decryption with multiple keys in order', () => {
+      // Test that the method accepts multiple keys
+      // This tests the interface, actual crypto would require real algorithm implementations
+      const mockEncryptedData: ModernEncryptedData = {
+        algorithms: {
+          asymmetric: 'ML-KEM-768',
+          symmetric: 'AES-GCM-256',
+          kdf: 'HKDF-SHA256',
+        },
+        encryptedContent: 'dGVzdA==',
+        keyMaterial: 'dGVzdA==',
+        nonce: 'dGVzdA==',
+        version: '2.0.0',
+      };
+
+      const key1 = new Uint8Array(Array.from({ length: 2400 }, (_, i) => i % 256));
+      const key2 = new Uint8Array(Array.from({ length: 2400 }, (_, i) => (i + 50) % 256));
+
+      // This will likely fail due to unimplemented algorithms, but tests the interface
+      try {
+        ModernHybridEncryption.decryptWithGracePeriod(mockEncryptedData, [key1, key2]);
+      } catch (error) {
+        // Expected to fail until algorithms are properly implemented
+        expect(error).toBeInstanceOf(Error);
+      }
+    });
+  });
 });

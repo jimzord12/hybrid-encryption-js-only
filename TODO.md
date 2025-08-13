@@ -2,12 +2,9 @@
 
 ## 📋 Project Overview
 
-**Goal**: Transform the hybrid encryption library from RSA-dependent to a
-modern, post-quantum ready system supporting pluggable asymmetric and symmetric
+**Goal**: Create an easy to use hybrid encryption library using modern,
+post-quantum ready system supporting pluggable asymmetric and symmetric
 algorithms.
-
-**Timeline**: 15-20 hours (2-3 weeks part-time) **Impact**: 50% reduction in
-complexity, future-proof architecture, quantum-ready foundation
 
 ---
 

@@ -32,7 +32,8 @@ export interface ModernEncryptedData {
 export interface ModernKeyPair {
   algorithm: SupportedAlgorithms; // Algorithm identifier (e.g., 'ML-KEM-768')
   publicKey: Uint8Array; // Always binary format - no PEM
-  privateKey: Uint8Array; // Always binary format - no PEM
+  privateKey?: Uint8Array; // Optional: RSA/ECC style private key
+  secretKey?: Uint8Array; // Optional: ML-KEM style secret key (at least one required)
   metadata: {
     version: number; // Key format version
     createdAt: Date; // When the key was generated

@@ -234,7 +234,7 @@ describe('KeyDerivation Integration with ModernHybridEncryption', () => {
         { algorithm: 'AES-CTR', size: 16 },
       ];
 
-      nonceSizes.forEach(({ algorithm, size }) => {
+      nonceSizes.forEach(({ size }) => {
         const nonce = KeyDerivation.generateSalt(size);
         expect(nonce.length).toBe(size);
 

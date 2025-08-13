@@ -10,7 +10,8 @@ export type SupportedAlgorithms = 'ml-kem-768';
 export interface CryptoKeyPair {
   algorithm: SupportedAlgorithms; // Updated to supported algorithms
   publicKey: Uint8Array; // Changed to binary format
-  privateKey: Uint8Array; // Changed to binary format
+  privateKey?: Uint8Array; // Optional: RSA/ECC style private key
+  secretKey?: Uint8Array; // Optional: ML-KEM style secret key (at least one of privateKey/secretKey required)
   version?: number;
   createdAt?: Date;
   expiresAt?: Date;

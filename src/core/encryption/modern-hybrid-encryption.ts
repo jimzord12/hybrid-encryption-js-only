@@ -136,6 +136,29 @@ export class ModernHybridEncryption {
   }
 
   /**
+   * Decrypt data with grace period support during key rotation
+   *
+   * Workflow:
+   * 1. Try decryption with provided private key
+   * 2. If decryption fails and fallback keys are provided:
+   *    - Attempt decryption with fallback keys
+   *    - Return successful result or throw authentication error
+   *
+   * @param encryptedData - Data to decrypt
+   * @param privateKeys - Primary private key and optional fallback keys
+   * @param options - Decryption options (optional)
+   * @returns Decrypted data in original type
+   */
+  static async decryptWithGracePeriod<T = any>(
+    encryptedData: ModernEncryptedData,
+    privateKeys: Uint8Array[],
+    options?: ModernEncryptionOptions,
+  ): Promise<T> {
+    const instance = await ModernHybridEncryption.createDefault();
+    return instance.decryptWithGracePeriod<T>(encryptedData, privateKeys, options);
+  }
+
+  /**
    * Validate a modern key pair for correctness and security
    *
    * @param keyPair - Key pair to validate
@@ -180,11 +203,15 @@ export class ModernHybridEncryption {
         asymmetricAlg.createSharedSecret(publicKey);
 
       // Step 4: Derive symmetric key using HKDF
+      // Use consistent info parameter based on algorithm metadata, not data content
+      const algorithmInfo = new TextEncoder().encode(
+        `${finalOptions.asymmetricAlgorithm}:${finalOptions.symmetricAlgorithm}:${finalOptions.keyDerivation}`,
+      );
       const derivedKey = this.deriveKeyMaterial(
         sharedSecret,
         finalOptions.keySize,
         finalOptions.keyDerivation,
-        serializedData,
+        algorithmInfo, // Use algorithm metadata instead of serialized data
         options?.associatedData,
       );
 
@@ -275,20 +302,24 @@ export class ModernHybridEncryption {
       const symmetricAlg = this.getSymmetricAlgorithm(encryptedData.algorithms.symmetric);
 
       // Step 2: Decode binary data
-      const kemKeyMaterial = this.decodeBase64(encryptedData.keyMaterial);
+      const cipherText = this.decodeBase64(encryptedData.keyMaterial);
       const encryptedContent = this.decodeBase64(encryptedData.encryptedContent);
       const nonce = this.decodeBase64(encryptedData.nonce);
 
       // Step 3: Recover shared secret from KEM key material
-      const sharedSecret = asymmetricAlg.recoverSharedSecret(kemKeyMaterial, privateKey);
+      const sharedSecret = asymmetricAlg.recoverSharedSecret(cipherText, privateKey);
 
       // Step 4: Derive symmetric key using same parameters as encryption
+      // Use consistent info parameter based on algorithm metadata, not data content
+      const algorithmInfo = new TextEncoder().encode(
+        `${encryptedData.algorithms.asymmetric}:${encryptedData.algorithms.symmetric}:${encryptedData.algorithms.kdf}`,
+      );
       const keySize = this.getKeySizeFromAlgorithm(encryptedData.algorithms.symmetric);
       const keyMaterial = this.deriveKeyMaterial(
         sharedSecret,
         keySize,
         encryptedData.algorithms.kdf,
-        encryptedContent, // Use encrypted content for info parameter
+        algorithmInfo, // Use algorithm metadata instead of encrypted content
         options?.associatedData,
       );
 
@@ -318,6 +349,57 @@ export class ModernHybridEncryption {
         error instanceof Error ? error : undefined,
       );
     }
+  }
+
+  /**
+   * Instance method for decryption with grace period support
+   */
+  decryptWithGracePeriod<T = any>(
+    encryptedData: ModernEncryptedData,
+    privateKeys: Uint8Array[],
+    options?: ModernEncryptionOptions,
+  ): T {
+    if (!privateKeys || privateKeys.length === 0) {
+      throw new ModernEncryptionError(
+        'At least one private key must be provided',
+        undefined,
+        'decrypt',
+      );
+    }
+
+    // Try each key until one works (primary key first, then fallback keys)
+    let lastError: Error | null = null;
+
+    for (let i = 0; i < privateKeys.length; i++) {
+      try {
+        const result = this.decrypt<T>(encryptedData, privateKeys[i], options);
+
+        // Log successful fallback if not using primary key
+        if (i > 0) {
+          console.log(`🔄 Decryption successful with fallback key ${i} during grace period`);
+        }
+
+        return result;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown decryption error');
+
+        // Continue to next key if available
+        if (i < privateKeys.length - 1) {
+          console.log(`⚠️ Decryption failed with key ${i}, trying next key...`);
+          continue;
+        }
+      }
+    }
+
+    // All keys failed, throw the last error
+    throw new CryptographicOperationError(
+      `Grace period decryption failed with all ${privateKeys.length} available keys: ${lastError?.message}`,
+      'decrypt',
+      encryptedData?.algorithms?.asymmetric,
+      undefined,
+      undefined,
+      lastError || undefined,
+    );
   }
 
   // Private helper methods
@@ -414,8 +496,15 @@ export class ModernHybridEncryption {
         );
       }
 
-      // Generate random salt for each operation
-      const salt = KeyDerivation.generateSalt(32);
+      // Use deterministic salt derived from shared secret
+      // This ensures the same shared secret always produces the same derived key
+      const salt = KeyDerivation.deriveKey(
+        sharedSecret,
+        32, // 32 byte salt
+        new Uint8Array(0), // Empty salt for the salt derivation (bootstrapping)
+        new TextEncoder().encode('HKDF-SALT-DERIVATION'), // Fixed info for salt
+        kdfAlgorithm as SupportedKDFAlgorithms,
+      );
 
       // Combine info and associated data if provided
       let derivationInfo = info;
