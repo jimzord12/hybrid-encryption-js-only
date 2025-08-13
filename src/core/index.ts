@@ -24,6 +24,11 @@ export type {
   KeyProvider,
   SerializedKeyMetadata,
   SerializedKeys,
+  SupportedAlgorithms,
+} from './types/crypto-provider.types';
+
+export {
+  KeyFormatUtils,
 } from './types/crypto-provider.types';
 
 export type {
@@ -34,5 +39,25 @@ export type {
   RotationHistoryEntry,
   RotationStats,
 } from './types/key-rotation.types';
+
+// Export modern encryption types (Phase 2.0)
+export type {
+  ModernEncryptedData,
+  ModernKeyPair,
+  ModernEncryptionOptions,
+  ModernKeyGenerationConfig,
+  ModernKeyDerivationConfig,
+  AlgorithmCapabilities,
+} from './types/modern-encryption.types';
+
+export {
+  isModernEncryptedData,
+  isModernKeyPair,
+  ModernEncryptionError,
+  KeyValidationError,
+  AlgorithmNotFoundError,
+  DEFAULT_MODERN_OPTIONS,
+  MODERN_ENCRYPTION_VERSION,
+} from './types/modern-encryption.types';
 
 export { constants, HybridEncryption, utils };
