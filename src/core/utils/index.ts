@@ -7,14 +7,12 @@ import {
   getSecureRandomBytes,
   stringToBinary,
 } from './buffer.util';
-import { fromBase64, toBase64 } from './conversion.util';
 import {
   KeyDerivation,
   type KeyDerivationConfig,
   type KeyDerivationResult,
   type SupportedKDFAlgorithms,
 } from './key-derivation.util';
-import { ModernFormatUtils } from './modern-format.util';
 import {
   ModernSerialization,
   type SerializableData,
@@ -31,16 +29,13 @@ import {
 export {
   BufferUtils,
   KeyDerivation,
-  ModernFormatUtils,
   ModernSerialization,
   binaryToString,
   constantTimeEqual,
   decodeBase64,
   encodeBase64,
-  fromBase64,
   getSecureRandomBytes,
   stringToBinary,
-  toBase64,
   type KeyDerivationConfig,
   type KeyDerivationResult,
   type SerializableData,

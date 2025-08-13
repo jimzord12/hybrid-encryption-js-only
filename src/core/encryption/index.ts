@@ -1,6 +1,3 @@
-// Export legacy HybridEncryption for backward compatibility (deprecated)
-export { HybridEncryption } from './legacy-hybrid-encryption';
-
 // Export modern ModernHybridEncryption (Phase 2.1)
 export { ModernHybridEncryption } from './modern-hybrid-encryption.js';
 

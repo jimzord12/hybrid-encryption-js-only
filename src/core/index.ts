@@ -1,5 +1,5 @@
 import * as constants from './constants.js';
-import { HybridEncryption, ModernHybridEncryption } from './encryption';
+import { ModernHybridEncryption } from './encryption';
 import { createAppropriateError } from './errors/modern-encryption.errors.js';
 import { initializeKeyManagement } from './key-management/index.js';
 import { KeyManagerConfig } from './types/key-rotation.types';
@@ -94,7 +94,7 @@ export {
   ModernEncryptionError,
 } from './errors/index.js';
 
-export { constants, HybridEncryption, ModernHybridEncryption, utils };
+export { constants, ModernHybridEncryption, utils };
 
 // ============================================================================
 // GRACE PERIOD DECRYPTION API
