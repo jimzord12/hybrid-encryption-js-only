@@ -2,7 +2,13 @@
   "name": "Hybrid Encryption JS",
   "image": "node:22",
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {}
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true,
+      "username": "root"
+    }
   },
   "mounts": [
     "source=hybrid-encryption-node-modules,target=/workspaces/hybrid-encryption-js-only/node_modules,type=volume"
@@ -19,6 +25,6 @@
     }
   },
   "forwardPorts": [3000, 8080],
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install && npm install -g npm@11.5.2",
   "remoteUser": "root"
 }
