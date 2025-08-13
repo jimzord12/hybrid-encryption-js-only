@@ -91,16 +91,3 @@ export interface AlgorithmCapabilities {
   description: string;
 }
 
-/**
- * Constants for modern encryption
- */
-export const MODERN_ENCRYPTION_VERSION = '2.0.0';
-
-export const DEFAULT_MODERN_OPTIONS: Required<
-  Omit<ModernEncryptionOptions, 'associatedData' | 'metadata'>
-> = {
-  asymmetricAlgorithm: 'ML-KEM-768',
-  symmetricAlgorithm: 'AES-GCM-256',
-  keyDerivation: 'HKDF-SHA256',
-  keySize: 256,
-};

@@ -1,5 +1,5 @@
 import * as constants from './constants.js';
-import { HybridEncryption } from './encryption';
+import { HybridEncryption, ModernHybridEncryption } from './encryption';
 import * as utils from './utils/index.js';
 
 // Export key management with Strategy Pattern support
@@ -48,11 +48,6 @@ export type {
   ModernKeyPair,
 } from './types/modern-encryption.types.js';
 
-export {
-  DEFAULT_MODERN_OPTIONS,
-  MODERN_ENCRYPTION_VERSION,
-} from './types/modern-encryption.types.js';
-
 // Export type guards
 export {
   isModernEncryptedData,
@@ -78,4 +73,4 @@ export {
   ModernEncryptionError,
 } from './errors/index.js';
 
-export { constants, HybridEncryption, utils };
+export { constants, HybridEncryption, ModernHybridEncryption, utils };

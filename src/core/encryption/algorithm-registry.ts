@@ -74,7 +74,7 @@ export class AlgorithmRegistry<T extends RegistrableAlgorithm> {
         // Register AES-GCM-256 as default symmetric algorithm
         const aesGcm = new AES256GCMAlgorithm() as unknown as T;
         this.register(aesGcm, 'symmetric', true);
-        
+
         // Register ChaCha20-Poly1305 as additional symmetric algorithm
         const chaCha20 = new ChaCha20Poly1305Algorithm() as unknown as T;
         this.register(chaCha20, 'symmetric', false);
@@ -129,7 +129,9 @@ export class AlgorithmRegistry<T extends RegistrableAlgorithm> {
       this.symmetricDefault = algorithmId;
     }
 
-    console.log(`✅ Registered ${algorithmType} algorithm: ${algorithmId} (${this.registryType} registry)`);
+    console.log(
+      `✅ Registered ${algorithmType} algorithm: ${algorithmId} (${this.registryType} registry)`,
+    );
   }
 
   /**
@@ -284,7 +286,9 @@ export class AlgorithmRegistry<T extends RegistrableAlgorithm> {
     const removedType = this.algorithmTypes.delete(algorithmId);
 
     if (removedAlgorithm && removedType) {
-      console.log(`🗑️ Unregistered ${algorithmType} algorithm: ${algorithmId} (${this.registryType} registry)`);
+      console.log(
+        `🗑️ Unregistered ${algorithmType} algorithm: ${algorithmId} (${this.registryType} registry)`,
+      );
     }
 
     return removedAlgorithm;

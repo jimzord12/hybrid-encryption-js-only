@@ -23,7 +23,7 @@ export abstract class AsymmetricAlgorithm {
   abstract createSharedSecret(
     publicKey: Uint8Array,
     privateKey?: Uint8Array | null,
-  ): { sharedSecret: Uint8Array; keyMaterial: Uint8Array };
+  ): { sharedSecret: Uint8Array; cipherText: Uint8Array };
 
   /**
    * Recover the shared secret from key material

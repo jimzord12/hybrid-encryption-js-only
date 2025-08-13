@@ -40,8 +40,8 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       // ML-KEM uses encapsulation - generates random shared secret
       const { cipherText, sharedSecret } = ml_kem768.encapsulate(publicKey);
       return {
-        sharedSecret: sharedSecret,
-        keyMaterial: cipherText, // This is what gets transmitted
+        sharedSecret,
+        cipherText, // This is what gets transmitted
       };
     } catch (error) {
       throw new Error(

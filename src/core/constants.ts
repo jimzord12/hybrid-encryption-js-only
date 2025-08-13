@@ -1,3 +1,5 @@
+import { ModernEncryptionOptions } from './types/modern-encryption.types';
+
 export const defaults = {
   DEFAULT_KEY_SIZE: 256, // Default AES key size in bits
   DEFAULT_ASYMMETRIC_ALGORITHM: 'ML-KEM-768', // Default post-quantum asymmetric algorithm
@@ -15,4 +17,18 @@ export const options = {
     'ChaCha20-Poly1305',
   ], // Supported symmetric algorithms
   SUPPORTED_KDF_ALGORITHMS: ['HKDF-SHA256', 'HKDF-SHA512'], // Supported key derivation functions
+};
+
+/**
+ * Constants for modern encryption
+ */
+export const MODERN_ENCRYPTION_VERSION = '2.0.0';
+
+export const DEFAULT_MODERN_OPTIONS: Required<
+  Omit<ModernEncryptionOptions, 'associatedData' | 'metadata'>
+> = {
+  asymmetricAlgorithm: 'ML-KEM-768',
+  symmetricAlgorithm: 'AES-GCM-256',
+  keyDerivation: 'HKDF-SHA256',
+  keySize: 256,
 };
