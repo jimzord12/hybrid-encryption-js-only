@@ -38,6 +38,15 @@ export type {
   RotationStats,
 } from './types/key-rotation.types';
 
+// Export key derivation utilities
+export type {
+  SupportedKDFAlgorithms,
+  KeyDerivationConfig,
+  KeyDerivationResult,
+} from './utils/key-derivation.util.js';
+
+export { KeyDerivation } from './utils/key-derivation.util.js';
+
 // Export modern encryption types (Phase 2.0)
 export type {
   AlgorithmCapabilities,

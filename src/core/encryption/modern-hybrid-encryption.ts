@@ -32,9 +32,6 @@
  * - Algorithm-agnostic design with pluggable algorithms
  */
 
-import { hkdf } from '@noble/hashes/hkdf';
-import { sha256, sha512 } from '@noble/hashes/sha2';
-import { randomBytes } from '@noble/hashes/utils';
 import { DEFAULT_MODERN_OPTIONS } from '../constants.js';
 import {
   AlgorithmNotFoundError,
@@ -57,6 +54,7 @@ import { AlgorithmRegistry } from './algorithm-registry.js';
 import { AsymmetricAlgorithm } from './asymmetric/base.js';
 import { SymmetricAlgorithm } from './symmetric/base.js';
 import type { KeyMaterial } from './types.js';
+import { KeyDerivation, type SupportedKDFAlgorithms } from '../utils/key-derivation.util.js';
 
 /**
  * Modern Hybrid Encryption implementation using KEM + AEAD approach
@@ -181,7 +179,7 @@ export class ModernHybridEncryption {
         asymmetricAlg.createSharedSecret(publicKey);
 
       // Step 4: Derive symmetric key using HKDF
-      const keyMaterial = this.deriveKeyMaterial(
+      const derivedKey = this.deriveKeyMaterial(
         sharedSecret,
         finalOptions.keySize,
         finalOptions.keyDerivation,
@@ -189,10 +187,19 @@ export class ModernHybridEncryption {
         options?.associatedData,
       );
 
-      // Step 5: Encrypt data with AEAD algorithm
+      // Step 5: Generate nonce for symmetric encryption
+      const nonce = KeyDerivation.generateSalt(12); // AES-GCM standard nonce size
+
+      // Create KeyMaterial object for symmetric algorithm
+      const keyMaterial: KeyMaterial = {
+        key: derivedKey,
+        nonce: nonce,
+      };
+
+      // Step 6: Encrypt data with AEAD algorithm
       const encryptionResult = symmetricAlg.encrypt(serializedData, keyMaterial);
 
-      // Step 6: Construct result with algorithm metadata
+      // Step 7: Construct result with algorithm metadata
       const result: ModernEncryptedData = {
         algorithms: {
           asymmetric: finalOptions.asymmetricAlgorithm,
@@ -395,10 +402,19 @@ export class ModernHybridEncryption {
     kdfAlgorithm: string,
     info: Uint8Array,
     associatedData?: Uint8Array,
-  ): any {
+  ): Uint8Array {
     try {
+      // Validate KDF algorithm
+      if (!KeyDerivation.isSupportedAlgorithm(kdfAlgorithm)) {
+        throw new ModernEncryptionError(
+          `Unsupported KDF algorithm: ${kdfAlgorithm}`,
+          undefined,
+          'key-derivation',
+        );
+      }
+
       // Generate random salt for each operation
-      const salt = randomBytes(32);
+      const salt = KeyDerivation.generateSalt(32);
 
       // Combine info and associated data if provided
       let derivationInfo = info;
@@ -409,29 +425,23 @@ export class ModernHybridEncryption {
         derivationInfo = combined;
       }
 
-      // Derive key using HKDF
-      let derivedKey: Uint8Array;
+      // Calculate key length in bytes
       const keyLengthBytes = Math.ceil(keySize / 8);
 
-      if (kdfAlgorithm === 'HKDF-SHA256') {
-        derivedKey = hkdf(sha256, sharedSecret, salt, derivationInfo, keyLengthBytes);
-      } else if (kdfAlgorithm === 'HKDF-SHA512') {
-        derivedKey = hkdf(sha512, sharedSecret, salt, derivationInfo, keyLengthBytes);
-      } else {
-        throw new ModernEncryptionError(
-          `Unsupported KDF algorithm: ${kdfAlgorithm}`,
-          undefined,
-          'key-derivation',
-        );
-      }
-
-      // Return key material in format expected by symmetric algorithms
-      return {
-        key: derivedKey,
+      // Derive key using our KeyDerivation utility
+      const derivedKey = KeyDerivation.deriveKey(
+        sharedSecret,
+        keyLengthBytes,
         salt,
-        info: derivationInfo,
-      };
+        derivationInfo,
+        kdfAlgorithm as SupportedKDFAlgorithms
+      );
+
+      return derivedKey;
     } catch (error) {
+      if (error instanceof ModernEncryptionError) {
+        throw error;
+      }
       throw new CryptographicOperationError(
         `Key derivation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'key-generation',
