@@ -15,7 +15,7 @@ export {
 } from './key-management/index.js';
 
 // Export provider system for extensibility
-export { KeyProviderFactory, RSAKeyProvider } from './providers';
+export { KeyProviderFactory, MlKemKeyProvider } from './providers';
 
 // Export types for algorithm development
 export type {

@@ -1,5 +1,5 @@
 import { KeyProvider, SupportedAlgorithms } from '../types/crypto-provider.types';
-import { RSAKeyProvider } from './rsa-key-provider';
+import { MlKemKeyProvider } from './ml-kem-provider';
 
 /**
  * Factory for creating key providers based on algorithm
@@ -7,7 +7,8 @@ import { RSAKeyProvider } from './rsa-key-provider';
  */
 export class KeyProviderFactory {
   private static providers: Map<SupportedAlgorithms, () => KeyProvider> = new Map([
-    ['rsa', () => new RSAKeyProvider()],
+    ['ml-kem-768', () => new MlKemKeyProvider()],
+    ['ml-kem-1024', () => new MlKemKeyProvider()],
     // Future algorithms can be added here:
     // ['ecc', () => new ECCKeyProvider()],
     // ['ed25519', () => new Ed25519KeyProvider()],

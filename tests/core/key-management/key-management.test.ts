@@ -19,7 +19,7 @@ import { TEST_CERT_PATH, TEST_CONFIG, cleanTestDirectory } from './test-utils';
 
 console.log('TEST_CERT_PATH:', TEST_CERT_PATH);
 
-describe.only('Key Manager Tests', () => {
+describe('Key Manager Tests', () => {
   beforeEach(async () => {
     KeyManager.resetInstance();
     await cleanTestDirectory();

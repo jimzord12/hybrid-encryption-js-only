@@ -11,7 +11,263 @@ complexity, future-proof architecture, quantum-ready foundation
 
 ---
 
-## 🎯 Phase 1: Foundation & Cleanup (4-6 hours)
+## 📊 Implementation Roadmap
+
+| Phase                                    | Duration  | Sections                                                                                                | Key Deliverables                                                         |
+| ---------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **🎯 Phase 1: Foundation & Cleanup**     | 4-6 hours | 1.1 Remove RSA Dependencies<br>1.2 Design Modern Interfaces<br>1.3 Update Algorithm Registries          | Clean codebase, modern type definitions, algorithm-agnostic registries   |
+| **⚡ Phase 2: Core Implementation**      | 6-8 hours | 2.1 Create ModernHybridEncryption<br>2.2 Key Derivation Implementation<br>2.3 Modern Data Serialization | KEM-based encryption, HKDF integration, robust serialization             |
+| **🔄 Phase 3: KeyManager Modernization** | 2-3 hours | 3.1 Update KeyManager Core<br>3.2 Grace Period Decryption Logic                                         | Binary key storage, zero-downtime rotation, grace period support         |
+| **🔧 Phase 4: API & Integration**        | 2-3 hours | 4.1 Update Client API<br>4.2 Factory Pattern Implementation                                             | Clean client interfaces, configuration presets, easy setup               |
+| **🧪 Phase 5: Testing & Validation**     | 3-4 hours | 5.1 Update Existing Tests<br>5.2 Create Modern Algorithm Tests                                          | Comprehensive test coverage, performance benchmarks, security validation |
+| **📚 Phase 6: Documentation & Polish**   | 1-2 hours | 6.1 Update Documentation<br>6.2 Performance Optimization                                                | Complete API docs, usage examples, production optimization               |
+
+**Total Estimated Time: 17-25 hours**
+
+---
+
+## 📦 Completed Public API Preview
+
+Here's how the modernized library API will look when all phases are complete:
+
+### 📦 Basic Usage
+
+```typescript
+import {
+  encrypt,
+  decrypt,
+  generateKeyPair,
+  getSupportedAlgorithms,
+} from 'hybrid-encryption-js';
+
+// Generate a modern key pair (defaults to ML-KEM-768)
+const keyPair = generateKeyPair();
+console.log(keyPair.algorithm); // 'ML-KEM-768'
+
+// Encrypt data with automatic algorithm selection
+const userData = {
+  userId: 12345,
+  balance: 1000.5,
+  preferences: { theme: 'dark' },
+};
+const encrypted = encrypt(userData, keyPair.publicKey);
+
+console.log(encrypted);
+// {
+//   algorithms: {
+//     asymmetric: 'ML-KEM-768',
+//     symmetric: 'AES-GCM-256',
+//     kdf: 'HKDF-SHA256'
+//   },
+//   encryptedContent: 'base64...',
+//   keyMaterial: 'base64...',
+//   nonce: 'base64...',
+//   authTag: 'base64...',
+//   version: '2.0.0'
+// }
+
+// Decrypt data (automatic algorithm detection)
+const decrypted = decrypt<typeof userData>(encrypted, keyPair.privateKey);
+console.log(decrypted.balance); // 1000.50
+```
+
+### 🔧 Advanced Configuration
+
+```typescript
+import {
+  HybridEncryptionFactory,
+  EncryptionPresets,
+} from 'hybrid-encryption-js';
+
+// Use quantum-safe preset
+const quantumSafe = HybridEncryptionFactory.create(
+  EncryptionPresets.QUANTUM_SAFE,
+);
+
+// Custom algorithm configuration
+const customConfig = HybridEncryptionFactory.create({
+  asymmetricAlgorithm: 'ML-KEM-1024',
+  symmetricAlgorithm: 'ChaCha20-Poly1305',
+  keyDerivation: 'HKDF-SHA512',
+  keySize: 256,
+});
+
+// Encrypt with custom configuration
+const encrypted = customConfig.encrypt(userData, keyPair.publicKey);
+```
+
+### 🏗️ Server-Side Key Management
+
+```typescript
+import {
+  HybridEncryptionFactory,
+  KeyManager,
+} from 'hybrid-encryption-js/server';
+
+// Initialize with automatic key management
+const { encryption, keyManager } =
+  await HybridEncryptionFactory.createWithKeyManager({
+    asymmetricAlgorithm: 'ML-KEM-768',
+    symmetricAlgorithm: 'AES-GCM-256',
+    certPath: './config/certs',
+    autoGenerate: true,
+    keyExpiryMonths: 12,
+    rotationGracePeriod: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+    enableFileBackup: true,
+  });
+
+// Get current public key for client distribution
+const publicKey = await keyManager.getPublicKey();
+
+// Encrypt server-side
+const encrypted = encryption.encrypt(sensitiveData, publicKey);
+
+// Decrypt with grace period support (handles key rotation automatically)
+const decrypted = await encryption.decrypt(
+  encrypted,
+  await keyManager.getPrivateKey(),
+);
+
+// Manual key rotation
+await keyManager.rotateKeys('scheduled');
+```
+
+### 🔍 Algorithm Discovery & Validation
+
+```typescript
+import {
+  getSupportedAlgorithms,
+  validateKeyPair,
+  generateKeyPair,
+} from 'hybrid-encryption-js';
+
+// Discover available algorithms
+const algorithms = getSupportedAlgorithms();
+console.log(algorithms);
+// {
+//   asymmetric: ['ML-KEM-768', 'ML-KEM-1024'],
+//   symmetric: ['AES-GCM-256', 'AES-GCM-192', 'AES-GCM-128', 'ChaCha20-Poly1305']
+// }
+
+// Generate keys for specific algorithm
+const mlKem1024Keys = generateKeyPair('ML-KEM-1024');
+
+// Validate key pair integrity
+const isValid = validateKeyPair(mlKem1024Keys);
+console.log(isValid); // true
+
+// Key metadata inspection
+console.log(mlKem1024Keys.metadata);
+// {
+//   version: 1,
+//   createdAt: Date,
+//   keySize: 3168,
+//   algorithm: 'ML-KEM-1024'
+// }
+```
+
+### 🚀 Express.js Integration
+
+```typescript
+import express from 'express';
+import {
+  encryptionMiddleware,
+  decryptionMiddleware,
+  keyRotationMiddleware,
+  createPublicKeyEndpoint,
+} from 'hybrid-encryption-js/server';
+
+const app = express();
+
+// Add encryption and decryption middleware
+app.use(
+  encryptionMiddleware({
+    asymmetricAlgorithm: 'ML-KEM-768',
+    certPath: './config/certs',
+  }),
+);
+
+app.use(decryptionMiddleware());
+
+// Add automatic key rotation
+app.use(
+  '/api',
+  keyRotationMiddleware({
+    checkInterval: '0 0 * * 0', // Weekly check
+    rotationGracePeriod: 7 * 24 * 60 * 60 * 1000,
+  }),
+);
+
+// Use the library's built-in public key endpoint
+app.use('/api/public-key', createPublicKeyEndpoint());
+
+// Your business logic endpoints - encryption/decryption handled automatically
+app.post('/api/secure-data', async (req, res) => {
+  try {
+    // req.body is automatically decrypted if it was encrypted
+    const userData = req.body;
+
+    const processedData = await processUserData(userData);
+
+    // Response is automatically encrypted before sending
+    res.json({ success: true, data: processedData });
+  } catch (error) {
+    res.status(400).json({ error: 'Processing failed' });
+  }
+});
+
+// For endpoints that need manual control over encryption/decryption
+app.post('/api/manual-crypto', async (req, res) => {
+  try {
+    // Manual decryption when needed
+    const decryptedData = req.decryptBody
+      ? await req.decrypt(req.body.encryptedData)
+      : req.body;
+
+    const result = await customProcessing(decryptedData);
+
+    // Manual encryption when needed
+    const response = req.encryptResponse ? await req.encrypt(result) : result;
+
+    res.json(response);
+  } catch (error) {
+    res.status(400).json({ error: 'Invalid request' });
+  }
+});
+```
+
+### ️ Error Handling & Security
+
+```typescript
+import {
+  encrypt,
+  decrypt,
+  EncryptionError,
+  KeyValidationError,
+} from 'hybrid-encryption-js';
+
+try {
+  const encrypted = encrypt(userData, publicKey);
+  const decrypted = decrypt(encrypted, privateKey);
+} catch (error) {
+  if (error instanceof EncryptionError) {
+    console.error('Encryption failed:', error.algorithm, error.message);
+  } else if (error instanceof KeyValidationError) {
+    console.error('Invalid key:', error.keyType, error.message);
+  } else {
+    console.error('Unexpected error:', error.message);
+  }
+}
+
+// Secure key comparison
+import { secureCompare } from 'hybrid-encryption-js/utils';
+
+const isKeyMatch = secureCompare(keyPair1.publicKey, keyPair2.publicKey);
+```
+
+---
+
+## �🎯 Phase 1: Foundation & Cleanup (4-6 hours)
 
 ### 1.1 Remove RSA Dependencies (2 hours)
 
@@ -19,24 +275,29 @@ complexity, future-proof architecture, quantum-ready foundation
 
 **Tasks**:
 
-- [ ] **Remove node-forge dependency**
+- [x] **Remove node-forge dependency**
   ```bash
   npm uninstall node-forge
   ```
-- [ ] **Delete RSA-specific files**:
-  - [ ] `src/core/providers/rsa-key-provider.ts`
-  - [ ] `src/core/utils/generation.util.ts` (RSA key generation)
-  - [ ] All RSA-related constants in `src/core/constants.ts`
-- [ ] **Remove RSA types**:
-  - [ ] `RSAKeyPair` interface from `encryption.types.ts`
-  - [ ] `ForgePaddingType` and related types
-  - [ ] `rsaPadding` options from `EncryptionOptions`
+- [x] **Delete RSA-specific files**:
+  - [x] `src/core/providers/rsa-key-provider.ts`
+  - [x] `src/core/utils/generation.util.ts` (RSA key generation)
+  - [x] All RSA-related constants in `src/core/constants.ts`
+- [x] **Remove RSA types**:
+  - [x] `RSAKeyPair` interface from `encryption.types.ts`
+  - [x] `ForgePaddingType` and related types
+  - [x] `rsaPadding` options from `EncryptionOptions`
+- [ ] **Update remaining modules** (moved to Phase 3.1):
+  - [ ] Fix KeyManager RSA dependencies
+  - [ ] Update client module exports
+  - [ ] Fix test imports
 
 **Acceptance Criteria**:
 
-- ✅ No node-forge imports remain
-- ✅ No RSA-related TypeScript errors
-- ✅ Bundle size reduced by ~30%
+- ✅ No node-forge imports remain in core files
+- ✅ No RSA-related TypeScript errors in core encryption
+- ✅ Bundle size reduced by ~30% (node-forge removed)
+- ⚠️ Some legacy modules still reference RSA (will be fixed in Phase 3.1)
 
 ### 1.2 Design Modern Interfaces (2-3 hours)
 
@@ -49,7 +310,7 @@ complexity, future-proof architecture, quantum-ready foundation
   ```typescript
   // src/core/types/modern-encryption.types.ts
   interface ModernEncryptedData {
-    algorithm: {
+    algorithms: {
       asymmetric: string; // 'ML-KEM-768', 'ML-KEM-1024'
       symmetric: string; // 'AES-GCM-256', 'ChaCha20-Poly1305'
       kdf: string; // 'HKDF-SHA256', 'HKDF-SHA512'
@@ -260,7 +521,7 @@ complexity, future-proof architecture, quantum-ready foundation
 
 ---
 
-## 🔄 Phase 3: KeyManager Modernization (3-4 hours)
+## 🔄 Phase 3: KeyManager Modernization (2-3 hours)
 
 ### 3.1 Update KeyManager Core (2 hours)
 
@@ -280,8 +541,7 @@ complexity, future-proof architecture, quantum-ready foundation
 - [ ] **Update KeyManager interface**:
 
   ```typescript
-  interface ModernKeyManagerConfig {
-    algorithm?: string; // 'ML-KEM-768', 'ML-KEM-1024'
+  interface ModernKeyManagerConfig extends ModernEncryptionOptions {
     certPath?: string;
     autoGenerate?: boolean;
     keyExpiryMonths?: number;
@@ -316,50 +576,67 @@ complexity, future-proof architecture, quantum-ready foundation
 - ✅ Maintains existing KeyManager features
 - ✅ Proper file permissions (0o600 for private keys)
 
-### 3.2 File Format Migration (1-2 hours)
+### 3.2 Grace Period Decryption Logic (1 hour)
 
-**Objective**: Handle transition from PEM to binary key storage
+**Objective**: Implement grace period decryption with modern auth tag validation
 
 **Tasks**:
 
-- [ ] **Create migration utility**:
+- [ ] **Update ModernHybridEncryption.decrypt() for grace period support**:
 
   ```typescript
-  // src/core/utils/key-migration.util.ts
-  export class KeyMigration {
-    static detectKeyFormat(certPath: string): 'legacy-rsa' | 'modern' | 'none';
-    static migrateLegacyKeys(certPath: string): Promise<void>;
-    static backupLegacyKeys(certPath: string): Promise<void>;
+  // Grace period decryption workflow:
+  // 1. Try decryption with current private key
+  // 2. If auth tag verification fails AND we're in grace period:
+  //    - Load previous key from rotation history
+  //    - Attempt decryption with previous key
+  //    - GCM auth tag provides cryptographic proof of correct key
+  // 3. Return decrypted data or throw authentication error
+  ```
+
+- [ ] **Add key rotation history tracking**:
+
+  ```typescript
+  interface KeyRotationHistory {
+    current: ModernKeyPair;
+    previous?: ModernKeyPair;
+    gracePeriodUntil?: Date;
+    rotationLog: Array<{
+      version: number;
+      rotatedAt: Date;
+      algorithm: string;
+      reason: 'scheduled' | 'manual' | 'compromise';
+    }>;
   }
   ```
 
-- [ ] **Update KeyManager.initialize()**:
+- [ ] **Implement graceful decryption fallback**:
 
   ```typescript
-  async initialize(): Promise<void> {
-    const format = KeyMigration.detectKeyFormat(this.config.certPath);
-
-    if (format === 'legacy-rsa') {
-      console.warn('🔄 Legacy RSA keys detected - migration required');
-      await KeyMigration.backupLegacyKeys(this.config.certPath);
-      // Generate new modern keys
-      await this.generateKeys();
-    } else if (format === 'modern') {
-      await this.loadKeysFromFile();
-    } else {
-      // No keys exist
-      if (this.config.autoGenerate) {
-        await this.generateKeys();
+  private async attemptDecryptionWithGracePeriod(
+    encryptedData: ModernEncryptedData,
+    keyHistory: KeyRotationHistory,
+  ): Promise<any> {
+    // Try current key first
+    try {
+      return await this.decryptWithKey(encryptedData, keyHistory.current.privateKey);
+    } catch (authError) {
+      // Check if we're in grace period and have previous key
+      if (this.isInGracePeriod(keyHistory) && keyHistory.previous) {
+        console.log('🔄 Current key failed, trying previous key during grace period');
+        return await this.decryptWithKey(encryptedData, keyHistory.previous.privateKey);
       }
+      throw authError; // Re-throw if no grace period fallback available
     }
   }
   ```
 
 **Acceptance Criteria**:
 
-- ✅ Detects and handles legacy RSA keys
-- ✅ Safe migration with backup
-- ✅ Seamless transition for users
+- ✅ Graceful fallback during key rotation
+- ✅ Auth tag verification prevents false positives
+- ✅ Zero-downtime key rotation
+- ✅ Proper logging and error handling
 
 ---
 
@@ -446,11 +723,7 @@ complexity, future-proof architecture, quantum-ready foundation
   ```typescript
   // src/core/encryption/factory.ts
   export class HybridEncryptionFactory {
-    static create(config?: {
-      asymmetricAlgorithm?: string;
-      symmetricAlgorithm?: string;
-      keyDerivation?: string;
-    }): ModernHybridEncryption;
+    static create(config?: ModernEncryptionOptions): ModernHybridEncryption;
 
     static createWithKeyManager(
       keyManagerConfig?: ModernKeyManagerConfig,
@@ -501,7 +774,7 @@ complexity, future-proof architecture, quantum-ready foundation
 - [ ] **Update KeyManager tests**:
   - Use binary key format
   - Test modern algorithm support
-  - Verify migration functionality
+  - Verify grace period functionality
 
 - [ ] **Update integration tests**:
   - End-to-end encryption/decryption
@@ -569,36 +842,41 @@ complexity, future-proof architecture, quantum-ready foundation
   - Remove RSA references
   - Add modern examples
   - Update installation instructions
-  - Add migration guide
+  - Add comprehensive usage guide
 
 - [ ] **Update API documentation**:
   - Document all new interfaces
   - Provide usage examples
   - Add troubleshooting guide
 
-- [ ] **Create migration guide**:
+- [ ] **Create comprehensive documentation**:
 
-  ```markdown
-  # Migration Guide: v1 (RSA) → v2 (Modern)
+  ````markdown
+  # Modern Hybrid Encryption Library
 
-  ## Breaking Changes
+  ## Features
 
-  - RSA support removed
-  - Key format changed from PEM to binary
-  - New data structure for encrypted data
+  - Post-quantum security with ML-KEM
+  - AEAD encryption for all symmetric operations
+  - Algorithm-agnostic design
+  - Zero-downtime key rotation
 
-  ## Migration Steps
+  ## Quick Start
 
-  1. Backup existing keys
-  2. Update client code to use Uint8Array keys
-  3. Regenerate keys with modern algorithms
+  ```typescript
+  import { encrypt, decrypt, generateKeyPair } from 'hybrid-encryption-js';
+
+  const keyPair = generateKeyPair('ML-KEM-768');
+  const encrypted = encrypt(data, keyPair.publicKey);
+  const decrypted = decrypt(encrypted, keyPair.privateKey);
   ```
+  ````
 
 **Acceptance Criteria**:
 
 - ✅ Complete API documentation
-- ✅ Clear migration instructions
-- ✅ Working examples
+- ✅ Clear usage examples
+- ✅ Comprehensive guides
 
 ### 6.2 Performance Optimization (Optional, 1 hour)
 
@@ -643,18 +921,11 @@ complexity, future-proof architecture, quantum-ready foundation
 - [ ] **Side-channel resistance** considerations
 - [ ] **Cryptographic randomness** for all operations
 
-### 🔄 Migration Support
-
-- [ ] **Legacy key detection** working
-- [ ] **Safe migration path** implemented
-- [ ] **Backup mechanisms** for old keys
-- [ ] **Clear error messages** for migration issues
-
-### 📖 Documentation Quality
+### Documentation Quality
 
 - [ ] **Complete API reference** available
 - [ ] **Working examples** for all use cases
-- [ ] **Migration guide** covers all scenarios
+- [ ] **Comprehensive usage guides** cover all scenarios
 - [ ] **Performance benchmarks** documented
 
 ---
@@ -666,7 +937,7 @@ complexity, future-proof architecture, quantum-ready foundation
 **Pre-release**:
 
 1. **Alpha** (Internal testing, core functionality)
-2. **Beta** (Community testing, migration tools)
+2. **Beta** (Community testing, performance validation)
 3. **RC** (Final testing, documentation polish)
 
 **Release**:
@@ -677,22 +948,22 @@ complexity, future-proof architecture, quantum-ready foundation
 
 **Post-release**:
 
-1. **Migration support** for 6 months
-2. **v1.x security patches** for 12 months
-3. **Community feedback** integration
+1. **Community feedback** integration
+2. **Performance optimizations** based on real-world usage
+3. **Additional algorithm support** as standards evolve
 
 ---
 
 ## 🎯 Summary
 
-This comprehensive plan transforms the library from RSA-dependent legacy code to
-a modern, post-quantum ready hybrid encryption system. The approach prioritizes:
+This comprehensive plan transforms the library into a modern, post-quantum ready
+hybrid encryption system. The approach prioritizes:
 
 1. **Clean Architecture** - Algorithm-agnostic design
 2. **Security First** - Post-quantum and modern crypto standards
 3. **Developer Experience** - Simple APIs and clear documentation
 4. **Future-Proof** - Easy extension for new algorithms
-5. **Migration Support** - Safe transition path for existing users
+5. **Production Ready** - Zero-downtime operations and robust error handling
 
 **Expected Outcome**: A production-ready, modern hybrid encryption library
 that's 50% smaller, faster, and quantum-safe. 🛡️✨

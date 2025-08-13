@@ -1,205 +1,77 @@
-import { gcm } from '@noble/ciphers/aes';
-import forge from 'node-forge';
-import { forgePadding } from '../constants';
-import {
-  EncryptedData,
-  EncryptionOptions,
-  ForgePaddingType,
-  RSAKeyPair,
-} from '../types/encryption.types';
-import { fromBase64, getRandomBytes, toBase64 } from '../utils';
+// TEMPORARY FILE - Will be replaced with ModernHybridEncryption in Phase 2.1
+// This file is kept minimal to avoid RSA dependencies while maintaining basic structure
 
+import { LegacyEncryptedData, LegacyEncryptionOptions } from '../types/encryption.types';
+
+/**
+ * DEPRECATED: Legacy HybridEncryption class
+ * This class will be replaced with ModernHybridEncryption in Phase 2.1
+ * Currently only provides basic structure without RSA functionality
+ */
 export class HybridEncryption {
-  private static readonly DEFAULT_OPTIONS: Required<EncryptionOptions> = {
+  private static readonly DEFAULT_OPTIONS: Required<LegacyEncryptionOptions> = {
     keySize: 256,
-    rsaPadding: 'OAEP',
   };
 
   private static readonly VERSION = '1.0.0';
 
   /**
-   * Encrypt data using hybrid AES-GCM + RSA approach
-   * @param data - Data to encrypt (will be JSON stringified)
-   * @param publicKeyPem - RSA public key in PEM format
-   * @param options - Encryption options
+   * DEPRECATED: Legacy encrypt method - RSA functionality removed
+   * Will be replaced with KEM-based encryption in Phase 2.1
    */
-  static encrypt(data: any, publicKeyPem: string, options: EncryptionOptions = {}): EncryptedData {
-    if (!publicKeyPem) {
-      throw new Error('Public key is required for encryption');
-    }
-
-    if (data == null) {
-      throw new Error('Invalid data: Data must be a non-null object');
-    }
-
-    try {
-      const opts = { ...this.DEFAULT_OPTIONS, ...options };
-      // Check the data's size
-
-      // Step 1: Serialize data to JSON string
-      const jsonString = JSON.stringify(data);
-      const dataBytes = new TextEncoder().encode(jsonString);
-
-      // Step 2: Generate AES key and IV
-      const aesKeySize = opts.keySize / 8; // Convert bits to bytes
-      const aesKey = getRandomBytes(aesKeySize);
-      const iv = getRandomBytes(12); // 96-bit IV for GCM
-
-      // Step 3: Encrypt data with AES-GCM
-      const aesGcm = gcm(aesKey, iv);
-      const encryptedContent = aesGcm.encrypt(dataBytes);
-
-      // Extract cipherText and auth tag from AES-GCM result
-      const cipherText = encryptedContent.slice(0, -16); // All but last 16 bytes
-      const authTag = encryptedContent.slice(-16); // Last 16 bytes
-
-      // Step 4: Encrypt AES key with RSA
-      const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-      const paddingScheme = opts.rsaPadding === 'OAEP' ? forgePadding.OAEP : forgePadding.PKCS1;
-      const encryptedAESKey = publicKey.encrypt(
-        forge.util.binary.raw.encode(aesKey),
-        paddingScheme as ForgePaddingType,
-      );
-
-      // Step 5: Return encrypted data structure
-      return {
-        encryptedContent: toBase64(cipherText),
-        encryptedAESKey: toBase64(encryptedAESKey),
-        iv: toBase64(iv),
-        authTag: toBase64(authTag),
-        version: this.VERSION,
-      };
-    } catch (error) {
-      throw new Error(
-        `Encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
-  }
-
-  /**
-   * Decrypt data using hybrid AES-GCM + RSA approach
-   * It is meant for internal use, use decryptWithMultipleKeys to decrypt in your app
-   * @param encryptedData - Encrypted data structure
-   * @param privateKeyPem - RSA private key in PEM format
-   * @param options - Decryption options
-   */
-  static decrypt<T = any>(
-    encryptedData: EncryptedData,
-    privateKeyPem: string,
-    options: EncryptionOptions = {},
-  ): T {
-    if (!privateKeyPem) {
-      throw new Error('Private key is required for decryption');
-    }
-
-    if (encryptedData == null) {
-      throw new Error('Encrypted data is required for decryption');
-    }
-
-    try {
-      const opts = { ...this.DEFAULT_OPTIONS, ...options };
-
-      // Step 1: Validate version compatibility
-      if (encryptedData.version !== this.VERSION) {
-        throw new Error(`Unsupported version: ${encryptedData.version}`);
-      }
-
-      // Step 2: Decrypt AES key with RSA
-      const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
-      const paddingScheme = opts.rsaPadding === 'OAEP' ? forgePadding.OAEP : forgePadding.PKCS1;
-      const encryptedAESKeyBytes = forge.util.decode64(encryptedData.encryptedAESKey);
-      const aesKeyRaw = privateKey.decrypt(encryptedAESKeyBytes, paddingScheme as ForgePaddingType);
-      const aesKey = new Uint8Array(forge.util.binary.raw.decode(aesKeyRaw));
-
-      // Step 3: Prepare AES-GCM decryption
-      const iv = fromBase64(encryptedData.iv);
-      const ciphertext = fromBase64(encryptedData.encryptedContent);
-      const authTag = fromBase64(encryptedData.authTag);
-
-      // Combine ciphertext and auth tag as expected by noble-ciphers
-      const combinedCiphertext = new Uint8Array(ciphertext.length + authTag.length);
-      combinedCiphertext.set(ciphertext, 0);
-      combinedCiphertext.set(authTag, ciphertext.length);
-
-      // Step 4: Decrypt content with AES-GCM
-      const aesGcm = gcm(aesKey, iv);
-      const decryptedBytes = aesGcm.decrypt(combinedCiphertext);
-
-      // Step 5: Parse JSON and return typed result
-      const jsonString = new TextDecoder().decode(decryptedBytes);
-      return JSON.parse(jsonString) as T;
-    } catch (error) {
-      throw new Error(
-        `Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
-  }
-
-  // DIM - Needs Unit Testing 🧪🚨
-  /**
-   * Decrypt data using multiple private keys (supports grace period)
-   * @param encryptedData - Encrypted data structure
-   * @param privateKeys - Array of RSA private keys to try
-   * @param options - Decryption options
-   */
-  static decryptWithMultipleKeys<T = any>(
-    encryptedData: EncryptedData,
-    privateKeys: string[],
-    options: EncryptionOptions = {},
-  ): T {
-    if (!privateKeys || privateKeys.length === 0) {
-      throw new Error('At least one private key is required for decryption');
-    }
-
-    if (encryptedData == null) {
-      throw new Error('Encrypted data is required for decryption');
-    }
-
-    let lastError: Error | null = null;
-
-    // Try each private key until one works
-    for (let i = 0; i < privateKeys.length; i++) {
-      try {
-        const result = this.decrypt<T>(encryptedData, privateKeys[i], options);
-        console.log(`✅ Decryption successful with key #${i + 1}`);
-        return result;
-      } catch (error) {
-        lastError = error as Error;
-        console.log(`❌ Decryption failed with key #${i + 1}: ${(error as Error).message}`);
-        continue;
-      }
-    }
-
+  static encrypt(
+    data: any,
+    publicKey: string,
+    options: LegacyEncryptionOptions = {},
+  ): LegacyEncryptedData {
     throw new Error(
-      `Decryption failed with all ${privateKeys.length} available keys. Last error: ${lastError ? lastError.message : 'Unknown error'}`,
+      'RSA-based encryption has been removed. Please use the new ModernHybridEncryption class (available in Phase 2.1)',
     );
   }
 
   /**
-   * Validate that RSA key pair works correctly
-   * @param keyPair - RSA key pair to test
+   * DEPRECATED: Legacy decrypt method - RSA functionality removed
+   * Will be replaced with KEM-based decryption in Phase 2.1
    */
-  static validateKeyPair(keyPair: RSAKeyPair): boolean {
-    try {
-      const testData = { test: 'validation', timestamp: Date.now() };
-
-      // Test encryption/decryption round trip
-      const encrypted = this.encrypt(testData, keyPair.publicKey);
-      const decrypted = this.decrypt(encrypted, keyPair.privateKey);
-
-      return JSON.stringify(testData) === JSON.stringify(decrypted);
-    } catch (error) {
-      console.log('🔒 Key pair validation failed: ', error);
-      return false;
-    }
+  static decrypt<T = any>(encryptedData: LegacyEncryptedData, privateKey: string): T {
+    throw new Error(
+      'RSA-based decryption has been removed. Please use the new ModernHybridEncryption class (available in Phase 2.1)',
+    );
   }
 
   /**
-   * Check if a key pair has expired
-   * @param keyPair - RSA key pair to check
+   * DEPRECATED: Legacy key validation - RSA functionality removed
+   * Will be replaced with modern key validation in Phase 2.1
    */
-  static isKeyPairExpired(keyPair: RSAKeyPair): boolean {
-    if (!keyPair.expiresAt) return false;
-    return new Date() > keyPair.expiresAt;
+  static validateKeyPair(keyPair: any): boolean {
+    throw new Error(
+      'RSA key validation has been removed. Please use the new ModernHybridEncryption.validateKeyPair method (available in Phase 2.1)',
+    );
+  }
+
+  /**
+   * DEPRECATED: Multiple key decryption - RSA functionality removed
+   * Will be replaced with grace period decryption in Phase 3.2
+   */
+  static decryptWithMultipleKeys<T = any>(
+    encryptedData: LegacyEncryptedData,
+    privateKeys: string[],
+  ): T {
+    throw new Error(
+      'RSA-based multi-key decryption has been removed. Please use the new grace period functionality (available in Phase 3.2)',
+    );
+  }
+
+  /**
+   * DEPRECATED: Key expiry check - RSA functionality removed
+   * Will be replaced with modern key lifecycle management in Phase 3.1
+   */
+  static isKeyPairExpired(keyPair: any): boolean {
+    throw new Error(
+      'RSA key expiry checking has been removed. Please use the new KeyManager functionality (available in Phase 3.1)',
+    );
   }
 }
+
+// Re-export for backward compatibility
+export { LegacyEncryptedData as EncryptedData, LegacyEncryptionOptions as EncryptionOptions };

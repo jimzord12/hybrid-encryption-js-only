@@ -1,22 +1,17 @@
-export interface RSAKeyPair {
-  publicKey: string; // PEM format
-  privateKey: string; // PEM format
-  version?: number;
-  createdAt?: Date;
-  expiresAt?: Date;
-}
-
-export interface EncryptedData {
+// Legacy interfaces - these will be replaced in Phase 1.2 with modern interfaces
+export interface LegacyEncryptedData {
   encryptedContent: string; // Base64 encoded AES-GCM encrypted data
-  encryptedAESKey: string; // Base64 encoded RSA encrypted AES key
+  encryptedAESKey: string; // Base64 encoded RSA encrypted AES key (DEPRECATED)
   iv: string; // Base64 encoded initialization vector
   authTag: string; // Base64 encoded GCM authentication tag
   version: string; // For future compatibility
 }
 
-export interface EncryptionOptions {
+// Will be removed in Phase 1.2 - replaced with ModernEncryptionOptions
+export interface LegacyEncryptionOptions {
   keySize?: 128 | 192 | 256; // AES key size in bits
-  rsaPadding?: 'OAEP' | 'PKCS1'; // RSA padding scheme
 }
 
-export type ForgePaddingType = 'RSA-OAEP' | 'RSAES-PKCS1-V1_5';
+// Legacy type aliases for backward compatibility during transition
+export type EncryptedData = LegacyEncryptedData;
+export type EncryptionOptions = LegacyEncryptionOptions;

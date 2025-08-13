@@ -4,6 +4,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { RSAKeyPair } from '../../types/core.types';
 import { KeyProviderFactory } from '../providers';
 import {
   CryptoKeyPair,
@@ -11,7 +12,6 @@ import {
   KeyProvider,
   KeyValidationResult,
 } from '../types/crypto-provider.types';
-import { RSAKeyPair } from '../types/encryption.types';
 import {
   KeyManagerConfig,
   KeyManagerStatus,

@@ -1,6 +1,7 @@
 // Generic Cryptographic Provider Types
 // This file defines the interfaces for algorithm-agnostic key management
-export type SupportedAlgorithms = 'rsa' | 'ecc' | 'ed25519';
+// Post-quantum and modern cryptographic algorithms
+export type SupportedAlgorithms = 'ml-kem-768' | 'ml-kem-1024' | 'ecc' | 'ed25519';
 
 export interface CryptoKeyPair {
   publicKey: string;
