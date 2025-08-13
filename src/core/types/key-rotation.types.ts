@@ -1,10 +1,10 @@
-import { CryptoKeyPair } from './crypto-provider.types';
+import { CryptoKeyPair, SupportedAlgorithms } from './crypto-provider.types';
 
 export interface KeyManagerConfig {
   certPath?: string; // Path to certificate directory (default: ./config/certs)
-  algorithm?: 'rsa' | 'ecc' | 'ed25519'; // Cryptographic algorithm (default: 'rsa')
-  keySize?: number; // Key size in bits (default: 2048 for RSA)
-  curve?: string | undefined; // ECC curve (e.g., 'P-256', 'P-384', 'P-521')
+  algorithm?: SupportedAlgorithms; // Cryptographic algorithm (default: 'ml-kem-768')
+  keySize?: number; // Key size in bits (768, 1024 for ML-KEM; 128, 192, 256 for AES)
+  curve?: string | undefined; // ECC curve (e.g., 'P-256', 'P-384', 'P-521') - legacy support
   keyExpiryMonths?: number; // Key expiry in months (default: 1)
   autoGenerate?: boolean; // Auto-generate keys if missing (default: true)
   enableFileBackup?: boolean; // Backup keys to filesystem (default: true)

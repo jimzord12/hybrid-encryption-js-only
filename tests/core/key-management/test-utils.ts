@@ -10,7 +10,8 @@ export const TEST_CERT_PATH =
 
 export const TEST_CONFIG = {
   certPath: TEST_CERT_PATH,
-  keySize: 2048,
+  algorithm: 'ml-kem-768' as const,
+  keySize: 768,
   keyExpiryMonths: 1,
   autoGenerate: true,
   enableFileBackup: true,

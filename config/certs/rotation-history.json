@@ -1,5 +1,5 @@
 {
-  "totalRotations": 1,
+  "totalRotations": 2,
   "rotations": [
     {
       "version": 1,
@@ -8,8 +8,16 @@
       "keySize": 2048,
       "rotatedAt": "2025-08-12T08:43:02.732Z",
       "reason": "initial_generation"
+    },
+    {
+      "version": 2,
+      "createdAt": "2025-08-13T12:55:10.901Z",
+      "expiresAt": "2025-09-13T12:55:10.901Z",
+      "keySize": 768,
+      "rotatedAt": "2025-08-13T12:55:10.918Z",
+      "reason": "scheduled_rotation"
     }
   ],
   "createdAt": "2025-08-12T08:43:02.732Z",
-  "lastUpdated": "2025-08-12T08:43:02.732Z"
+  "lastUpdated": "2025-08-13T12:55:10.918Z"
 }

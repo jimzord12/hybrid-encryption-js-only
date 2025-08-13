@@ -1,16 +1,16 @@
-// Key Management & Memory Caching System
-// Dependencies: npm install node-forge @noble/ciphers fs-extra path
-// File: src/core/key-management.ts
+// Key Management & Memory Caching System - Modernized for Algorithm-Agnostic Architecture
+// Dependencies: @noble/ciphers, @noble/hashes, @noble/post-quantum, fs/promises, path
+// File: src/core/key-management/index.ts
 
 import fs from 'fs/promises';
 import path from 'path';
-import { RSAKeyPair } from '../../types/core.types';
 import { KeyProviderFactory } from '../providers';
 import {
   CryptoKeyPair,
   KeyGenerationConfig,
   KeyProvider,
   KeyValidationResult,
+  SupportedAlgorithms,
 } from '../types/crypto-provider.types';
 import {
   KeyManagerConfig,
@@ -20,6 +20,25 @@ import {
   RotationHistoryEntry,
   RotationStats,
 } from '../types/key-rotation.types';
+import { ModernKeyPair } from '../types/modern-encryption.types';
+import { BufferUtils } from '../utils/buffer.util';
+
+// ============================================================================
+// MODERN KEY STORAGE INTERFACES
+// ============================================================================
+
+/**
+ * Modern key metadata stored as JSON
+ */
+interface KeyMetadata {
+  algorithm: SupportedAlgorithms;
+  keySize: number;
+  created: string;
+  lastRotation: string;
+  version: number;
+  publicKeyPath: string;
+  privateKeyPath: string;
+}
 
 // ============================================================================
 // KEY MANAGER SINGLETON CLASS
@@ -34,13 +53,16 @@ export class KeyManager {
   public isInitialized = false;
   public cleanupTimer: NodeJS.Timeout | null = null;
   private keyProvider: KeyProvider;
+  private rotationHistoryCache: RotationHistory | null = null;
+  private rotationHistoryCacheTime: number | null = null;
+  private readonly ROTATION_HISTORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   private constructor(config: KeyManagerConfig = {}) {
-    // Set default configuration with new algorithm support
+    // Set default configuration with modern algorithm support
     this.config = {
-      algorithm: config.algorithm || 'rsa',
+      algorithm: config.algorithm || 'ml-kem-768',
       certPath: config.certPath || path.join(process.cwd(), 'config', 'certs'),
-      keySize: config.keySize || 2048,
+      keySize: config.keySize || 768, // Default for ML-KEM-768
       curve: config.curve,
       keyExpiryMonths: config.keyExpiryMonths || 1,
       autoGenerate: config.autoGenerate ?? true,
@@ -98,7 +120,18 @@ export class KeyManager {
     this.currentKeys = null;
     this.lastValidation = null;
     this.isInitialized = false;
-    this.config = {} as Required<KeyManagerConfig>;
+
+    // Reset configuration to default values
+    this.config = {
+      algorithm: this.config.algorithm || 'ml-kem-768',
+      certPath: this.config.certPath || path.join(process.cwd(), 'config', 'certs'),
+      keySize: this.config.keySize || 768,
+      curve: this.config.curve,
+      keyExpiryMonths: this.config.keyExpiryMonths || 1,
+      autoGenerate: this.config.autoGenerate ?? true,
+      enableFileBackup: this.config.enableFileBackup ?? true,
+      rotationGracePeriod: this.config.rotationGracePeriod || 5,
+    };
 
     // Reset rotation state
     this.rotationState = {
@@ -139,9 +172,16 @@ export class KeyManager {
       this.isInitialized = true;
       console.log('✅ KeyManager initialized successfully');
     } catch (error) {
-      throw new Error(
+      const initError = new Error(
         `KeyManager initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+
+      // Preserve original error stack trace if available
+      if (error instanceof Error && error.stack) {
+        initError.stack = `${initError.stack}\nCaused by: ${error.stack}`;
+      }
+
+      throw initError;
     }
   }
 
@@ -174,19 +214,39 @@ export class KeyManager {
   // ============================================================================
 
   /**
-   * Get current public key (safe for client access)
+   * Get current public key in binary format
    */
-  public async getPublicKey(): Promise<string> {
+  public async getPublicKey(): Promise<Uint8Array> {
     const keys = await this.ensureValidKeys();
     return keys.publicKey;
   }
 
   /**
-   * Get current private key (server-side only)
+   * Get current public key as Base64 string (for client access)
    */
-  public async getPrivateKey(): Promise<string> {
+  public async getPublicKeyBase64(): Promise<string> {
+    const publicKey = await this.getPublicKey();
+    return BufferUtils.encodeBase64(publicKey);
+  }
+
+  /**
+   * Get current private key in binary format (server-side only)
+   * ⚠️ SECURITY WARNING: This method exposes sensitive private key material.
+   * Use only in secure environments and ensure proper access controls.
+   */
+  public async getPrivateKey(): Promise<Uint8Array> {
     const keys = await this.ensureValidKeys();
     return keys.privateKey;
+  }
+
+  /**
+   * Get current private key as Base64 string (server-side only)
+   * ⚠️ SECURITY WARNING: This method exposes sensitive private key material.
+   * Use only in secure environments and ensure proper access controls.
+   */
+  public async getPrivateKeyBase64(): Promise<string> {
+    const privateKey = await this.getPrivateKey();
+    return BufferUtils.encodeBase64(privateKey);
   }
 
   /**
@@ -244,10 +304,6 @@ export class KeyManager {
   private async performKeyRotation(): Promise<void> {
     console.log('🔄 Starting key rotation...');
 
-    this.rotationState.isRotating = true;
-    this.rotationState.rotationStartTime = new Date();
-    this.rotationState.previousKeys = this.currentKeys;
-
     try {
       // Generate new keys using the key provider
       console.log(`🔑 Generating new ${this.config.algorithm.toUpperCase()} key pair...`);
@@ -256,6 +312,8 @@ export class KeyManager {
         keySize: this.config.keySize,
         expiryMonths: this.config.keyExpiryMonths,
       };
+
+      console.log(`🔑 Key generation config: ${JSON.stringify(keyGenConfig)}`);
 
       // Only add curve if it's defined (for ECC algorithms)
       if (this.config.curve !== undefined) {
@@ -269,11 +327,15 @@ export class KeyManager {
         throw new Error('Generated invalid key pair');
       }
 
+      // Set rotation state only after keys are generated and validated
+      this.rotationState.isRotating = true;
+      this.rotationState.rotationStartTime = new Date();
+      this.rotationState.previousKeys = this.currentKeys;
+      this.rotationState.newKeys = newKeys;
+
       // Get next version number
       const nextVersion = await this.getNextVersionNumber();
       newKeys.version = nextVersion;
-
-      this.rotationState.newKeys = newKeys;
 
       // Backup old keys if they exist
       if (this.currentKeys && this.config.enableFileBackup) {
@@ -303,10 +365,19 @@ export class KeyManager {
       console.error('❌ Key rotation failed:', error);
       this.rotationState.isRotating = false;
       this.rotationState.rotationPromise = null;
+      this.rotationState.rotationStartTime = null;
       this.rotationState.newKeys = null;
-      throw new Error(
+
+      const rotationError = new Error(
         `Key rotation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+
+      // Preserve original error stack trace if available
+      if (error instanceof Error && error.stack) {
+        rotationError.stack = `${rotationError.stack}\nCaused by: ${error.stack}`;
+      }
+
+      throw rotationError;
     }
   }
 
@@ -379,6 +450,11 @@ export class KeyManager {
       history.lastUpdated = new Date().toISOString();
 
       await fs.writeFile(historyPath, JSON.stringify(history, null, 2), 'utf8');
+
+      // Invalidate cache
+      this.rotationHistoryCache = null;
+      this.rotationHistoryCacheTime = null;
+
       console.log(`📚 Updated rotation history (${history.totalRotations} total rotations)`);
     } catch (error) {
       console.warn('⚠️ Failed to update rotation history:', error);
@@ -390,19 +466,41 @@ export class KeyManager {
    * Get rotation history
    */
   public async getRotationHistory(): Promise<RotationHistory> {
+    // Check if we have a valid cache
+    const now = Date.now();
+    if (
+      this.rotationHistoryCache &&
+      this.rotationHistoryCacheTime &&
+      now - this.rotationHistoryCacheTime < this.ROTATION_HISTORY_CACHE_TTL
+    ) {
+      return this.rotationHistoryCache;
+    }
+
     const historyPath = path.join(this.config.certPath, 'rotation-history.json');
 
     try {
       const historyContent = await fs.readFile(historyPath, 'utf8');
-      return JSON.parse(historyContent);
+      const history = JSON.parse(historyContent);
+
+      // Update cache
+      this.rotationHistoryCache = history;
+      this.rotationHistoryCacheTime = now;
+
+      return history;
     } catch {
       // Return default history if file doesn't exist
-      return {
+      const defaultHistory = {
         totalRotations: 0,
         rotations: [],
         createdAt: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
       };
+
+      // Update cache
+      this.rotationHistoryCache = defaultHistory;
+      this.rotationHistoryCacheTime = now;
+
+      return defaultHistory;
     }
   }
 
@@ -464,11 +562,29 @@ export class KeyManager {
   private async ensureCertDirectory(): Promise<void> {
     try {
       console.log('Ensuring certificate directory exists...');
+      // Check if directory already exists to avoid unnecessary operations
+      try {
+        const stat = await fs.stat(this.config.certPath);
+        if (stat.isDirectory()) {
+          return; // Directory already exists
+        }
+      } catch (error) {
+        // Directory doesn't exist, continue with creation
+      }
+
+      // Create directory if it doesn't exist
       await fs.mkdir(this.config.certPath, { recursive: true });
     } catch (error) {
-      throw new Error(
+      const certError = new Error(
         `Failed to create cert directory: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+
+      // Preserve original error stack trace if available
+      if (error instanceof Error && error.stack) {
+        certError.stack = `${certError.stack}\nCaused by: ${error.stack}`;
+      }
+
+      throw certError;
     }
   }
 
@@ -481,18 +597,17 @@ export class KeyManager {
       const loadedKeys = await this.loadKeysFromFile();
 
       if (loadedKeys) {
-        // Convert RSAKeyPair to CryptoKeyPair format
         const convertedKeys: CryptoKeyPair = {
           publicKey: loadedKeys.publicKey,
           privateKey: loadedKeys.privateKey,
           algorithm: this.config.algorithm,
         };
 
-        // Only set optional properties if they exist
         if (loadedKeys.version !== undefined) {
           convertedKeys.version = loadedKeys.version;
         } else {
-          convertedKeys.version = 1;
+          // When undefined, get next version from history but don't do comparisons
+          convertedKeys.version = await this.getNextVersionNumber();
         }
 
         if (loadedKeys.createdAt !== undefined) {
@@ -562,86 +677,112 @@ export class KeyManager {
   }
 
   /**
-   * Load keys from PEM files
+   * Load keys from binary files (modern format)
    */
-  private async loadKeysFromFile(): Promise<RSAKeyPair | null> {
-    const publicKeyPath = path.join(this.config.certPath, 'pub-key.pem');
-    const privateKeyPath = path.join(this.config.certPath, 'priv-key.pem');
+  private async loadKeysFromFile(): Promise<CryptoKeyPair | null> {
+    const publicKeyPath = path.join(this.config.certPath, 'public-key.bin');
+    const privateKeyPath = path.join(this.config.certPath, 'private-key.bin');
     const metadataPath = path.join(this.config.certPath, 'key-metadata.json');
 
     try {
-      console.log('🚛 Start Loading key files...');
-      console.log('');
-      const [publicKey, privateKey, metadataStr] = await Promise.all([
-        fs.readFile(publicKeyPath, 'utf8'),
-        fs.readFile(privateKeyPath, 'utf8'),
+      console.log('🚛 Loading modern binary key files...');
+
+      // Read binary key files and JSON metadata
+      const [publicKeyBinary, privateKeyBinary, metadataStr] = await Promise.all([
+        fs.readFile(publicKeyPath),
+        fs.readFile(privateKeyPath),
         fs.readFile(metadataPath, 'utf8').catch(() => '{}'),
       ]);
 
       console.log('1. Loaded key files:', {
-        publicKey: publicKey ? '✔️' : '❌',
-        privateKey: privateKey ? '✔️' : '❌',
+        publicKey: publicKeyBinary.length > 0 ? '✔️' : '❌',
+        privateKey: privateKeyBinary.length > 0 ? '✔️' : '❌',
         metadata: metadataStr ? '✔️' : '❌',
       });
 
-      let metadata: Partial<RSAKeyPair> = {};
+      let metadata: Partial<KeyMetadata> = {};
       try {
         metadata = JSON.parse(metadataStr);
       } catch {
-        // Ignore metadata parsing errors
         console.log('⚠️ Failed to parse key metadata, using defaults');
       }
 
-      if (!publicKey || !privateKey) {
+      if (!publicKeyBinary || !privateKeyBinary) {
         console.log('⚠️ Missing key material, generating new keys');
         return null;
       }
 
-      if (!metadata.createdAt || !metadata.expiresAt) {
+      if (!metadata.created || !metadata.algorithm) {
         console.log('⚠️ Missing metadata properties, generating new keys');
         return null;
       }
 
-      const keyPair: RSAKeyPair = {
-        publicKey: publicKey.trim(),
-        privateKey: privateKey.trim(),
+      const createdAt = metadata.created ? new Date(metadata.created) : new Date();
+      const expiresAt = new Date(createdAt);
+      expiresAt.setMonth(expiresAt.getMonth() + this.config.keyExpiryMonths);
+
+      const keyPair: CryptoKeyPair = {
+        publicKey: new Uint8Array(publicKeyBinary),
+        privateKey: new Uint8Array(privateKeyBinary),
+        algorithm: metadata.algorithm,
         version: metadata.version || 1,
-        createdAt: new Date(metadata.createdAt),
-        expiresAt: new Date(metadata.expiresAt),
+        keySize: metadata.keySize || this.config.keySize,
+        createdAt,
+        expiresAt,
       };
 
-      console.log('3. Loaded key pair (version):', keyPair.version);
+      console.log('3. Loaded modern key pair:', {
+        algorithm: keyPair.algorithm,
+        version: keyPair.version,
+        keySize: keyPair.keySize,
+      });
+
       return keyPair;
     } catch (error) {
-      console.log('⚠️ Failed to load keys from filesystem | ', error);
+      console.log('⚠️ Failed to load modern keys from filesystem:', error);
       return null;
     }
   }
 
   /**
-   * Save keys to PEM files
+   * Save keys to binary files with modern format
+   * @param keyPair - ModernKeyPair with binary keys as Uint8Array
    */
-  private async saveKeysToFile(keyPair: CryptoKeyPair): Promise<void> {
-    const publicKeyPath = path.join(this.config.certPath, 'pub-key.pem');
-    const privateKeyPath = path.join(this.config.certPath, 'priv-key.pem');
+  private async saveKeysToFile(keyPair: ModernKeyPair | CryptoKeyPair): Promise<void> {
+    const publicKeyPath = path.join(this.config.certPath, 'public-key.bin');
+    const privateKeyPath = path.join(this.config.certPath, 'private-key.bin');
     const metadataPath = path.join(this.config.certPath, 'key-metadata.json');
 
-    // Use the key provider to serialize the key pair
-    const serialized = this.keyProvider.serializeKeyPair(keyPair);
-
-    const metadata = {
-      ...serialized.metadata,
-      keySize: keyPair.keySize || this.config.keySize,
-      lastRotation: new Date().toISOString(),
-    };
-
     try {
+      // Handle both formats during transition
+      const publicKeyData =
+        keyPair.publicKey instanceof Uint8Array
+          ? keyPair.publicKey
+          : BufferUtils.stringToBinary(JSON.stringify(keyPair.publicKey));
+      const privateKeyData =
+        keyPair.privateKey instanceof Uint8Array
+          ? keyPair.privateKey
+          : BufferUtils.stringToBinary(JSON.stringify(keyPair.privateKey));
+
+      // Create metadata with key information
+      const metadata: KeyMetadata = {
+        algorithm: this.config.algorithm,
+        keySize: this.config.keySize,
+        created: new Date().toISOString(),
+        lastRotation: new Date().toISOString(),
+        version: 'version' in keyPair && keyPair.version ? keyPair.version : 1,
+        publicKeyPath,
+        privateKeyPath,
+      };
+
+      // Write binary key files and metadata
       await Promise.all([
-        fs.writeFile(publicKeyPath, serialized.publicKey, 'utf8'),
-        fs.writeFile(privateKeyPath, serialized.privateKey, 'utf8'),
+        fs.writeFile(publicKeyPath, publicKeyData),
+        fs.writeFile(privateKeyPath, privateKeyData),
         fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8'),
       ]);
 
+      // Set secure permissions on private key file
       if (process.platform === 'win32') {
         // Windows: Set file as read-only and try to set NTFS permissions
         try {
@@ -653,11 +794,20 @@ export class KeyManager {
         // Unix-like systems: Set proper octal permissions
         await fs.chmod(privateKeyPath, 0o600);
       }
+
+      console.log('✅ Successfully saved binary keys to filesystem');
     } catch (error) {
       console.log('❌ Failed to save keys to filesystem:', error);
-      throw new Error(
-        `Failed to save keys: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      const saveError = new Error(
+        `Failed to save binary keys: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+
+      // Preserve original error stack trace if available
+      if (error instanceof Error && error.stack) {
+        saveError.stack = `${saveError.stack}\nCaused by: ${error.stack}`;
+      }
+
+      throw saveError;
     }
   }
 
@@ -669,7 +819,16 @@ export class KeyManager {
     const backupDir = path.join(this.config.certPath, 'backup');
 
     try {
-      await fs.mkdir(backupDir, { recursive: true });
+      // Check if directory already exists to avoid unnecessary operations
+      try {
+        const stat = await fs.stat(backupDir);
+        if (!stat.isDirectory()) {
+          await fs.mkdir(backupDir, { recursive: true });
+        }
+      } catch (error) {
+        // Directory doesn't exist, create it
+        await fs.mkdir(backupDir, { recursive: true });
+      }
 
       const backupPublicPath = path.join(backupDir, `pub-key-expired-${timestamp}.pem`);
       const backupPrivatePath = path.join(backupDir, `priv-key-expired-${timestamp}.pem`);
@@ -754,6 +913,21 @@ export class KeyManager {
     // Validate cert path
     if (!this.config.certPath || this.config.certPath.trim() === '') {
       errors.push('Certificate path cannot be empty');
+    } else {
+      // Validate cert path to prevent path traversal attacks
+      const normalizedPath = path.normalize(this.config.certPath);
+      const resolvedPath = path.resolve(normalizedPath);
+      const cwd = process.cwd();
+
+      // Ensure the path is within the current working directory
+      if (!resolvedPath.startsWith(cwd)) {
+        errors.push('Certificate path must be within the current working directory');
+      }
+
+      // Ensure the path doesn't contain unsafe characters or patterns
+      if (this.config.certPath.includes('../') || this.config.certPath.includes('..\\')) {
+        errors.push('Certificate path contains unsafe path traversal patterns');
+      }
     }
 
     if (errors.length > 0) {
@@ -782,17 +956,15 @@ export class KeyManager {
     }
 
     try {
-      // Basic format validation
-      if (!this.currentKeys.publicKey.includes('BEGIN PUBLIC KEY')) {
-        result.errors.push('Invalid public key format');
+      // Basic binary format validation
+      if (!this.currentKeys.publicKey || this.currentKeys.publicKey.length === 0) {
+        result.errors.push('Invalid or empty public key data');
       } else {
         result.publicKeyValid = true;
       }
 
-      // Get expected private key format from provider
-      const expectedPrivateKeyFormat = this.keyProvider.getPrivateKeyFormat();
-      if (!this.currentKeys.privateKey.includes(expectedPrivateKeyFormat)) {
-        result.errors.push('Invalid private key format');
+      if (!this.currentKeys.privateKey || this.currentKeys.privateKey.length === 0) {
+        result.errors.push('Invalid or empty private key data');
       } else {
         result.privateKeyValid = true;
       }
@@ -823,9 +995,15 @@ export class KeyManager {
       return result;
     } catch (error) {
       result.errors.push(
-        `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Key validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       console.log('❌ Key validation failed:', result.errors);
+
+      // Preserve original error stack trace if available
+      if (error instanceof Error && error.stack) {
+        console.log('Validation error stack trace:', error.stack);
+      }
+
       return result;
     }
   }
@@ -878,6 +1056,8 @@ export class KeyManager {
         issues,
       };
     } catch (error) {
+      console.error('Health check failed with error:', error);
+
       return {
         healthy: false,
         issues: [
@@ -896,7 +1076,24 @@ export class KeyManager {
    */
   public async forceRegenerate(): Promise<void> {
     console.log('🔄 Force regenerating keys...');
+    // Clear any existing keys and cleanup resources
     this.currentKeys = null;
+
+    // Clear any pending cleanup timer
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+
+    // Reset rotation state
+    this.rotationState = {
+      isRotating: false,
+      rotationPromise: null,
+      rotationStartTime: null,
+      previousKeys: null,
+      newKeys: null,
+    };
+
     await this.loadOrGenerateKeys();
     console.log('✅ Keys force regenerated');
   }
@@ -913,6 +1110,75 @@ export class KeyManager {
    */
   public updateConfig(newConfig: Partial<KeyManagerConfig>): void {
     this.config = { ...this.config, ...newConfig };
+  }
+
+  /**
+   * Securely clear key material from memory
+   * This method overwrites sensitive key data with zeros before releasing references
+   * ⚠️ SECURITY WARNING: This should only be called when keys are no longer needed
+   */
+  public securelyClearKeys(): void {
+    if (this.currentKeys) {
+      // Overwrite private key data with zeros
+      if (this.currentKeys.privateKey) {
+        const privateKeyArray = this.currentKeys.privateKey as Uint8Array;
+        for (let i = 0; i < privateKeyArray.length; i++) {
+          privateKeyArray[i] = 0;
+        }
+      }
+
+      // Overwrite public key data with zeros
+      if (this.currentKeys.publicKey) {
+        const publicKeyArray = this.currentKeys.publicKey as Uint8Array;
+        for (let i = 0; i < publicKeyArray.length; i++) {
+          publicKeyArray[i] = 0;
+        }
+      }
+
+      // Clear references
+      this.currentKeys = null;
+    }
+
+    // Also clear any keys in rotation state
+    if (this.rotationState.previousKeys) {
+      const prevKeys = this.rotationState.previousKeys;
+      if (prevKeys.privateKey) {
+        const privateKeyArray = prevKeys.privateKey as Uint8Array;
+        for (let i = 0; i < privateKeyArray.length; i++) {
+          privateKeyArray[i] = 0;
+        }
+      }
+
+      if (prevKeys.publicKey) {
+        const publicKeyArray = prevKeys.publicKey as Uint8Array;
+        for (let i = 0; i < publicKeyArray.length; i++) {
+          publicKeyArray[i] = 0;
+        }
+      }
+
+      this.rotationState.previousKeys = null;
+    }
+
+    if (this.rotationState.newKeys) {
+      const newKeys = this.rotationState.newKeys;
+      if (newKeys.privateKey) {
+        const privateKeyArray = newKeys.privateKey as Uint8Array;
+        for (let i = 0; i < privateKeyArray.length; i++) {
+          privateKeyArray[i] = 0;
+        }
+      }
+
+      if (newKeys.publicKey) {
+        const publicKeyArray = newKeys.publicKey as Uint8Array;
+        for (let i = 0; i < publicKeyArray.length; i++) {
+          publicKeyArray[i] = 0;
+        }
+      }
+
+      this.rotationState.newKeys = null;
+    }
+
+    console.log('🔐 Key material securely cleared from memory');
   }
 }
 
@@ -937,19 +1203,19 @@ export async function initializeKeyManagement(config?: KeyManagerConfig): Promis
 }
 
 /**
- * Quick access to public key
+ * Quick access to public key as Base64 string
  */
 export async function getPublicKey(): Promise<string> {
   const manager = getKeyManager();
-  return manager.getPublicKey();
+  return manager.getPublicKeyBase64();
 }
 
 /**
- * Quick access to private key (server-side only)
+ * Quick access to private key as Base64 string (server-side only)
  */
 export async function getPrivateKey(): Promise<string> {
   const manager = getKeyManager();
-  return manager.getPrivateKey();
+  return manager.getPrivateKeyBase64();
 }
 
 /**

@@ -1,7 +1,9 @@
 {
+  "algorithm": "ml-kem-768",
+  "keySize": 768,
+  "created": "2025-08-13T12:55:10.901Z",
+  "lastRotation": "2025-08-13T12:55:10.901Z",
   "version": 1,
-  "createdAt": "2025-08-12T08:43:02.725Z",
-  "expiresAt": "2025-09-12T08:43:02.725Z",
-  "keySize": 2048,
-  "lastRotation": "2025-08-12T08:43:02.725Z"
+  "publicKeyPath": "/workspaces/hybrid-encryption-js-only/config/certs/public-key.bin",
+  "privateKeyPath": "/workspaces/hybrid-encryption-js-only/config/certs/private-key.bin"
 }

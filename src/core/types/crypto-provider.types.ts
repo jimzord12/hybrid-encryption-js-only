@@ -2,16 +2,15 @@
 // This file defines the interfaces for algorithm-agnostic key management
 
 // Post-quantum and modern cryptographic algorithms
-export type SupportedAlgorithms = 'ml-kem-768' | 'ml-kem-1024' | 'ecc' | 'ed25519';
-
+export type SupportedAlgorithms = 'ml-kem-768';
 /**
  * Modern crypto key pair interface - compatible with ModernKeyPair
  * Uses binary format and supports multiple algorithms
  */
 export interface CryptoKeyPair {
+  algorithm: SupportedAlgorithms; // Updated to supported algorithms
   publicKey: Uint8Array; // Changed to binary format
   privateKey: Uint8Array; // Changed to binary format
-  algorithm: SupportedAlgorithms; // Updated to supported algorithms
   version?: number;
   createdAt?: Date;
   expiresAt?: Date;
@@ -19,6 +18,19 @@ export interface CryptoKeyPair {
   curve?: string; // For ECC algorithms
   parameters?: Record<string, any>; // Algorithm-specific parameters
 }
+
+// export interface ModernKeyPair {
+//   algorithm: string; // Algorithm identifier (e.g., 'ML-KEM-768')
+//   publicKey: Uint8Array; // Always binary format - no PEM
+//   privateKey: Uint8Array; // Always binary format - no PEM
+//   metadata: {
+//     version: number; // Key format version
+//     createdAt: Date; // When the key was generated
+//     expiresAt?: Date; // Optional expiration
+//     keySize?: number; // Key size in bits (if applicable)
+//     curve?: string; // Curve name (for ECC algorithms)
+//     parameters?: Record<string, any>; // Algorithm-specific parameters
+//   }
 
 export interface KeyGenerationConfig {
   algorithm: SupportedAlgorithms;
@@ -108,67 +120,67 @@ export interface KeyProvider {
   validateConfig(config: KeyGenerationConfig): string[];
 }
 
-/**
- * Utility namespace for key format conversions
- */
-export namespace KeyFormatUtils {
-  /**
-   * Convert CryptoKeyPair to SerializedKeys for storage
-   */
-  export function serializeKeyPair(keyPair: CryptoKeyPair): SerializedKeys {
-    const metadata: SerializedKeyMetadata = {
-      algorithm: keyPair.algorithm,
-    };
+// /**
+//  * Utility namespace for key format conversions
+//  */
+// export namespace KeyFormatUtils {
+//   /**
+//    * Convert CryptoKeyPair to SerializedKeys for storage
+//    */
+//   export function serializeKeyPair(keyPair: CryptoKeyPair): SerializedKeys {
+//     const metadata: SerializedKeyMetadata = {
+//       algorithm: keyPair.algorithm,
+//     };
 
-    // Only add optional properties if they exist
-    if (keyPair.keySize !== undefined) metadata.keySize = keyPair.keySize;
-    if (keyPair.curve !== undefined) metadata.curve = keyPair.curve;
-    if (keyPair.version !== undefined) metadata.version = keyPair.version;
-    if (keyPair.createdAt !== undefined) metadata.createdAt = keyPair.createdAt.toISOString();
-    if (keyPair.expiresAt !== undefined) metadata.expiresAt = keyPair.expiresAt.toISOString();
-    if (keyPair.parameters !== undefined) metadata.parameters = keyPair.parameters;
+//     // Only add optional properties if they exist
+//     if (keyPair.keySize !== undefined) metadata.keySize = keyPair.keySize;
+//     if (keyPair.curve !== undefined) metadata.curve = keyPair.curve;
+//     if (keyPair.version !== undefined) metadata.version = keyPair.version;
+//     if (keyPair.createdAt !== undefined) metadata.createdAt = keyPair.createdAt.toISOString();
+//     if (keyPair.expiresAt !== undefined) metadata.expiresAt = keyPair.expiresAt.toISOString();
+//     if (keyPair.parameters !== undefined) metadata.parameters = keyPair.parameters;
 
-    return {
-      publicKey: btoa(String.fromCharCode(...keyPair.publicKey)),
-      privateKey: btoa(String.fromCharCode(...keyPair.privateKey)),
-      metadata,
-    };
-  }
+//     return {
+//       publicKey: Buffer.from(keyPair.publicKey).toString('base64'),
+//       privateKey: Buffer.from(keyPair.privateKey).toString('base64'),
+//       metadata,
+//     };
+//   }
 
-  /**
-   * Convert SerializedKeys to CryptoKeyPair from storage
-   */
-  export function deserializeKeyPair(data: SerializedKeys): CryptoKeyPair {
-    const publicKeyBytes = Uint8Array.from(atob(data.publicKey), c => c.charCodeAt(0));
-    const privateKeyBytes = Uint8Array.from(atob(data.privateKey), c => c.charCodeAt(0));
+//   /**
+//    * Convert SerializedKeys to CryptoKeyPair from storage
+//    */
+//   export function deserializeKeyPair(data: SerializedKeys): CryptoKeyPair {
+//     const publicKeyBytes = Uint8Array.from(atob(data.publicKey), c => c.charCodeAt(0));
+//     const privateKeyBytes = Uint8Array.from(atob(data.privateKey), c => c.charCodeAt(0));
 
-    const result: CryptoKeyPair = {
-      publicKey: publicKeyBytes,
-      privateKey: privateKeyBytes,
-      algorithm: data.metadata.algorithm,
-    };
+//     const result: CryptoKeyPair = {
+//       publicKey: publicKeyBytes,
+//       privateKey: privateKeyBytes,
+//       algorithm: data.metadata.algorithm,
+//     };
 
-    // Only add optional properties if they exist in metadata
-    if (data.metadata.keySize !== undefined) result.keySize = data.metadata.keySize;
-    if (data.metadata.curve !== undefined) result.curve = data.metadata.curve;
-    if (data.metadata.version !== undefined) result.version = data.metadata.version;
-    if (data.metadata.createdAt !== undefined) result.createdAt = new Date(data.metadata.createdAt);
-    if (data.metadata.expiresAt !== undefined) result.expiresAt = new Date(data.metadata.expiresAt);
-    if (data.metadata.parameters !== undefined) result.parameters = data.metadata.parameters;
+//     // Only add optional properties if they exist in metadata
+//     if (data.metadata.keySize !== undefined) result.keySize = data.metadata.keySize;
+//     if (data.metadata.curve !== undefined) result.curve = data.metadata.curve;
+//     if (data.metadata.version !== undefined) result.version = data.metadata.version;
+//     if (data.metadata.createdAt !== undefined) result.createdAt = new Date(data.metadata.createdAt);
+//     if (data.metadata.expiresAt !== undefined) result.expiresAt = new Date(data.metadata.expiresAt);
+//     if (data.metadata.parameters !== undefined) result.parameters = data.metadata.parameters;
 
-    return result;
-  }
+//     return result;
+//   }
 
-  /**
-   * Check if two key pairs are equivalent
-   */
-  export function areKeyPairsEqual(a: CryptoKeyPair, b: CryptoKeyPair): boolean {
-    return (
-      a.algorithm === b.algorithm &&
-      a.publicKey.length === b.publicKey.length &&
-      a.privateKey.length === b.privateKey.length &&
-      a.publicKey.every((byte, index) => byte === b.publicKey[index]) &&
-      a.privateKey.every((byte, index) => byte === b.privateKey[index])
-    );
-  }
-}
+//   /**
+//    * Check if two key pairs are equivalent
+//    */
+//   export function areKeyPairsEqual(a: CryptoKeyPair, b: CryptoKeyPair): boolean {
+//     return (
+//       a.algorithm === b.algorithm &&
+//       a.publicKey.length === b.publicKey.length &&
+//       a.privateKey.length === b.privateKey.length &&
+//       a.publicKey.every((byte, index) => byte === b.publicKey[index]) &&
+//       a.privateKey.every((byte, index) => byte === b.privateKey[index])
+//     );
+//   }
+// }

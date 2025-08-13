@@ -27,8 +27,6 @@ export type {
   SupportedAlgorithms,
 } from './types/crypto-provider.types';
 
-export { KeyFormatUtils } from './types/crypto-provider.types';
-
 export type {
   KeyManagerConfig,
   KeyManagerStatus,

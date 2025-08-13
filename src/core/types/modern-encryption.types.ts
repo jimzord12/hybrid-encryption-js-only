@@ -5,6 +5,8 @@
  * that will replace the legacy RSA-based interfaces in Phase 2.0.0
  */
 
+import { SupportedAlgorithms } from './crypto-provider.types';
+
 /**
  * Modern encrypted data format using KEM + AEAD approach
  * Replaces the legacy RSA + AES approach with post-quantum security
@@ -28,7 +30,7 @@ export interface ModernEncryptedData {
  * Uses binary format (Uint8Array) for all keys - algorithm agnostic
  */
 export interface ModernKeyPair {
-  algorithm: string; // Algorithm identifier (e.g., 'ML-KEM-768')
+  algorithm: SupportedAlgorithms; // Algorithm identifier (e.g., 'ML-KEM-768')
   publicKey: Uint8Array; // Always binary format - no PEM
   privateKey: Uint8Array; // Always binary format - no PEM
   metadata: {
@@ -90,4 +92,3 @@ export interface AlgorithmCapabilities {
   recommendedKeySize: number;
   description: string;
 }
-

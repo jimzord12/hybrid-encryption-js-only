@@ -8,7 +8,6 @@ import { MlKemKeyProvider } from './ml-kem-provider';
 export class KeyProviderFactory {
   private static providers: Map<SupportedAlgorithms, () => KeyProvider> = new Map([
     ['ml-kem-768', () => new MlKemKeyProvider()],
-    ['ml-kem-1024', () => new MlKemKeyProvider()],
     // Future algorithms can be added here:
     // ['ecc', () => new ECCKeyProvider()],
     // ['ed25519', () => new Ed25519KeyProvider()],
