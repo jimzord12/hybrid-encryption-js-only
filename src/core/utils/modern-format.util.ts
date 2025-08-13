@@ -8,6 +8,7 @@
 import { CryptoKeyPair } from '../types/crypto-provider.types';
 import { LegacyEncryptedData } from '../types/encryption.types';
 import { ModernEncryptedData, ModernKeyPair } from '../types/modern-encryption.types';
+import { BufferUtils } from './buffer.util';
 
 /**
  * Conversion utilities for modern format compatibility
@@ -94,14 +95,14 @@ export namespace ModernFormatUtils {
    * Convert binary key to Base64 string for storage/transmission
    */
   export function binaryKeyToBase64(key: Uint8Array): string {
-    return btoa(String.fromCharCode(...key));
+    return BufferUtils.encodeBase64(key);
   }
 
   /**
    * Convert Base64 string back to binary key
    */
   export function base64ToBinaryKey(base64: string): Uint8Array {
-    return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    return BufferUtils.decodeBase64(base64);
   }
 
   /**
@@ -195,28 +196,13 @@ export namespace ModernFormatUtils {
    * Generate secure random bytes for nonces, salts, etc.
    */
   export function getSecureRandomBytes(length: number): Uint8Array {
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      return crypto.getRandomValues(new Uint8Array(length));
-    }
-
-    // Fallback for older environments
-    const array = new Uint8Array(length);
-    for (let i = 0; i < length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
-    return array;
+    return BufferUtils.getSecureRandomBytes(length);
   }
 
   /**
    * Compare two Uint8Arrays in constant time (side-channel resistant)
    */
   export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
-    if (a.length !== b.length) return false;
-
-    let result = 0;
-    for (let i = 0; i < a.length; i++) {
-      result |= a[i] ^ b[i];
-    }
-    return result === 0;
+    return BufferUtils.constantTimeEqual(a, b);
   }
 }

@@ -1,5 +1,6 @@
 import { hkdf } from '@noble/hashes/hkdf';
 import { sha256, sha512 } from '@noble/hashes/sha2';
+import { randomBytes } from '@noble/hashes/utils';
 
 /**
  * Supported key derivation algorithms
@@ -127,18 +128,8 @@ export class KeyDerivation {
       throw new Error(`Invalid salt size: ${size}. Must be between 1 and 256 bytes.`);
     }
 
-    // Use crypto.getRandomValues for secure random generation
-    const salt = new Uint8Array(size);
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      crypto.getRandomValues(salt);
-    } else {
-      // Fallback for Node.js environment
-      const nodeCrypto = require('crypto');
-      const randomBytes = nodeCrypto.randomBytes(size);
-      salt.set(randomBytes);
-    }
-
-    return salt;
+    // Use @noble/hashes randomBytes for secure cryptographic random generation
+    return randomBytes(size);
   }
 
   /**

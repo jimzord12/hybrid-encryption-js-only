@@ -47,6 +47,16 @@ export type {
 
 export { KeyDerivation } from './utils/key-derivation.util.js';
 
+// Export serialization utilities
+export type {
+  SerializableData,
+  SerializationMetadata,
+  SerializationOptions,
+  SerializationResult,
+} from './utils/serialization.util.js';
+
+export { ModernSerialization } from './utils/serialization.util.js';
+
 // Export modern encryption types (Phase 2.0)
 export type {
   AlgorithmCapabilities,

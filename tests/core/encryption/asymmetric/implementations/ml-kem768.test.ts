@@ -58,9 +58,9 @@ describe('MLKEMAlgorithm', () => {
 
       expect(result).toBeDefined();
       expect(result.sharedSecret).toBeInstanceOf(Uint8Array);
-      expect(result.keyMaterial).toBeInstanceOf(Uint8Array);
+      expect(result.cipherText).toBeInstanceOf(Uint8Array);
       expect(result.sharedSecret.length).toBe(32); // 32 bytes shared secret for ML-KEM-768
-      expect(result.keyMaterial.length).toBe(1088); // 1088 bytes ciphertext for ML-KEM-768
+      expect(result.cipherText.length).toBe(1088); // 1088 bytes ciphertext for ML-KEM-768
     });
 
     it('should generate different shared secrets for same public key', () => {
@@ -70,7 +70,7 @@ describe('MLKEMAlgorithm', () => {
 
       // Should generate different shared secrets due to randomness
       expect(result1.sharedSecret).not.toEqual(result2.sharedSecret);
-      expect(result1.keyMaterial).not.toEqual(result2.keyMaterial);
+      expect(result1.cipherText).not.toEqual(result2.cipherText);
     });
 
     it('should throw error for invalid public key', () => {
@@ -88,7 +88,7 @@ describe('MLKEMAlgorithm', () => {
       const encapsulationResult = algorithm.createSharedSecret(keyPair.publicKey);
 
       const recoveredSecret = algorithm.recoverSharedSecret(
-        encapsulationResult.keyMaterial,
+        encapsulationResult.cipherText,
         keyPair.privateKey,
       );
 
@@ -103,11 +103,11 @@ describe('MLKEMAlgorithm', () => {
 
       // ML-KEM uses implicit rejection - wrong private key returns different secret (no error)
       const correctSecret = algorithm.recoverSharedSecret(
-        encapsulationResult.keyMaterial,
+        encapsulationResult.cipherText,
         keyPair1.privateKey,
       );
       const wrongSecret = algorithm.recoverSharedSecret(
-        encapsulationResult.keyMaterial,
+        encapsulationResult.cipherText,
         keyPair2.privateKey, // Wrong private key
       );
 
@@ -132,7 +132,7 @@ describe('MLKEMAlgorithm', () => {
       const invalidPrivateKey = new Uint8Array(100); // Wrong size
 
       expect(() => {
-        algorithm.recoverSharedSecret(encapsulationResult.keyMaterial, invalidPrivateKey);
+        algorithm.recoverSharedSecret(encapsulationResult.cipherText, invalidPrivateKey);
       }).toThrow();
     });
   });
@@ -143,10 +143,10 @@ describe('MLKEMAlgorithm', () => {
       const keyPair = algorithm.generateKeyPair();
 
       // Encapsulate to get shared secret and ciphertext
-      const { sharedSecret, keyMaterial } = algorithm.createSharedSecret(keyPair.publicKey);
+      const { sharedSecret, cipherText } = algorithm.createSharedSecret(keyPair.publicKey);
 
       // Decapsulate to recover the same shared secret
-      const recoveredSecret = algorithm.recoverSharedSecret(keyMaterial, keyPair.privateKey);
+      const recoveredSecret = algorithm.recoverSharedSecret(cipherText, keyPair.privateKey);
 
       // Verify correctness
       expect(recoveredSecret).toEqual(sharedSecret);
@@ -162,8 +162,8 @@ describe('MLKEMAlgorithm', () => {
       }
 
       // Verify each can be decapsulated correctly
-      encapsulations.forEach(({ sharedSecret, keyMaterial }) => {
-        const recovered = algorithm.recoverSharedSecret(keyMaterial, keyPair.privateKey);
+      encapsulations.forEach(({ sharedSecret, cipherText }) => {
+        const recovered = algorithm.recoverSharedSecret(cipherText, keyPair.privateKey);
         expect(recovered).toEqual(sharedSecret);
       });
     });
@@ -203,7 +203,7 @@ describe('MLKEMAlgorithm', () => {
       expect(keyPair.publicKey.some(byte => byte !== 0)).toBe(true);
       expect(keyPair.privateKey.some(byte => byte !== 0)).toBe(true);
       expect(result.sharedSecret.some(byte => byte !== 0)).toBe(true);
-      expect(result.keyMaterial.some(byte => byte !== 0)).toBe(true);
+      expect(result.cipherText.some(byte => byte !== 0)).toBe(true);
     });
   });
 
@@ -230,10 +230,10 @@ describe('MLKEMAlgorithm', () => {
 
     it('should perform decapsulation within reasonable time', () => {
       const keyPair = algorithm.generateKeyPair();
-      const { sharedSecret: _, keyMaterial } = algorithm.createSharedSecret(keyPair.publicKey);
+      const { sharedSecret: _, cipherText } = algorithm.createSharedSecret(keyPair.publicKey);
 
       const start = performance.now();
-      algorithm.recoverSharedSecret(keyMaterial, keyPair.privateKey);
+      algorithm.recoverSharedSecret(cipherText, keyPair.privateKey);
       const end = performance.now();
 
       // Should complete within 50ms (generous threshold)
@@ -260,7 +260,7 @@ describe('MLKEMAlgorithm', () => {
 
     it('should return different shared secret with malformed key material', () => {
       const keyPair = algorithm.generateKeyPair();
-      const { keyMaterial: validKeyMaterial } = algorithm.createSharedSecret(keyPair.publicKey);
+      const { cipherText: validKeyMaterial } = algorithm.createSharedSecret(keyPair.publicKey);
 
       // Create malformed key material of correct size but invalid content
       const corruptedKeyMaterial = new Uint8Array(1088);

@@ -53,12 +53,12 @@ describe('Algorithm Registry Integration Tests', () => {
       expect(keyPair.privateKey).toBeInstanceOf(Uint8Array);
 
       // Test encapsulation
-      const { sharedSecret, keyMaterial } = mlkem.createSharedSecret(keyPair.publicKey);
+      const { sharedSecret, cipherText } = mlkem.createSharedSecret(keyPair.publicKey);
       expect(sharedSecret).toBeInstanceOf(Uint8Array);
-      expect(keyMaterial).toBeInstanceOf(Uint8Array);
+      expect(cipherText).toBeInstanceOf(Uint8Array);
 
       // Test decapsulation
-      const recoveredSecret = mlkem.recoverSharedSecret(keyMaterial, keyPair.privateKey);
+      const recoveredSecret = mlkem.recoverSharedSecret(cipherText, keyPair.privateKey);
       expect(recoveredSecret).toEqual(sharedSecret);
     });
 
@@ -109,7 +109,7 @@ describe('Algorithm Registry Integration Tests', () => {
 
       // Step 5: Recipient decapsulates to recover shared secret
       const recoveredSharedSecret = mlkem.recoverSharedSecret(
-        encapsulationResult.keyMaterial,
+        encapsulationResult.cipherText,
         recipientKeyPair.privateKey,
       );
 
@@ -156,7 +156,7 @@ describe('Algorithm Registry Integration Tests', () => {
         const encrypted = aesGcm.encrypt(plaintext, keyMaterial);
 
         return {
-          keyMaterial: encapsulationResult.keyMaterial,
+          keyMaterial: encapsulationResult.cipherText,
           salt,
           info,
           encryptedData: encrypted.encryptedData,
@@ -236,7 +236,7 @@ describe('Algorithm Registry Integration Tests', () => {
 
       // Decrypt
       const recoveredSharedSecret = mlkem.recoverSharedSecret(
-        encapsulationResult.keyMaterial,
+        encapsulationResult.cipherText,
         recipientKeyPair.privateKey,
       );
       const recoveredKeyMaterial = aesGcm.deriveKeyMaterial(recoveredSharedSecret, salt, info);
@@ -271,7 +271,7 @@ describe('Algorithm Registry Integration Tests', () => {
       const encrypted = aesGcm.encrypt(largeData, keyMaterial);
 
       const recoveredSharedSecret = mlkem.recoverSharedSecret(
-        encapsulationResult.keyMaterial,
+        encapsulationResult.cipherText,
         recipientKeyPair.privateKey,
       );
       const recoveredKeyMaterial = aesGcm.deriveKeyMaterial(recoveredSharedSecret, salt, info);
@@ -365,7 +365,7 @@ describe('Algorithm Registry Integration Tests', () => {
       const encrypted = aesGcm.encrypt(plaintext, keyMaterial);
 
       // Tamper with key material (affects ML-KEM decapsulation)
-      const tamperedKeyMaterial = new Uint8Array(encapsulationResult.keyMaterial);
+      const tamperedKeyMaterial = new Uint8Array(encapsulationResult.cipherText);
       tamperedKeyMaterial[0] ^= 1;
 
       // ML-KEM uses implicit rejection - it doesn't throw, but returns a different shared secret

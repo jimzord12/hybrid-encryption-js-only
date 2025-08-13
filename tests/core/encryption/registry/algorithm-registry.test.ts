@@ -26,7 +26,7 @@ class MockAsymmetricAlgorithm extends AsymmetricAlgorithm {
   createSharedSecret(publicKey: Uint8Array) {
     return {
       sharedSecret: new Uint8Array([7, 8, 9]),
-      keyMaterial: publicKey,
+      cipherText: publicKey,
     };
   }
 

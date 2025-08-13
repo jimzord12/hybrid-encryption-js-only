@@ -18,7 +18,7 @@ class MockAsymmetricAlgorithm extends AsymmetricAlgorithm {
   createSharedSecret(publicKey: Uint8Array, _privateKey?: Uint8Array) {
     return {
       sharedSecret: new Uint8Array([9, 10, 11, 12]),
-      keyMaterial: publicKey,
+      cipherText: publicKey,
     };
   }
 
@@ -88,10 +88,10 @@ describe('Algorithm Base Classes', () => {
 
       const sharedSecretResult = algorithm.createSharedSecret(keyPair.publicKey);
       expect(sharedSecretResult.sharedSecret).toBeInstanceOf(Uint8Array);
-      expect(sharedSecretResult.keyMaterial).toBeInstanceOf(Uint8Array);
+      expect(sharedSecretResult.cipherText).toBeInstanceOf(Uint8Array);
 
       const recoveredSecret = algorithm.recoverSharedSecret(
-        sharedSecretResult.keyMaterial,
+        sharedSecretResult.cipherText,
         keyPair.privateKey,
       );
       expect(recoveredSecret).toBeInstanceOf(Uint8Array);
@@ -247,7 +247,7 @@ describe('Algorithm Base Classes', () => {
 
       // Step 5: Recover shared secret
       const recoveredSecret = asymAlg.recoverSharedSecret(
-        sharedSecretResult.keyMaterial,
+        sharedSecretResult.cipherText,
         keyPair.privateKey,
       );
 
@@ -286,7 +286,7 @@ describe('Algorithm Base Classes', () => {
       // Test with empty arrays
       const emptyPublicKey = new Uint8Array(0);
       const result = algorithm.createSharedSecret(emptyPublicKey);
-      expect(result.keyMaterial).toEqual(emptyPublicKey);
+      expect(result.cipherText).toEqual(emptyPublicKey);
 
       // Test with null-like inputs (implementation dependent)
       const emptyKeyMaterial = new Uint8Array(0);
@@ -330,11 +330,11 @@ describe('Algorithm Base Classes', () => {
       expect(sharedSecretResult).toHaveProperty('sharedSecret');
       expect(sharedSecretResult).toHaveProperty('keyMaterial');
       expect(sharedSecretResult.sharedSecret).toBeInstanceOf(Uint8Array);
-      expect(sharedSecretResult.keyMaterial).toBeInstanceOf(Uint8Array);
+      expect(sharedSecretResult.cipherText).toBeInstanceOf(Uint8Array);
 
       // recoverSharedSecret should return Uint8Array
       const recovered = algorithm.recoverSharedSecret(
-        sharedSecretResult.keyMaterial,
+        sharedSecretResult.cipherText,
         keyPair.privateKey,
       );
       expect(recovered).toBeInstanceOf(Uint8Array);

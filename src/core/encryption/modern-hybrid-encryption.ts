@@ -51,6 +51,7 @@ import type {
   ModernKeyPair,
 } from '../types/modern-encryption.types.js';
 import { KeyDerivation, type SupportedKDFAlgorithms } from '../utils/key-derivation.util.js';
+import { ModernSerialization } from '../utils/serialization.util.js';
 import { AlgorithmRegistry } from './algorithm-registry.js';
 import { AsymmetricAlgorithm } from './asymmetric/base.js';
 import { SymmetricAlgorithm } from './symmetric/base.js';
@@ -477,12 +478,7 @@ export class ModernHybridEncryption {
 
   private serializeData(data: any): Uint8Array {
     try {
-      if (data instanceof Uint8Array) {
-        return data;
-      }
-
-      const jsonString = JSON.stringify(data);
-      return new TextEncoder().encode(jsonString);
+      return ModernSerialization.serializeForEncryption(data);
     } catch (error) {
       throw new FormatConversionError(
         `Data serialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -496,8 +492,7 @@ export class ModernHybridEncryption {
 
   private deserializeData<T>(data: Uint8Array): T {
     try {
-      const jsonString = new TextDecoder().decode(data);
-      return JSON.parse(jsonString) as T;
+      return ModernSerialization.deserializeFromDecryption<T>(data);
     } catch (error) {
       throw new FormatConversionError(
         `Data deserialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -511,8 +506,7 @@ export class ModernHybridEncryption {
 
   private encodeBase64(data: Uint8Array): string {
     try {
-      // Use Buffer for Node.js environment
-      return Buffer.from(data).toString('base64');
+      return ModernSerialization.encodeBase64(data);
     } catch (error) {
       throw new FormatConversionError(
         `Base64 encoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -526,8 +520,7 @@ export class ModernHybridEncryption {
 
   private decodeBase64(data: string): Uint8Array {
     try {
-      // Use Buffer for Node.js environment
-      return new Uint8Array(Buffer.from(data, 'base64'));
+      return ModernSerialization.decodeBase64(data);
     } catch (error) {
       throw new FormatConversionError(
         `Base64 decoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
