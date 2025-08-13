@@ -66,7 +66,7 @@ export class KeyDerivation {
     keySize: number,
     salt?: Uint8Array,
     info?: Uint8Array,
-    algorithm: SupportedKDFAlgorithms = 'HKDF-SHA256'
+    algorithm: SupportedKDFAlgorithms = 'HKDF-SHA256',
   ): Uint8Array {
     // Validate inputs
     this.validateInputs(sharedSecret, keySize, algorithm);
@@ -87,7 +87,7 @@ export class KeyDerivation {
       return derivedKey;
     } catch (error) {
       throw new Error(
-        `Key derivation failed with ${algorithm}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Key derivation failed with ${algorithm}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -101,18 +101,12 @@ export class KeyDerivation {
    */
   static deriveKeyWithConfig(
     sharedSecret: Uint8Array,
-    config: KeyDerivationConfig
+    config: KeyDerivationConfig,
   ): KeyDerivationResult {
     const salt = config.salt ?? this.generateSalt();
     const info = config.info ?? this.generateInfo();
 
-    const derivedKey = this.deriveKey(
-      sharedSecret,
-      config.keyLength,
-      salt,
-      info,
-      config.algorithm
-    );
+    const derivedKey = this.deriveKey(sharedSecret, config.keyLength, salt, info, config.algorithm);
 
     return {
       key: derivedKey,
@@ -178,7 +172,7 @@ export class KeyDerivation {
   private static validateInputs(
     sharedSecret: Uint8Array,
     keySize: number,
-    algorithm: SupportedKDFAlgorithms
+    algorithm: SupportedKDFAlgorithms,
   ): void {
     if (!sharedSecret || sharedSecret.length === 0) {
       throw new Error('Shared secret cannot be empty');
@@ -193,7 +187,9 @@ export class KeyDerivation {
     }
 
     if (sharedSecret.length < 16) {
-      throw new Error(`Shared secret too short: ${sharedSecret.length} bytes. Minimum 16 bytes required.`);
+      throw new Error(
+        `Shared secret too short: ${sharedSecret.length} bytes. Minimum 16 bytes required.`,
+      );
     }
   }
 

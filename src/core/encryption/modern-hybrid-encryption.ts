@@ -50,11 +50,11 @@ import type {
   ModernEncryptionOptions,
   ModernKeyPair,
 } from '../types/modern-encryption.types.js';
+import { KeyDerivation, type SupportedKDFAlgorithms } from '../utils/key-derivation.util.js';
 import { AlgorithmRegistry } from './algorithm-registry.js';
 import { AsymmetricAlgorithm } from './asymmetric/base.js';
 import { SymmetricAlgorithm } from './symmetric/base.js';
 import type { KeyMaterial } from './types.js';
-import { KeyDerivation, type SupportedKDFAlgorithms } from '../utils/key-derivation.util.js';
 
 /**
  * Modern Hybrid Encryption implementation using KEM + AEAD approach
@@ -434,7 +434,7 @@ export class ModernHybridEncryption {
         keyLengthBytes,
         salt,
         derivationInfo,
-        kdfAlgorithm as SupportedKDFAlgorithms
+        kdfAlgorithm as SupportedKDFAlgorithms,
       );
 
       return derivedKey;

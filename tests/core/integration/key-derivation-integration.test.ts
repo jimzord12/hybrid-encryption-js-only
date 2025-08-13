@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { KeyDerivation } from '../../../src/core/utils/key-derivation.util.js';
-import { ModernHybridEncryption } from '../../../src/core/encryption/modern-hybrid-encryption.js';
 
 describe('KeyDerivation Integration with ModernHybridEncryption', () => {
   let testSharedSecret: Uint8Array;
@@ -66,15 +65,27 @@ describe('KeyDerivation Integration with ModernHybridEncryption', () => {
 
     it('should support the KDF algorithms used by ModernHybridEncryption', () => {
       const supportedAlgorithms = KeyDerivation.getSupportedAlgorithms();
-      
+
       // Check that ModernHybridEncryption's default algorithms are supported
       expect(supportedAlgorithms).toContain('HKDF-SHA256');
       expect(supportedAlgorithms).toContain('HKDF-SHA512');
 
       // Test derivation with both algorithms
       const keySize = 32;
-      const key256 = KeyDerivation.deriveKey(testSharedSecret, keySize, undefined, undefined, 'HKDF-SHA256');
-      const key512 = KeyDerivation.deriveKey(testSharedSecret, keySize, undefined, undefined, 'HKDF-SHA512');
+      const key256 = KeyDerivation.deriveKey(
+        testSharedSecret,
+        keySize,
+        undefined,
+        undefined,
+        'HKDF-SHA256',
+      );
+      const key512 = KeyDerivation.deriveKey(
+        testSharedSecret,
+        keySize,
+        undefined,
+        undefined,
+        'HKDF-SHA512',
+      );
 
       expect(key256.length).toBe(keySize);
       expect(key512.length).toBe(keySize);
@@ -100,8 +111,10 @@ describe('KeyDerivation Integration with ModernHybridEncryption', () => {
 
       // Should be fast enough for real-time encryption
       expect(averageTime).toBeLessThan(5); // Less than 5ms per operation
-      
-      console.log(`Average key derivation time in encryption workflow: ${averageTime.toFixed(2)}ms`);
+
+      console.log(
+        `Average key derivation time in encryption workflow: ${averageTime.toFixed(2)}ms`,
+      );
     });
   });
 
@@ -165,7 +178,7 @@ describe('KeyDerivation Integration with ModernHybridEncryption', () => {
   describe('error handling integration', () => {
     it('should provide clear error messages for ModernHybridEncryption', () => {
       // Test various error conditions that might occur during encryption
-      
+
       expect(() => {
         KeyDerivation.deriveKey(new Uint8Array(0), 32);
       }).toThrow('Shared secret cannot be empty');
@@ -181,7 +194,7 @@ describe('KeyDerivation Integration with ModernHybridEncryption', () => {
 
     it('should validate inputs before processing', () => {
       // Test input validation that would catch issues early in the encryption process
-      
+
       const tinySecret = new Uint8Array(8); // Too small
       expect(() => {
         KeyDerivation.deriveKey(tinySecret, 32);
@@ -198,11 +211,11 @@ describe('KeyDerivation Integration with ModernHybridEncryption', () => {
     it('should work with standard encryption key sizes', () => {
       // Test with common encryption key sizes
       const standardKeySizes = [
-        16,  // AES-128
-        24,  // AES-192  
-        32,  // AES-256, ChaCha20
-        48,  // Custom larger size
-        64,  // Large key size
+        16, // AES-128
+        24, // AES-192
+        32, // AES-256, ChaCha20
+        48, // Custom larger size
+        64, // Large key size
       ];
 
       standardKeySizes.forEach(keySize => {
@@ -224,7 +237,7 @@ describe('KeyDerivation Integration with ModernHybridEncryption', () => {
       nonceSizes.forEach(({ algorithm, size }) => {
         const nonce = KeyDerivation.generateSalt(size);
         expect(nonce.length).toBe(size);
-        
+
         // Nonces should be random
         const nonce2 = KeyDerivation.generateSalt(size);
         expect(nonce).not.toEqual(nonce2);

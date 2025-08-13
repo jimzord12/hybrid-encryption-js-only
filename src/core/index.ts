@@ -40,9 +40,9 @@ export type {
 
 // Export key derivation utilities
 export type {
-  SupportedKDFAlgorithms,
   KeyDerivationConfig,
   KeyDerivationResult,
+  SupportedKDFAlgorithms,
 } from './utils/key-derivation.util.js';
 
 export { KeyDerivation } from './utils/key-derivation.util.js';
