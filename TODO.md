@@ -342,6 +342,7 @@ const isKeyMatch = secureCompare(keyPair1.publicKey, keyPair2.publicKey);
   ```
 
 - [x] **Create modern encryption options**:
+
   ```typescript
   interface ModernEncryptionOptions {
     asymmetricAlgorithm?: string; // Default: 'ML-KEM-768'
@@ -352,9 +353,12 @@ const isKeyMatch = secureCompare(keyPair1.publicKey, keyPair2.publicKey);
   }
   ```
 
-- [x] **Create migration utilities**: Added conversion functions between legacy and modern formats
-- [x] **Update crypto provider types**: Made compatible with binary keys and modern algorithms
-- [x] **Add type validation functions**: Runtime type guards and validation utilities
+- [x] **Create migration utilities**: Added conversion functions between legacy
+      and modern formats
+- [x] **Update crypto provider types**: Made compatible with binary keys and
+      modern algorithms
+- [x] **Add type validation functions**: Runtime type guards and validation
+      utilities
 
 **Acceptance Criteria**:
 
@@ -368,11 +372,11 @@ const isKeyMatch = secureCompare(keyPair1.publicKey, keyPair2.publicKey);
 
 **Tasks**:
 
-- [ ] **Remove RSA algorithm registration** from registry constructors
-- [ ] **Set ML-KEM-768 as default asymmetric** algorithm
-- [ ] **Set AES-GCM-256 as default symmetric** algorithm
-- [ ] **Add ChaCha20-Poly1305** implementation and registration
-- [ ] **Verify symmetric registry** has proper AEAD algorithms
+- [x] **Remove RSA algorithm registration** from registry constructors
+- [x] **Set ML-KEM-768 as default asymmetric** algorithm
+- [x] **Set AES-GCM-256 as default symmetric** algorithm
+- [x] **Add ChaCha20-Poly1305** implementation and registration
+- [x] **Verify symmetric registry** has proper AEAD algorithms
 
 **Acceptance Criteria**:
 

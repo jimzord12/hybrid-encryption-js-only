@@ -1,6 +1,6 @@
 /**
  * Legacy Encryption Types - Will be deprecated in favor of modern types
- * 
+ *
  * These interfaces are maintained for backward compatibility during the transition
  * to modern, algorithm-agnostic encryption in Phase 2.0.0
  */
@@ -36,7 +36,7 @@ export namespace EncryptionMigration {
    */
   export function modernToLegacyOptions(modern: ModernEncryptionOptions): LegacyEncryptionOptions {
     return {
-      keySize: modern.keySize as (128 | 192 | 256) || 256,
+      keySize: (modern.keySize as 128 | 192 | 256) || 256,
     };
   }
 

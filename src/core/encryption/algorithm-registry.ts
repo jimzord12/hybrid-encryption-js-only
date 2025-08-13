@@ -2,6 +2,7 @@ import { AsymmetricAlgorithm } from './asymmetric/base';
 import { MLKEMAlgorithm } from './asymmetric/implementations/post-quantom/ml-kem768-alg';
 import { SymmetricAlgorithm } from './symmetric/base';
 import { AES256GCMAlgorithm } from './symmetric/implementations/aes-gcm-256-alg';
+import { ChaCha20Poly1305Algorithm } from './symmetric/implementations/cha-cha-20-alg';
 
 /**
  * Interface for algorithms that can be registered in the registry
@@ -73,6 +74,10 @@ export class AlgorithmRegistry<T extends RegistrableAlgorithm> {
         // Register AES-GCM-256 as default symmetric algorithm
         const aesGcm = new AES256GCMAlgorithm() as unknown as T;
         this.register(aesGcm, 'symmetric', true);
+        
+        // Register ChaCha20-Poly1305 as additional symmetric algorithm
+        const chaCha20 = new ChaCha20Poly1305Algorithm() as unknown as T;
+        this.register(chaCha20, 'symmetric', false);
       }
 
       // Apply custom defaults from config
@@ -124,7 +129,7 @@ export class AlgorithmRegistry<T extends RegistrableAlgorithm> {
       this.symmetricDefault = algorithmId;
     }
 
-    console.log(`✅ Registered ${algorithmType} algorithm: ${algorithmId}`);
+    console.log(`✅ Registered ${algorithmType} algorithm: ${algorithmId} (${this.registryType} registry)`);
   }
 
   /**
@@ -279,7 +284,7 @@ export class AlgorithmRegistry<T extends RegistrableAlgorithm> {
     const removedType = this.algorithmTypes.delete(algorithmId);
 
     if (removedAlgorithm && removedType) {
-      console.log(`🗑️ Unregistered ${algorithmType} algorithm: ${algorithmId}`);
+      console.log(`🗑️ Unregistered ${algorithmType} algorithm: ${algorithmId} (${this.registryType} registry)`);
     }
 
     return removedAlgorithm;

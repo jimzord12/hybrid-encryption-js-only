@@ -1,6 +1,6 @@
 /**
  * Modern Encryption Types - Version 2.0.0
- * 
+ *
  * These interfaces represent the modernized, algorithm-agnostic encryption system
  * that will replace the legacy RSA-based interfaces in Phase 2.0.0
  */
@@ -92,85 +92,15 @@ export interface AlgorithmCapabilities {
 }
 
 /**
- * Type guards for runtime validation
- */
-export function isModernEncryptedData(obj: any): obj is ModernEncryptedData {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof obj.algorithms === 'object' &&
-    typeof obj.algorithms.asymmetric === 'string' &&
-    typeof obj.algorithms.symmetric === 'string' &&
-    typeof obj.algorithms.kdf === 'string' &&
-    typeof obj.encryptedContent === 'string' &&
-    typeof obj.keyMaterial === 'string' &&
-    typeof obj.nonce === 'string' &&
-    typeof obj.version === 'string'
-  );
-}
-
-export function isModernKeyPair(obj: any): obj is ModernKeyPair {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof obj.algorithm === 'string' &&
-    obj.publicKey instanceof Uint8Array &&
-    obj.privateKey instanceof Uint8Array &&
-    typeof obj.metadata === 'object' &&
-    obj.metadata !== null &&
-    typeof obj.metadata.version === 'number' &&
-    obj.metadata.createdAt instanceof Date
-  );
-}
-
-/**
  * Constants for modern encryption
  */
 export const MODERN_ENCRYPTION_VERSION = '2.0.0';
 
-export const DEFAULT_MODERN_OPTIONS: Required<Omit<ModernEncryptionOptions, 'associatedData' | 'metadata'>> = {
+export const DEFAULT_MODERN_OPTIONS: Required<
+  Omit<ModernEncryptionOptions, 'associatedData' | 'metadata'>
+> = {
   asymmetricAlgorithm: 'ML-KEM-768',
   symmetricAlgorithm: 'AES-GCM-256',
   keyDerivation: 'HKDF-SHA256',
   keySize: 256,
 };
-
-/**
- * Error classes for modern encryption
- */
-export class ModernEncryptionError extends Error {
-  constructor(
-    message: string,
-    public readonly algorithm?: string,
-    public readonly operation?: string,
-    public readonly cause?: Error,
-  ) {
-    super(message);
-    this.name = 'ModernEncryptionError';
-  }
-}
-
-export class KeyValidationError extends Error {
-  constructor(
-    message: string,
-    public readonly keyType?: string,
-    public readonly algorithm?: string,
-    public readonly cause?: Error,
-  ) {
-    super(message);
-    this.name = 'KeyValidationError';
-  }
-}
-
-export class AlgorithmNotFoundError extends Error {
-  constructor(
-    algorithm: string,
-    algorithmType: 'asymmetric' | 'symmetric' | 'kdf',
-    availableAlgorithms: string[],
-  ) {
-    super(
-      `Algorithm '${algorithm}' not found for type '${algorithmType}'. Available: ${availableAlgorithms.join(', ')}`
-    );
-    this.name = 'AlgorithmNotFoundError';
-  }
-}

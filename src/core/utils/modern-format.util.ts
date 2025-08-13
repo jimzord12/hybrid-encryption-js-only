@@ -1,13 +1,13 @@
 /**
  * Modern Format Conversion Utilities
- * 
+ *
  * This module provides utilities for converting between legacy RSA-based formats
  * and modern KEM-based formats, enabling smooth migration during Phase 2.0.0
  */
 
-import { ModernKeyPair, ModernEncryptedData } from '../types/modern-encryption.types';
 import { CryptoKeyPair } from '../types/crypto-provider.types';
 import { LegacyEncryptedData } from '../types/encryption.types';
+import { ModernEncryptedData, ModernKeyPair } from '../types/modern-encryption.types';
 
 /**
  * Conversion utilities for modern format compatibility
@@ -17,18 +17,30 @@ export namespace ModernFormatUtils {
    * Convert CryptoKeyPair to ModernKeyPair format
    */
   export function cryptoToModernKeyPair(crypto: CryptoKeyPair): ModernKeyPair {
+    const metadata: ModernKeyPair['metadata'] = {
+      version: crypto.version || 1,
+      createdAt: crypto.createdAt || new Date(),
+    };
+
+    // Only add optional properties if they exist
+    if (crypto.expiresAt !== undefined) {
+      metadata.expiresAt = crypto.expiresAt;
+    }
+    if (crypto.keySize !== undefined) {
+      metadata.keySize = crypto.keySize;
+    }
+    if (crypto.curve !== undefined) {
+      metadata.curve = crypto.curve;
+    }
+    if (crypto.parameters !== undefined) {
+      metadata.parameters = crypto.parameters;
+    }
+
     return {
       algorithm: crypto.algorithm,
       publicKey: crypto.publicKey,
       privateKey: crypto.privateKey,
-      metadata: {
-        version: crypto.version || 1,
-        createdAt: crypto.createdAt || new Date(),
-        expiresAt: crypto.expiresAt,
-        keySize: crypto.keySize,
-        curve: crypto.curve,
-        parameters: crypto.parameters,
-      },
+      metadata,
     };
   }
 
@@ -186,7 +198,7 @@ export namespace ModernFormatUtils {
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       return crypto.getRandomValues(new Uint8Array(length));
     }
-    
+
     // Fallback for older environments
     const array = new Uint8Array(length);
     for (let i = 0; i < length; i++) {
@@ -200,7 +212,7 @@ export namespace ModernFormatUtils {
    */
   export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
     if (a.length !== b.length) return false;
-    
+
     let result = 0;
     for (let i = 0; i < a.length; i++) {
       result |= a[i] ^ b[i];

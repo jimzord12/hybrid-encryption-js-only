@@ -6,4 +6,4 @@ import { ModernFormatUtils } from './modern-format.util';
 // - generateKeyPair will be moved to algorithm-specific providers
 // - validation utils will be added for modern key formats
 
-export { fromBase64, toBase64, ModernFormatUtils };
+export { fromBase64, ModernFormatUtils, toBase64 };

@@ -27,9 +27,7 @@ export type {
   SupportedAlgorithms,
 } from './types/crypto-provider.types';
 
-export {
-  KeyFormatUtils,
-} from './types/crypto-provider.types';
+export { KeyFormatUtils } from './types/crypto-provider.types';
 
 export type {
   KeyManagerConfig,
@@ -42,22 +40,42 @@ export type {
 
 // Export modern encryption types (Phase 2.0)
 export type {
-  ModernEncryptedData,
-  ModernKeyPair,
-  ModernEncryptionOptions,
-  ModernKeyGenerationConfig,
-  ModernKeyDerivationConfig,
   AlgorithmCapabilities,
-} from './types/modern-encryption.types';
+  ModernEncryptedData,
+  ModernEncryptionOptions,
+  ModernKeyDerivationConfig,
+  ModernKeyGenerationConfig,
+  ModernKeyPair,
+} from './types/modern-encryption.types.js';
 
 export {
-  isModernEncryptedData,
-  isModernKeyPair,
-  ModernEncryptionError,
-  KeyValidationError,
-  AlgorithmNotFoundError,
   DEFAULT_MODERN_OPTIONS,
   MODERN_ENCRYPTION_VERSION,
-} from './types/modern-encryption.types';
+} from './types/modern-encryption.types.js';
+
+// Export type guards
+export {
+  isModernEncryptedData,
+  isModernEncryptionOptions,
+  isModernKeyGenerationConfig,
+  isModernKeyPair,
+  isSerializable,
+  isValidAlgorithmName,
+  isValidBinaryKey,
+  validateModernEncryptedData,
+  validateModernKeyPair,
+} from './guards/index.js';
+
+// Export custom errors
+export {
+  AlgorithmConfigurationError,
+  AlgorithmNotFoundError,
+  createAppropriateError,
+  CryptographicOperationError,
+  FormatConversionError,
+  KeyDerivationError,
+  KeyValidationError,
+  ModernEncryptionError,
+} from './errors/index.js';
 
 export { constants, HybridEncryption, utils };

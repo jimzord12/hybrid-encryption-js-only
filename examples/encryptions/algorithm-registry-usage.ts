@@ -170,6 +170,10 @@ function runAllExamples(): void {
   }
 }
 
+if (import.meta.main) {
+  runAllExamples();
+}
+
 export {
   demonstrateCustomRegistry,
   demonstrateErrorHandling,
