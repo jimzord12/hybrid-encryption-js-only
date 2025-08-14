@@ -3,8 +3,6 @@ import { createAppropriateError } from '../errors';
 import { Base64 } from '../types/branded-types.types';
 import { BufferUtils } from './buffer.util';
 
-// TODO: Enhance the Error Handling using the `createAppropriateError` src/core/errors/encryption.errors.ts
-
 /**
  * Supported data types for serialization
  */
@@ -88,9 +86,12 @@ export class Serialization {
 
       return binaryData;
     } catch (error) {
-      throw new Error(
-        `Serialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw createAppropriateError('Serialization failed', {
+        errorType: 'format',
+        preset: Preset.DEFAULT,
+        operation: 'serialize',
+        cause: error instanceof Error ? error : undefined,
+      });
     }
   }
 
@@ -107,7 +108,11 @@ export class Serialization {
   static deserializeFromDecryption<T = any>(data: Uint8Array): T {
     try {
       if (!data || data.length === 0) {
-        throw new Error('Cannot deserialize empty data');
+        throw createAppropriateError('Cannot deserialize empty data', {
+          errorType: 'validation',
+          preset: Preset.DEFAULT,
+          operation: 'deserialize',
+        });
       }
 
       let binaryData: Uint8Array;
@@ -125,9 +130,12 @@ export class Serialization {
       if (error instanceof Error && error.message.includes('integrity check')) {
         throw error;
       }
-      throw new Error(
-        `Deserialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw createAppropriateError('Deserialization failed', {
+        errorType: 'format',
+        preset: Preset.DEFAULT,
+        operation: 'deserialize',
+        cause: error instanceof Error ? error : undefined,
+      });
     }
   }
 
@@ -146,9 +154,12 @@ export class Serialization {
       // Use  BufferUtils for consistent cross-platform Base64 encoding
       return BufferUtils.encodeBase64(data);
     } catch (error) {
-      throw new Error(
-        `Base64 encoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw createAppropriateError('Base64 encoding failed', {
+        errorType: 'format',
+        preset: Preset.DEFAULT,
+        operation: 'encode',
+        cause: error instanceof Error ? error : undefined,
+      });
     }
   }
 

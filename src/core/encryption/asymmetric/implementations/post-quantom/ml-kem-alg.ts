@@ -84,9 +84,9 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     }
   }
 
-  recoverSharedSecret(keyMaterial: Uint8Array, privateKey: Uint8Array) {
+  recoverSharedSecret(receivedCipherText: Uint8Array, secretKey: Uint8Array) {
     // Validate inputs
-    if (!keyMaterial || !(keyMaterial instanceof Uint8Array)) {
+    if (!receivedCipherText || !(receivedCipherText instanceof Uint8Array)) {
       throw createAppropriateError('Invalid key material', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -94,7 +94,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       });
     }
 
-    if (!privateKey || !(privateKey instanceof Uint8Array)) {
+    if (!secretKey || !(secretKey instanceof Uint8Array)) {
       throw createAppropriateError('Invalid private key', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -102,8 +102,8 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       });
     }
 
-    // ML-KEM-768 ciphertext should be 1088 bytes
-    if (this.preset === Preset.DEFAULT && keyMaterial.length !== 1088) {
+    // ML-KEM ciphertext length validation using constants
+    if (this.preset === Preset.DEFAULT && receivedCipherText.length !== ML_KEM_STATS.ciphertextLength[Preset.DEFAULT]) {
       throw createAppropriateError('Invalid ML-KEM-768 ciphertext length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -111,7 +111,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       });
     }
 
-    if (this.preset === Preset.DEFAULT && privateKey.length !== 2400) {
+    if (this.preset === Preset.DEFAULT && secretKey.length !== ML_KEM_STATS.secretKeyLength[Preset.DEFAULT]) {
       throw createAppropriateError('Invalid ML-KEM-768 secret key length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -119,8 +119,8 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       });
     }
 
-    // ML-KEM-1024 ciphertext should be 1568 bytes
-    if (this.preset === Preset.HIGH_SECURITY && keyMaterial.length !== 1568) {
+    // ML-KEM-1024 validation using constants
+    if (this.preset === Preset.HIGH_SECURITY && receivedCipherText.length !== ML_KEM_STATS.ciphertextLength[Preset.HIGH_SECURITY]) {
       throw createAppropriateError('Invalid ML-KEM-1024 ciphertext length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -128,7 +128,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       });
     }
 
-    if (this.preset === Preset.HIGH_SECURITY && privateKey.length !== 3168) {
+    if (this.preset === Preset.HIGH_SECURITY && secretKey.length !== ML_KEM_STATS.secretKeyLength[Preset.HIGH_SECURITY]) {
       throw createAppropriateError('Invalid ML-KEM-1024 private key length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -143,8 +143,8 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     // This is a security feature to prevent timing attacks.
     const sharedSecret =
       this.preset === Preset.DEFAULT
-        ? ml_kem768.decapsulate(keyMaterial, privateKey)
-        : ml_kem1024.decapsulate(keyMaterial, privateKey);
+        ? ml_kem768.decapsulate(receivedCipherText, secretKey)
+        : ml_kem1024.decapsulate(receivedCipherText, secretKey);
 
     // Validate that we got a valid shared secret
     if (!sharedSecret || sharedSecret.length !== 32) {

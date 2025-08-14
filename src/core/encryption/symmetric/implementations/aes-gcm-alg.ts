@@ -32,16 +32,26 @@ export class AESGCMAlgorithm extends SymmetricAlgorithm {
     // Validate key size based on preset
     const expectedKeySize = AES_GCM_STATS.keySizeBits[this.preset] / 8;
     if (key.length !== expectedKeySize) {
-      throw new Error(
+      throw createAppropriateError(
         `AES-256-GCM requires a ${expectedKeySize}-byte key, got ${key.length} bytes`,
+        {
+          errorType: 'algorithm-symmetric',
+          preset: this.preset,
+          operation: 'encrypt',
+        },
       );
     }
 
     // Validate nonce size based on preset
     const expectedNonceSize = AES_GCM_STATS.nonceLength[this.preset];
     if (nonce.length !== expectedNonceSize) {
-      throw new Error(
+      throw createAppropriateError(
         `AES-GCM requires a ${expectedNonceSize}-byte nonce, got ${nonce.length} bytes`,
+        {
+          errorType: 'algorithm-symmetric',
+          preset: this.preset,
+          operation: 'encrypt',
+        },
       );
     }
 
@@ -54,9 +64,12 @@ export class AESGCMAlgorithm extends SymmetricAlgorithm {
         nonce,
       } as const;
     } catch (error) {
-      throw new Error(
-        `AES-256-GCM encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw createAppropriateError('AES-256-GCM encryption failed', {
+        errorType: 'algorithm-symmetric',
+        preset: this.preset,
+        operation: 'encrypt',
+        cause: error instanceof Error ? error : undefined,
+      });
     }
   }
 

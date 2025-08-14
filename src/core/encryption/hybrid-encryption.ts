@@ -1,5 +1,5 @@
 import { randomBytes } from '@noble/hashes/utils.js';
-import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS } from '../constants.js';
+import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS, ML_KEM_STATS } from '../constants.js';
 import { Preset } from '../enums/index.js';
 import { createAppropriateError, EncryptionError, FormatConversionError } from '../errors/index.js';
 
@@ -111,7 +111,33 @@ export class HybridEncryption {
    */
   static validateKeyPair(keyPair: KeyPair): boolean {
     try {
-      return this.validateKeyPair(keyPair);
+      // Validate that keyPair exists and has required properties
+      if (!keyPair || typeof keyPair !== 'object') {
+        return false;
+      }
+
+      // Check for required properties
+      if (!keyPair.publicKey || !keyPair.secretKey) {
+        return false;
+      }
+
+      // Validate that keys are Uint8Arrays with expected lengths
+      if (
+        !(keyPair.publicKey instanceof Uint8Array) ||
+        !(keyPair.secretKey instanceof Uint8Array)
+      ) {
+        return false;
+      }
+
+      // Basic length validation for ML-KEM keys using constants
+      const isValidDefault =
+        keyPair.publicKey.length === ML_KEM_STATS.publicKeyLength[Preset.DEFAULT] &&
+        keyPair.secretKey.length === ML_KEM_STATS.secretKeyLength[Preset.DEFAULT];
+      const isValidHighSecurity =
+        keyPair.publicKey.length === ML_KEM_STATS.publicKeyLength[Preset.HIGH_SECURITY] &&
+        keyPair.secretKey.length === ML_KEM_STATS.secretKeyLength[Preset.HIGH_SECURITY];
+
+      return isValidDefault || isValidHighSecurity;
     } catch (error) {
       return false;
     }
@@ -123,9 +149,28 @@ export class HybridEncryption {
   encrypt(data: any, publicKey: Uint8Array): EncryptedData {
     try {
       // Validate inputs
-      // TODO: Create Validations for Input
-      // console.log('Data to Encrypt: ', data);
-      // console.log('Public Key: ', publicKey);
+      // Note: null and undefined are valid JSON values, so we don't reject them
+      
+      if (!publicKey || !(publicKey instanceof Uint8Array)) {
+        throw createAppropriateError('Public key must be a valid Uint8Array', {
+          errorType: 'validation',
+          preset: this.preset,
+          operation: 'encrypt',
+        });
+      }
+
+      // Validate public key length using constants - use AlgorithmAsymmetricError for key issues
+      const expectedLength = ML_KEM_STATS.publicKeyLength[this.preset];
+      if (publicKey.length !== expectedLength) {
+        throw createAppropriateError(
+          `Invalid ML-KEM-${this.preset === Preset.DEFAULT ? '768' : '1024'} public key length`,
+          {
+            errorType: 'algorithm-asymmetric',
+            preset: this.preset,
+            operation: 'encrypt',
+          },
+        );
+      }
 
       // Step 1: Serialize data to binary format
       // 🧪 Needs to be Tested - Check all possible edge cases
@@ -201,15 +246,37 @@ export class HybridEncryption {
       // Validate encrypted data structure
       const validation = validateEncryptedData(encryptedData);
       if (!validation.isValid) {
-        createAppropriateError(`Invalid encrypted data format: ${validation.errors.join(', ')}`, {
+        throw createAppropriateError(
+          `Invalid encrypted data format: ${validation.errors.join(', ')}`,
+          {
+            errorType: 'validation',
+            preset: this.preset,
+            operation: 'decrypt',
+          },
+        );
+      }
+
+      // Validate inputs
+      if (!privateKey || !(privateKey instanceof Uint8Array)) {
+        throw createAppropriateError('Private key must be a valid Uint8Array', {
           errorType: 'validation',
           preset: this.preset,
           operation: 'decrypt',
         });
       }
 
-      // Validate inputs
-      // TODO: Create Validation for Inputs
+      // Validate private key length using constants - use AlgorithmAsymmetricError for key issues
+      const expectedLength = this.preset === Preset.DEFAULT ? 2400 : 3168;
+      if (privateKey.length !== expectedLength) {
+        throw createAppropriateError(
+          `Invalid ML-KEM-${this.preset === Preset.DEFAULT ? '768' : '1024'} secret key length`,
+          {
+            errorType: 'algorithm-asymmetric',
+            preset: this.preset,
+            operation: 'decrypt',
+          },
+        );
+      }
 
       // Step 1: Get algorithms from registries based on metadata
       const asymmetric = this.asymmetricAlgorithm;
