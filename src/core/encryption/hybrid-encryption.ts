@@ -11,8 +11,8 @@ import {
   AEADParams,
   SymmetricAlgorithm,
 } from '../interfaces/encryption/symmetric-alg.interface.js';
+import { Base64 } from '../types/branded-types.types.js';
 import type { EncryptedData } from '../types/encryption.types.js';
-import { ModernSerialization } from '../utils/index.js';
 import { KeyDerivation } from '../utils/key-derivation.util.js';
 import { Serialization } from '../utils/serialization.util.js';
 import { MLKEMAlgorithm } from './asymmetric/implementations/post-quantom/ml-kem-alg.js';
@@ -124,10 +124,14 @@ export class HybridEncryption {
     try {
       // Validate inputs
       // TODO: Create Validations for Input
+      console.log('Data to Encrypt: ', data);
+      console.log('Public Key: ', publicKey);
 
       // Step 1: Serialize data to binary format
       // 🧪 Needs to be Tested - Check all possible edge cases
       const serializedData = this.serializeData(data);
+
+      console.log('Step 1: Serialized Data: ', serializedData);
 
       // Step 2: Get algorithms from registries
       // 🧪 Needs to be Tested - Check if they are loaded correctly
@@ -138,8 +142,13 @@ export class HybridEncryption {
       // 🧪 Needs to be Tested - Check that they have the correct length based on pre
       const { sharedSecret, cipherText: kemCipherText } = asymmetric.createSharedSecret(publicKey);
 
+      console.log('Step 3: KEM Shared Secret: ', sharedSecret);
+      console.log('Step 3: KEM Cipher Text: ', kemCipherText);
+
       // Step 4: Use the Shared Secret to create the Symmetric key
       const derivedKey = KeyDerivation.deriveKey(this.preset, sharedSecret);
+
+      console.log('Step 4: Derived Key: ', derivedKey);
 
       // Step 5: Create KeyMaterial (Key + Nonce) object for symmetric algorithm
       const keyMaterial: AEADParams = {
@@ -147,8 +156,13 @@ export class HybridEncryption {
         nonce: randomBytes(12), // AES-GCM standard nonce size
       };
 
+      console.log('Step 5: Key Material: ', keyMaterial);
+
       // Step 6: Encrypt data with AES-GCM algorithm
       const { encryptedData, nonce } = symmetric.encrypt(serializedData, keyMaterial);
+
+      console.log('Step 6: Encrypted Data: ', encryptedData);
+      console.log('Step 6: Nonce: ', nonce);
 
       // Step 7: Construct result with algorithm metadata
       const result: EncryptedData = {
@@ -158,9 +172,12 @@ export class HybridEncryption {
         nonce: this.encodeBase64(nonce),
       };
 
+      console.log('Step 7: Encrypted Data Structure: ', result);
+
       // Validate result structure
       const validation = validateEncryptedData(result);
       if (!validation.isValid) {
+        console.log('[Encryption Validation Errors: ', validation.errors);
         throw createAppropriateError('Generated encrypted data is invalid', {
           preset: this.preset,
           errorType: 'validation',
@@ -206,9 +223,9 @@ export class HybridEncryption {
       const symmetric = this.symmetricAlgorithm;
 
       // Step 2: Decode binary data: Base64 -> Uint8Array
-      const cipherText = this.decodeBase64(encryptedData.cipherText);
-      const encryptedContent = this.decodeBase64(encryptedData.encryptedContent);
-      const nonce = this.decodeBase64(encryptedData.nonce);
+      const cipherText = this.decodeBase64(encryptedData.cipherText as Base64);
+      const encryptedContent = this.decodeBase64(encryptedData.encryptedContent as Base64);
+      const nonce = this.decodeBase64(encryptedData.nonce as Base64);
 
       // Step 3: Recover shared secret from KEM key material
       const sharedSecret = asymmetric.recoverSharedSecret(cipherText, privateKey);
@@ -316,23 +333,22 @@ export class HybridEncryption {
     }
   }
 
-  private encodeBase64(data: Uint8Array): string {
+  private encodeBase64(data: Uint8Array): Base64 {
     try {
-      return ModernSerialization.encodeBase64(data);
+      return Serialization.encodeBase64(data);
     } catch (error) {
-      throw new FormatConversionError(
-        `Base64 encoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'Uint8Array',
-        'base64',
-        data.length,
-        error instanceof Error ? error : undefined,
-      );
+      throw createAppropriateError('Base64 encoding failed', {
+        preset: this.preset,
+        errorType: 'operation',
+        operation: 'encodeBase64',
+        cause: error instanceof Error ? error : undefined,
+      });
     }
   }
 
-  private decodeBase64(data: string): Uint8Array {
+  private decodeBase64(data: Base64): Uint8Array {
     try {
-      return ModernSerialization.decodeBase64(data);
+      return Serialization.decodeBase64(data);
     } catch (error) {
       throw new FormatConversionError(
         `Base64 decoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,

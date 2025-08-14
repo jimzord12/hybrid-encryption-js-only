@@ -24,7 +24,7 @@ export const ML_KEM_STATS = {
     [Preset.DEFAULT]: 1184,
     [Preset.HIGH_SECURITY]: 1536,
   },
-  privateKeyLength: {
+  secretKeyLength: {
     [Preset.DEFAULT]: 2400,
     [Preset.HIGH_SECURITY]: 3168,
   },

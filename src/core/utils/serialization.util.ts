@@ -1,3 +1,5 @@
+import { Preset } from '../enums';
+import { createAppropriateError } from '../errors';
 import { Base64 } from '../types/branded-types.types';
 import { BufferUtils } from './buffer.util';
 
@@ -41,21 +43,6 @@ export interface SerializationResult {
   /** Serialization metadata */
   metadata: SerializationMetadata;
 }
-
-/**
- * Serialization configuration options
- */
-export interface SerializationOptions {
-  /** Include integrity checksum */
-  includeChecksum?: boolean;
-  /** Use compression (future enhancement) */
-  useCompression?: boolean;
-  /** Custom serialization version */
-  version?: string;
-  /** Preserve type information */
-  preserveType?: boolean;
-}
-
 /**
  * Modern serialization utility class for hybrid encryption
  *
@@ -83,7 +70,7 @@ export class Serialization {
    * @param options - Serialization options
    * @returns Binary representation of the data
    */
-  static serializeForEncryption(data: any, options?: SerializationOptions): Uint8Array {
+  static serializeForEncryption(data: any): Uint8Array {
     try {
       // Handle special cases first
       if (data instanceof Uint8Array) {
@@ -99,26 +86,7 @@ export class Serialization {
       // Convert JSON string to UTF-8 bytes using BufferUtils
       const binaryData = BufferUtils.stringToBinary(jsonString);
 
-      // Return binary data directly if no metadata needed
-      if (!options?.preserveType && !options?.includeChecksum) {
-        return binaryData;
-      }
-
-      // Create serialization metadata
-      const metadata: SerializationMetadata = {
-        originalType,
-        version: options?.version || this.SERIALIZATION_VERSION,
-        encoding: this.DEFAULT_ENCODING,
-        timestamp: Date.now(),
-      };
-
-      // Add checksum if requested
-      if (options?.includeChecksum) {
-        metadata.checksum = this.calculateChecksum(binaryData);
-      }
-
-      // Combine metadata and data
-      return this.combineMetadataAndData(metadata, binaryData);
+      return binaryData;
     } catch (error) {
       throw new Error(
         `Serialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -136,37 +104,21 @@ export class Serialization {
    * @param options - Deserialization options
    * @returns Original data in its native JavaScript type
    */
-  static deserializeFromDecryption<T = any>(data: Uint8Array, options?: SerializationOptions): T {
+  static deserializeFromDecryption<T = any>(data: Uint8Array): T {
     try {
       if (!data || data.length === 0) {
         throw new Error('Cannot deserialize empty data');
       }
 
       let binaryData: Uint8Array;
-      let metadata: SerializationMetadata | null = null;
 
-      // Check if data includes metadata
-      if (options?.preserveType || this.hasMetadata(data)) {
-        const result = this.extractMetadataAndData(data);
-        binaryData = result.data;
-        metadata = result.metadata;
-
-        // Validate checksum if present
-        if (metadata.checksum) {
-          const calculatedChecksum = this.calculateChecksum(binaryData);
-          if (calculatedChecksum !== metadata.checksum) {
-            throw new Error('Data integrity check failed: checksum mismatch');
-          }
-        }
-      } else {
-        binaryData = data;
-      }
+      binaryData = data;
 
       // Convert binary data to UTF-8 string using BufferUtils
       const jsonString = BufferUtils.binaryToString(binaryData);
 
       // Parse JSON string back to JavaScript value
-      const parsedData = this.fromJsonString(jsonString, metadata?.originalType);
+      const parsedData = this.fromJsonString(jsonString);
 
       return parsedData as T;
     } catch (error) {
@@ -185,10 +137,11 @@ export class Serialization {
    * @param data - Binary data to encode
    * @returns Base64 encoded string
    */
-  static encodeBase64(data: Uint8Array): string {
+  static encodeBase64(data: Uint8Array): Base64 {
+    console.log('Encoding data to Base64:', data);
     try {
       if (!data || data.length === 0) {
-        return '';
+        return '' as Base64;
       }
 
       // Use  BufferUtils for consistent cross-platform Base64 encoding
@@ -207,18 +160,25 @@ export class Serialization {
    * @returns Binary data as Uint8Array
    */
   static decodeBase64(encodedData: Base64): Uint8Array {
+    console.log('Decoding Base64:', encodedData);
     try {
       if (!encodedData || typeof encodedData !== 'string') {
-        throw new Error('Invalid Base64 input: must be a non-empty string');
+        throw createAppropriateError('Invalid Base64 input: must be a non-empty string', {
+          operation: 'Base64 decoding',
+          errorType: 'format',
+          preset: Preset.DEFAULT,
+        });
       }
 
       // Use modern BufferUtils for consistent cross-platform Base64 decoding
       // (includes validation internally)
       return BufferUtils.decodeBase64(encodedData);
     } catch (error) {
-      throw new Error(
-        `Base64 decoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw createAppropriateError('Base64 decoding failed', {
+        operation: 'Base64 decoding',
+        errorType: 'format',
+        preset: Preset.DEFAULT,
+      });
     }
   }
 
@@ -318,87 +278,5 @@ export class Serialization {
     }
 
     return parsed;
-  }
-
-  /**
-   * Calculate a simple checksum for data integrity
-   */
-  private static calculateChecksum(data: Uint8Array): string {
-    let checksum = 0;
-    for (let i = 0; i < data.length; i++) {
-      checksum = (checksum + data[i]) % 65536;
-    }
-    return checksum.toString(16).padStart(4, '0');
-  }
-
-  /**
-   * Check if binary data includes serialization metadata
-   */
-  private static hasMetadata(data: Uint8Array): boolean {
-    try {
-      // Look for metadata header pattern using BufferUtils
-      const headerString = BufferUtils.binaryToString(data.slice(0, Math.min(100, data.length)));
-      return headerString.includes('"version"') && headerString.includes('"originalType"');
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Combine metadata and data into single binary blob
-   */
-  private static combineMetadataAndData(
-    metadata: SerializationMetadata,
-    data: Uint8Array,
-  ): Uint8Array {
-    const metadataJson = JSON.stringify(metadata);
-    const metadataBytes = BufferUtils.stringToBinary(metadataJson);
-    const headerLength = metadataBytes.length;
-
-    // Create header with length prefix (4 bytes) + metadata + data
-    const result = new Uint8Array(4 + headerLength + data.length);
-
-    // Write header length as 32-bit big-endian integer
-    result[0] = (headerLength >>> 24) & 0xff;
-    result[1] = (headerLength >>> 16) & 0xff;
-    result[2] = (headerLength >>> 8) & 0xff;
-    result[3] = headerLength & 0xff;
-
-    // Write metadata
-    result.set(metadataBytes, 4);
-
-    // Write data
-    result.set(data, 4 + headerLength);
-
-    return result;
-  }
-
-  /**
-   * Extract metadata and data from combined binary blob
-   */
-  private static extractMetadataAndData(data: Uint8Array): {
-    metadata: SerializationMetadata;
-    data: Uint8Array;
-  } {
-    if (data.length < 4) {
-      throw new Error('Invalid metadata format: data too short');
-    }
-
-    // Read header length from first 4 bytes
-    const headerLength = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
-
-    if (headerLength < 0 || headerLength > data.length - 4) {
-      throw new Error('Invalid metadata format: invalid header length');
-    }
-
-    // Extract and parse metadata using BufferUtils
-    const metadataBytes = data.slice(4, 4 + headerLength);
-    const metadataJson = BufferUtils.binaryToString(metadataBytes);
-    const metadata = JSON.parse(metadataJson) as SerializationMetadata;
-
-    // Extract actual data
-    const actualData = data.slice(4 + headerLength);
-
-    return { metadata, data: actualData };
   }
 }

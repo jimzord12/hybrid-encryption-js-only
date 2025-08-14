@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Base64 } from '../../../../src/core/types/branded-types.types.js';
 import { BufferUtils } from '../../../../src/core/utils/buffer.util.js';
 
 describe('BufferUtils', () => {
@@ -93,28 +94,28 @@ describe('BufferUtils', () => {
   describe('decodeBase64', () => {
     it('should decode Base64 string to binary data', () => {
       const base64String = 'SGVsbG8='; // Base64 for "Hello"
-      const result = BufferUtils.decodeBase64(base64String);
+      const result = BufferUtils.decodeBase64(base64String as Base64);
 
       expect(result).toBeInstanceOf(Uint8Array);
       expect(Array.from(result)).toEqual([72, 101, 108, 108, 111]);
     });
 
     it('should handle empty string', () => {
-      const result = BufferUtils.decodeBase64('');
+      const result = BufferUtils.decodeBase64('' as Base64);
       expect(result).toBeInstanceOf(Uint8Array);
       expect(result.length).toBe(0);
     });
 
     it('should handle Base64 with padding', () => {
       const base64WithPadding = 'SGVsbG8gV29ybGQ='; // "Hello World"
-      const result = BufferUtils.decodeBase64(base64WithPadding);
+      const result = BufferUtils.decodeBase64(base64WithPadding as Base64);
 
       expect(result).toBeInstanceOf(Uint8Array);
       expect(BufferUtils.binaryToString(result)).toBe('Hello World');
     });
 
     it('should throw error for invalid Base64', () => {
-      expect(() => BufferUtils.decodeBase64('invalid base64!')).toThrow();
+      expect(() => BufferUtils.decodeBase64('invalid base64!' as Base64)).toThrow();
       expect(() => BufferUtils.decodeBase64(null as any)).toThrow();
       expect(() => BufferUtils.decodeBase64(undefined as any)).toThrow();
     });
@@ -246,15 +247,15 @@ describe('BufferUtils', () => {
 
     describe('isValidBase64', () => {
       it('should validate correct Base64 strings', () => {
-        expect(BufferUtils.isValidBase64('SGVsbG8=')).toBe(true);
-        expect(BufferUtils.isValidBase64('SGVsbG8gV29ybGQ=')).toBe(true);
-        expect(BufferUtils.isValidBase64('')).toBe(true);
+        expect(BufferUtils.isValidBase64('SGVsbG8=' as Base64)).toBe(true);
+        expect(BufferUtils.isValidBase64('SGVsbG8gV29ybGQ=' as Base64)).toBe(true);
+        expect(BufferUtils.isValidBase64('' as Base64)).toBe(true);
       });
 
       it('should reject invalid Base64 strings', () => {
-        expect(BufferUtils.isValidBase64('invalid!')).toBe(false);
-        expect(BufferUtils.isValidBase64('SGVsbG8@')).toBe(false);
-        expect(BufferUtils.isValidBase64('SGVsbG8====')).toBe(false); // Too much padding
+        expect(BufferUtils.isValidBase64('invalid!' as Base64)).toBe(false);
+        expect(BufferUtils.isValidBase64('SGVsbG8@' as Base64)).toBe(false);
+        expect(BufferUtils.isValidBase64('SGVsbG8====' as Base64)).toBe(false); // Too much padding
       });
     });
   });

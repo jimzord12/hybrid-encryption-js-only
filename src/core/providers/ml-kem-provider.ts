@@ -1,8 +1,8 @@
-import { KeyProvider, SupportedAlgorithms } from '..';
+import { KeyGenerationConfig, SerializedKeys } from '.';
 import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
 import { Preset } from '../enums';
 import { KeyPair } from '../interfaces/common/index.interface';
-import { KeyGenerationConfig, SerializedKeys } from '../types/crypto-provider.types';
+import { KeyProvider } from '../interfaces/key-manager/key-provider.interface';
 
 /**
  * ML-KEM (Kyber) Key Provider

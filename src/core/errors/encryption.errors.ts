@@ -150,8 +150,9 @@ export class AlgorithmError extends Error {
     public readonly message: string,
     public readonly preset: Preset,
     public readonly algorithmType: 'asymmetric' | 'symmetric' | 'kdf',
+    public readonly cause?: Error,
   ) {
-    super(`Preset '${preset}' | Type '${algorithmType}' | Message '${message}'.`);
+    super(message);
 
     this.name = 'AlgorithmError';
     this.timestamp = new Date();
@@ -176,20 +177,20 @@ export class AlgorithmError extends Error {
 }
 
 export class AlgorithmAsymmetricError extends AlgorithmError {
-  constructor(message: string, preset: Preset) {
-    super(message, preset, 'asymmetric');
+  constructor(message: string, preset: Preset, cause?: Error) {
+    super(message, preset, 'asymmetric', cause);
     this.name = 'AlgorithmAsymmetricError';
   }
 }
 export class AlgorithmSymmetricError extends AlgorithmError {
-  constructor(message: string, preset: Preset) {
-    super(message, preset, 'symmetric');
+  constructor(message: string, preset: Preset, cause?: Error) {
+    super(message, preset, 'symmetric', cause);
     this.name = 'AlgorithmSymmetricError';
   }
 }
 export class AlgorithmKDFError extends AlgorithmError {
-  constructor(message: string, preset: Preset) {
-    super(message, preset, 'kdf');
+  constructor(message: string, preset: Preset, cause?: Error) {
+    super(message, preset, 'kdf', cause);
     this.name = 'AlgorithmKDFError';
   }
 }
@@ -418,13 +419,13 @@ export function createAppropriateError(
       return new KeyValidationError(message, preset, additionalContext.validationErrors, cause);
 
     case 'algorithm-asymmetric':
-      return new AlgorithmAsymmetricError(message, preset);
+      return new AlgorithmAsymmetricError(message, preset, cause);
 
     case 'algorithm-symmetric':
-      return new AlgorithmSymmetricError(message, preset);
+      return new AlgorithmSymmetricError(message, preset, cause);
 
     case 'algorithm-kdf':
-      return new AlgorithmKDFError(message, preset);
+      return new AlgorithmKDFError(message, preset, cause);
 
     case 'operation':
       return new CryptographicOperationError(

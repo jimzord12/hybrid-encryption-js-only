@@ -5,6 +5,7 @@
  * ensuring type safety when working with external data
  */
 
+import { Preset } from '../enums/index.js';
 import { KeyPair } from '../interfaces/common/index.interface.js';
 import { Base64 } from '../types/branded-types.types.js';
 import type { EncryptedData, KeyGenerationConfig } from '../types/encryption.types.js';
@@ -18,17 +19,10 @@ export function isEncryptedData(obj: any): obj is EncryptedData {
   return (
     typeof obj === 'object' &&
     obj !== null &&
-    typeof obj.algorithms === 'object' &&
-    typeof obj.algorithms.asymmetric === 'string' &&
-    typeof obj.algorithms.symmetric === 'string' &&
-    typeof obj.algorithms.kdf === 'string' &&
+    (obj.preset === Preset.DEFAULT || obj.preset === Preset.HIGH_SECURITY) &&
     typeof obj.encryptedContent === 'string' &&
-    typeof obj.keyMaterial === 'string' &&
-    typeof obj.nonce === 'string' &&
-    typeof obj.version === 'string' &&
-    // Optional fields
-    (obj.authTag === undefined || typeof obj.authTag === 'string') &&
-    (obj.metadata === undefined || (typeof obj.metadata === 'object' && obj.metadata !== null))
+    typeof obj.cipherText === 'string' &&
+    typeof obj.nonce === 'string'
   );
 }
 
@@ -84,19 +78,6 @@ export function isValidBinaryKey(key: any): key is Uint8Array {
 }
 
 /**
- * Validates algorithm string format
- * Ensures algorithm names follow expected patterns
- */
-export function isValidPresetType(algorithm: any): algorithm is string {
-  return (
-    typeof algorithm === 'string' &&
-    algorithm.length > 0 &&
-    algorithm.length <= 64 && // Reasonable length limit
-    /^[A-Za-z0-9\-_]+$/.test(algorithm) // Alphanumeric, hyphens, underscores only
-  );
-}
-
-/**
  * Validates that an object can be safely serialized to JSON
  * Prevents circular references and ensures compatibility
  */
@@ -119,11 +100,6 @@ export function validateEncryptedData(obj: any): { isValid: boolean; errors: str
   if (!isEncryptedData(obj)) {
     errors.push('Object does not match EncryptedData interface');
   } else {
-    // Additional validation for algorithm names
-    if (!isValidPresetType(obj.preset)) {
-      errors.push('Invalid preset algorithm name format');
-    }
-
     // Validate Base64 strings
     try {
       decodeBase64(obj.encryptedContent as Base64);
