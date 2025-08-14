@@ -100,22 +100,32 @@ export function validateEncryptedData(obj: any): { isValid: boolean; errors: str
   if (!isEncryptedData(obj)) {
     errors.push('Object does not match EncryptedData interface');
   } else {
+    console.log('[validateEncryptedData]: obj: ', obj);
+
+    // Check for newlines in each field
+    console.log('encryptedContent | Contains newlines:', obj.encryptedContent.includes('\n'));
+    console.log('cipherText | Contains newlines:', obj.cipherText.includes('\n'));
+    console.log('nonce | Contains newlines:', obj.nonce.includes('\n'));
+
     // Validate Base64 strings
     try {
       decodeBase64(obj.encryptedContent as Base64);
-    } catch {
+    } catch (error) {
+      console.log('encryptedContent decode error:', error);
       errors.push('Invalid Base64 format for encryptedContent');
     }
 
     try {
       decodeBase64(obj.cipherText as Base64);
-    } catch {
+    } catch (error) {
+      console.log('cipherText decode error:', error);
       errors.push('Invalid Base64 format for cipherText');
     }
 
     try {
       decodeBase64(obj.nonce as Base64);
-    } catch {
+    } catch (error) {
+      console.log('nonce decode error:', error);
       errors.push('Invalid Base64 format for nonce');
     }
   }
@@ -134,7 +144,7 @@ export function validateKeyPair(obj: any): { isValid: boolean; errors: string[] 
     errors.push('Object does not match KeyPair interface');
   } else {
     // Additional validation
-    if (!isValidPresetType(obj.preset)) {
+    if (obj.preset !== Preset.DEFAULT && obj.preset !== Preset.HIGH_SECURITY) {
       errors.push('Invalid preset name format');
     }
 

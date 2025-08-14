@@ -1,5 +1,4 @@
-import { randomBytes } from '@noble/hashes/utils';
-import { ML_KEM_STATS } from '../../../../src/core/constants';
+import { AES_GCM_STATS, ML_KEM_STATS } from '../../../../src/core/constants';
 import {
   AsymmetricAlgorithm,
   HybridEncryption,
@@ -8,53 +7,27 @@ import {
 import { Preset } from '../../../../src/core/enums';
 import { AlgorithmAsymmetricError } from '../../../../src/core/errors';
 import { KeyPair } from '../../../../src/core/interfaces/common/index.interface';
-
-const correctKeyPair: Map<string, KeyPair> = new Map([
-  [
-    'case-1',
-    {
-      preset: Preset.DEFAULT,
-      publicKey: randomBytes(ML_KEM_STATS.publicKeyLength[Preset.DEFAULT]),
-      secretKey: randomBytes(ML_KEM_STATS.secretKeyLength[Preset.DEFAULT]),
-      metadata: {
-        createdAt: new Date(),
-        version: 1,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
-      },
-    },
-  ],
-]);
-const badkeyPairs: Map<string, KeyPair> = new Map([
-  [
-    'case-1',
-    {
-      preset: Preset.DEFAULT,
-      publicKey: randomBytes(32),
-      secretKey: randomBytes(32),
-      metadata: {
-        createdAt: new Date(),
-        version: 1,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
-      },
-    },
-  ],
-]);
+import { bytesNumToBase64Length } from '../../../debug/calculations';
+import { TestsingkeyPairs } from './test-data';
 
 describe('Hybrid Encryption - V2', () => {
   describe('Structure', async () => {
     it('should have the correct properties', async () => {
-      const hybridEncryption = await HybridEncryption.createDefault();
+      const hybridEncryption = new HybridEncryption();
       expect(hybridEncryption).toBeDefined();
       expect(hybridEncryption).toBeInstanceOf(HybridEncryption);
       expect(hybridEncryption.preset).toBe(Preset.DEFAULT);
       expect(hybridEncryption.asymmetricAlgorithm).toBeInstanceOf(AsymmetricAlgorithm);
+
       expect(hybridEncryption.symmetricAlgorithm).toBeInstanceOf(SymmetricAlgorithm);
     });
 
     it('should have the correct methods', async () => {
-      const hybridEncryption = await HybridEncryption.createDefault();
+      const hybridEncryption = new HybridEncryption();
       const methods = Object.getOwnPropertyNames(HybridEncryption.prototype).filter(
-        name => name !== 'constructor' && typeof HybridEncryption.prototype[name] === 'function',
+        name =>
+          name !== 'constructor' &&
+          (typeof HybridEncryption.prototype[name] as string) === 'function',
       );
       const properties = Object.keys(hybridEncryption);
 
@@ -79,18 +52,9 @@ describe('Hybrid Encryption - V2', () => {
 
   describe('Encryption', () => {
     describe('Errors', () => {
-      it('should THROW when invalid length for Public Key is provided', async () => {
-        const keyPair: KeyPair = {
-          preset: Preset.DEFAULT,
-          publicKey: randomBytes(32),
-          secretKey: randomBytes(32),
-          metadata: {
-            createdAt: new Date(),
-            version: 1,
-            expiresAt: new Date(Date.now() + 1000 * 60 * 60),
-          },
-        };
-        const hybridEncryption = await HybridEncryption.createDefault();
+      it('should THROW when invalid length for Public Key is provided + Correct Error', async () => {
+        const keyPair: KeyPair = TestsingkeyPairs.get('pub-bad')!;
+        const hybridEncryption = new HybridEncryption();
 
         const data = { message: 'Hello, World!' };
 
@@ -100,13 +64,16 @@ describe('Hybrid Encryption - V2', () => {
           );
         } catch (error) {
           console.log((error as AlgorithmAsymmetricError).cause);
+          expect((error as AlgorithmAsymmetricError).message).toBe(
+            'Invalid ML-KEM-768 public key length',
+          );
         }
       });
     });
 
     describe('Correct Flow', () => {
       it('should serialize data correctly', async () => {
-        const hybridEncryption = await HybridEncryption.createDefault();
+        const hybridEncryption = new HybridEncryption();
         const data = { message: 'Hello, World!' };
 
         const serializedData = hybridEncryption.serializeData(data);
@@ -116,9 +83,9 @@ describe('Hybrid Encryption - V2', () => {
         expect(deserializedData).toEqual(data);
       });
 
-      it.only('should encode & decode Base64 correctly', async () => {
+      it('should encode & decode Base64 correctly', async () => {
         const data = { message: 'Hello, World!' };
-        const hyEnc = await HybridEncryption.createDefault();
+        const hyEnc = new HybridEncryption();
         const binaryData = hyEnc.serializeData(data);
 
         const encoded = hyEnc.encodeBase64(binaryData);
@@ -136,16 +103,59 @@ describe('Hybrid Encryption - V2', () => {
       });
 
       it('should encrypt correctly', async () => {
-        const hybridEncryption = await HybridEncryption.createDefault();
+        const hybridEncryption = new HybridEncryption();
         const data = { message: 'Hello, World!' };
-        const pubKey = correctKeyPair.get('case-1')?.publicKey;
+        const pubKey = TestsingkeyPairs.get('both-good')?.publicKey;
 
         if (!pubKey) {
-          throw new Error('Public key is not defined');
+          throw new Error('[Vitest]: Public key is not defined');
         }
 
-        expect(hybridEncryption.encrypt(data, pubKey)).toBeDefined();
+        const binary = hybridEncryption.serializeData(data);
+
+        const { preset, encryptedContent, cipherText, nonce } = hybridEncryption.encrypt(
+          data,
+          pubKey,
+        );
+
+        expect(preset).toBe(Preset.DEFAULT);
+
+        expect(encryptedContent).toBeTypeOf('string');
+
+        expect(cipherText).toBeTypeOf('string');
+        expect(cipherText).toHaveLength(
+          bytesNumToBase64Length(ML_KEM_STATS.ciphertextLength[preset]),
+        );
+
+        expect(nonce).toBeTypeOf('string');
+        expect(nonce).toHaveLength(bytesNumToBase64Length(AES_GCM_STATS.nonceLength[preset]));
       });
     });
+  });
+
+  describe('Decryption', () => {
+    describe('Errors', () => {
+      it('should THROW when invalid length for Secret Key is provided + Correct Error', async () => {
+        const keyPair: KeyPair = TestsingkeyPairs.get('secret-bad')!;
+        const hybridEncryption = new HybridEncryption();
+
+        const data = { message: 'Hello, World!' };
+
+        const encryptedData = hybridEncryption.encrypt(data, keyPair.publicKey);
+
+        try {
+          expect(hybridEncryption.decrypt(encryptedData, keyPair.secretKey)).toThrow(
+            AlgorithmAsymmetricError,
+          );
+        } catch (error) {
+          console.log(error as AlgorithmAsymmetricError);
+          expect((error as AlgorithmAsymmetricError).message).toBe(
+            'Decryption failed: Invalid ML-KEM-768 secret key length',
+          );
+        }
+      });
+    });
+
+    // describe('Correct Flow', () => {});
   });
 });

@@ -1,5 +1,5 @@
 import { randomBytes } from '@noble/hashes/utils.js';
-import { DEFAULT_ENCRYPTION_OPTIONS } from '../constants.js';
+import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS } from '../constants.js';
 import { Preset } from '../enums/index.js';
 import { createAppropriateError, EncryptionError, FormatConversionError } from '../errors/index.js';
 
@@ -29,13 +29,13 @@ export class HybridEncryption {
   constructor(public readonly preset: Preset = DEFAULT_ENCRYPTION_OPTIONS.preset) {
     this.asymmetricAlgorithm =
       preset === Preset.DEFAULT ? new MLKEMAlgorithm() : new MLKEMAlgorithm(Preset.HIGH_SECURITY);
-    this.symmetricAlgorithm = new AESGCMAlgorithm();
+    this.symmetricAlgorithm = new AESGCMAlgorithm(preset);
   }
 
   /**
    * Static factory method to create with default registries
    */
-  static async createDefault(): Promise<HybridEncryption> {
+  static createDefault(): HybridEncryption {
     return new HybridEncryption();
   }
 
@@ -124,14 +124,14 @@ export class HybridEncryption {
     try {
       // Validate inputs
       // TODO: Create Validations for Input
-      console.log('Data to Encrypt: ', data);
-      console.log('Public Key: ', publicKey);
+      // console.log('Data to Encrypt: ', data);
+      // console.log('Public Key: ', publicKey);
 
       // Step 1: Serialize data to binary format
       // 🧪 Needs to be Tested - Check all possible edge cases
       const serializedData = this.serializeData(data);
 
-      console.log('Step 1: Serialized Data: ', serializedData);
+      // console.log('Step 1: Serialized Data: ', serializedData);
 
       // Step 2: Get algorithms from registries
       // 🧪 Needs to be Tested - Check if they are loaded correctly
@@ -142,27 +142,28 @@ export class HybridEncryption {
       // 🧪 Needs to be Tested - Check that they have the correct length based on pre
       const { sharedSecret, cipherText: kemCipherText } = asymmetric.createSharedSecret(publicKey);
 
-      console.log('Step 3: KEM Shared Secret: ', sharedSecret);
-      console.log('Step 3: KEM Cipher Text: ', kemCipherText);
+      // console.log('Step 3: KEM Shared Secret: ', sharedSecret);
+      // console.log('Step 3: KEM Cipher Text: ', kemCipherText);
 
       // Step 4: Use the Shared Secret to create the Symmetric key
       const derivedKey = KeyDerivation.deriveKey(this.preset, sharedSecret);
 
-      console.log('Step 4: Derived Key: ', derivedKey);
+      // console.log('Step 4: Derived Key: ', derivedKey);
 
       // Step 5: Create KeyMaterial (Key + Nonce) object for symmetric algorithm
+      const nonceSize = AES_GCM_STATS.nonceLength[this.preset];
       const keyMaterial: AEADParams = {
         key: derivedKey,
-        nonce: randomBytes(12), // AES-GCM standard nonce size
+        nonce: randomBytes(nonceSize), // AES-GCM nonce size based on preset
       };
 
-      console.log('Step 5: Key Material: ', keyMaterial);
+      // console.log('Step 5: Key Material: ', keyMaterial);
 
       // Step 6: Encrypt data with AES-GCM algorithm
       const { encryptedData, nonce } = symmetric.encrypt(serializedData, keyMaterial);
 
-      console.log('Step 6: Encrypted Data: ', encryptedData);
-      console.log('Step 6: Nonce: ', nonce);
+      // console.log('Step 6: Encrypted Data: ', encryptedData);
+      // console.log('Step 6: Nonce: ', nonce);
 
       // Step 7: Construct result with algorithm metadata
       const result: EncryptedData = {
@@ -172,7 +173,7 @@ export class HybridEncryption {
         nonce: this.encodeBase64(nonce),
       };
 
-      console.log('Step 7: Encrypted Data Structure: ', result);
+      // console.log('Step 7: Encrypted Data Structure: ', result);
 
       // Validate result structure
       const validation = validateEncryptedData(result);
@@ -188,15 +189,7 @@ export class HybridEncryption {
 
       return result;
     } catch (error) {
-      if (error instanceof EncryptionError) {
-        throw error;
-      }
-      throw createAppropriateError('Encryption failed', {
-        preset: this.preset,
-        errorType: 'operation',
-        operation: 'encrypt',
-        cause: error instanceof Error ? error : undefined,
-      });
+      throw error;
     }
   }
 

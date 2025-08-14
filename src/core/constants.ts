@@ -15,6 +15,17 @@ export const DEFAULT_KEY_MANAGER_OPTIONS = {
   // Other default options can be added here
 };
 
+export const AES_GCM_STATS = {
+  keySizeBits: {
+    [Preset.DEFAULT]: 256,
+    [Preset.HIGH_SECURITY]: 256,
+  },
+  nonceLength: {
+    [Preset.DEFAULT]: 12,
+    [Preset.HIGH_SECURITY]: 16,
+  },
+};
+
 export const ML_KEM_STATS = {
   keySize: {
     [Preset.DEFAULT]: '768',
@@ -22,7 +33,7 @@ export const ML_KEM_STATS = {
   },
   publicKeyLength: {
     [Preset.DEFAULT]: 1184,
-    [Preset.HIGH_SECURITY]: 1536,
+    [Preset.HIGH_SECURITY]: 1568,
   },
   secretKeyLength: {
     [Preset.DEFAULT]: 2400,
@@ -30,7 +41,7 @@ export const ML_KEM_STATS = {
   },
   ciphertextLength: {
     [Preset.DEFAULT]: 1088,
-    [Preset.HIGH_SECURITY]: 1536,
+    [Preset.HIGH_SECURITY]: 1568,
   },
   sharedSecretLength: 32,
 };

@@ -6,6 +6,7 @@
  */
 
 import { Preset } from '../enums';
+import { Base64 } from './branded-types.types';
 
 /**
  * Modern encrypted data format using KEM + AEAD approach
@@ -13,13 +14,11 @@ import { Preset } from '../enums';
  */
 export interface EncryptedData {
   preset: Preset;
-  encryptedContent: string; // Base64 encrypted data
-  cipherText: string; // Base64 KEM ciphertext/key material
-  nonce: string; // Base64 nonce/IV
+  encryptedContent: Base64; // Base64 encrypted data
+  cipherText: Base64; // Base64 KEM ciphertext/key material
+  nonce: Base64; // Base64 nonce/IV
 }
 
 export interface KeyGenerationConfig {
-  algorithm: string; // Target algorithm
   preset?: 'default' | 'high-security';
-  metadata?: Record<string, any>; // Custom metadata
 }

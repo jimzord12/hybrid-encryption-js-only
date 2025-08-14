@@ -1,5 +1,5 @@
 import { gcm } from '@noble/ciphers/aes';
-import { DEFAULT_ENCRYPTION_OPTIONS } from '../../../constants';
+import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS } from '../../../constants';
 import { Preset } from '../../../enums';
 import { createAppropriateError } from '../../../errors';
 import {
@@ -14,7 +14,10 @@ import {
  */
 export class AESGCMAlgorithm extends SymmetricAlgorithm {
   constructor(public readonly preset: Preset = DEFAULT_ENCRYPTION_OPTIONS.preset) {
-    super('AES-GCM', 32, 12, true); // 256-bit key, 96-bit nonce, AEAD enabled
+    const { keySizeBits, nonceLength } = AES_GCM_STATS;
+    const keySizeBytes = keySizeBits[preset] / 8;
+
+    super('AES-GCM', keySizeBytes, nonceLength[preset], true); // 256-bit key, 96-bit nonce, AEAD enabled
   }
 
   /**
@@ -25,14 +28,21 @@ export class AESGCMAlgorithm extends SymmetricAlgorithm {
    */
   encrypt(data: Uint8Array, keyMaterials: AEADParams): SymmetricEncryptionResult {
     const { key, nonce } = keyMaterials;
-    // Validate key size for AES-256
-    if (key.length !== 32) {
-      throw new Error(`AES-256-GCM requires a 32-byte key, got ${key.length} bytes`);
+
+    // Validate key size based on preset
+    const expectedKeySize = AES_GCM_STATS.keySizeBits[this.preset] / 8;
+    if (key.length !== expectedKeySize) {
+      throw new Error(
+        `AES-256-GCM requires a ${expectedKeySize}-byte key, got ${key.length} bytes`,
+      );
     }
 
-    // Validate nonce size for GCM
-    if (nonce.length !== 12) {
-      throw new Error(`AES-GCM requires a 12-byte nonce, got ${nonce.length} bytes`);
+    // Validate nonce size based on preset
+    const expectedNonceSize = AES_GCM_STATS.nonceLength[this.preset];
+    if (nonce.length !== expectedNonceSize) {
+      throw new Error(
+        `AES-GCM requires a ${expectedNonceSize}-byte nonce, got ${nonce.length} bytes`,
+      );
     }
 
     try {
@@ -78,30 +88,30 @@ export class AESGCMAlgorithm extends SymmetricAlgorithm {
   }
 
   validateInput(preset: Preset, key: Uint8Array, nonce: Uint8Array): void {
-    // Validate key size
-    if (preset === Preset.DEFAULT && key.length !== 32) {
-      throw createAppropriateError(`AES-256-GCM requires a 32-byte key, got ${key.length} bytes`, {
-        errorType: 'algorithm-symmetric',
-        preset,
-        operation: 'decrypt',
-      });
+    // Validate key size - both presets use 256-bit keys according to constants
+    const expectedKeySize = AES_GCM_STATS.keySizeBits[preset] / 8;
+    if (key.length !== expectedKeySize) {
+      throw createAppropriateError(
+        `AES-256-GCM requires a ${expectedKeySize}-byte key, got ${key.length} bytes`,
+        {
+          errorType: 'algorithm-symmetric',
+          preset,
+          operation: 'decrypt',
+        },
+      );
     }
 
-    if (preset === Preset.HIGH_SECURITY && key.length !== 64) {
-      throw createAppropriateError(`AES-512-GCM requires a 64-byte key, got ${key.length} bytes`, {
-        errorType: 'algorithm-symmetric',
-        preset,
-        operation: 'decrypt',
-      });
-    }
-
-    // Validate nonce size for GCM
-    if (nonce.length !== 12) {
-      throw createAppropriateError(`AES-GCM requires a 12-byte nonce, got ${nonce.length} bytes`, {
-        errorType: 'algorithm-symmetric',
-        preset,
-        operation: 'decrypt',
-      });
+    // Validate nonce size based on preset
+    const expectedNonceSize = AES_GCM_STATS.nonceLength[preset];
+    if (nonce.length !== expectedNonceSize) {
+      throw createAppropriateError(
+        `AES-GCM requires a ${expectedNonceSize}-byte nonce, got ${nonce.length} bytes`,
+        {
+          errorType: 'algorithm-symmetric',
+          preset,
+          operation: 'decrypt',
+        },
+      );
     }
   }
 

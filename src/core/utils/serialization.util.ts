@@ -138,7 +138,6 @@ export class Serialization {
    * @returns Base64 encoded string
    */
   static encodeBase64(data: Uint8Array): Base64 {
-    console.log('Encoding data to Base64:', data);
     try {
       if (!data || data.length === 0) {
         return '' as Base64;
@@ -160,7 +159,6 @@ export class Serialization {
    * @returns Binary data as Uint8Array
    */
   static decodeBase64(encodedData: Base64): Uint8Array {
-    console.log('Decoding Base64:', encodedData);
     try {
       if (!encodedData || typeof encodedData !== 'string') {
         throw createAppropriateError('Invalid Base64 input: must be a non-empty string', {

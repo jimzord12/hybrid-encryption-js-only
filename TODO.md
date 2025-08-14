@@ -10,17 +10,16 @@ algorithms.
 
 ## 📊 Implementation Roadmap
 
-| Phase                                       | Duration  | Sections                                                                                                | Key Deliverables                                                         |
-| ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **🎯 Phase 1: Foundation & Cleanup**       | 4-6 hours | 1.1 Remove RSA Dependencies<br>1.2 Design Modern Interfaces<br>1.3 Update Algorithm Registries          | Clean codebase, modern type definitions, algorithm-agnostic registries   |
-| **⚡ Phase 2: Core Implementation** ✅     | 6-8 hours | 2.1 Create ModernHybridEncryption<br>2.2 Key Derivation Implementation<br>2.3 Modern Data Serialization | KEM-based encryption, HKDF integration, robust serialization             |
-| **✅ Phase 3: KeyManager Modernization**   | COMPLETED | 3.1 Update KeyManager Core ✅<br>3.2 Grace Period Decryption Logic                                      | Binary key storage, zero-downtime rotation, grace period support         |
-| **🎯 Phase 4: Algorithm Simplification**   | 3-4 hours | 4.1 Remove Unsupported Algorithms<br>4.2 Implement Algorithm Presets<br>4.3 Update Registries<br>4.4 Update Examples<br>4.5 Refactor KeyManager Architecture | Simplified algorithm support, standardized presets, maintainable codebase, modular key management |
-| **🔧 Phase 5: API & Integration**          | 2-3 hours | 5.1 Update Client API<br>5.2 Server Integration Updates                                                  | Clean client interfaces with presets, updated server middleware          |
-| **🧪 Phase 6: Testing & Validation**       | 3-4 hours | 6.1 Update Existing Tests<br>6.2 Create Modern Algorithm Tests                                          | Comprehensive test coverage, performance benchmarks, security validation |
-| **📚 Phase 7: Documentation & Polish**     | 1-2 hours | 7.1 Update Documentation<br>7.2 Performance Optimization                                                | Complete API docs, usage examples, production optimization               |
+| Phase                                    | Duration  | Sections                                                                                                | Key Deliverables                                                         |
+| ---------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **🎯 Phase 1: Foundation & Cleanup**     | 4-6 hours | 1.1 Remove RSA Dependencies<br>1.2 Design Modern Interfaces<br>1.3 Update Algorithm Registries          | Clean codebase, modern type definitions, algorithm-agnostic registries   |
+| **⚡ Phase 2: Core Implementation** ✅   | 6-8 hours | 2.1 Create ModernHybridEncryption<br>2.2 Key Derivation Implementation<br>2.3 Modern Data Serialization | KEM-based encryption, HKDF integration, robust serialization             |
+| **✅ Phase 3: KeyManager Modernization** | COMPLETED | 3.1 Update KeyManager Core ✅<br>3.2 Grace Period Decryption Logic                                      | Binary key storage, zero-downtime rotation, grace period support         |
+| **🔧 Phase 4: API & Integration**        | 2-3 hours | 4.1 Update Client API<br>4.2 Factory Pattern Implementation                                             | Clean client interfaces, configuration presets, easy setup               |
+| **🧪 Phase 5: Testing & Validation**     | 3-4 hours | 5.1 Update Existing Tests<br>5.2 Create Modern Algorithm Tests                                          | Comprehensive test coverage, performance benchmarks, security validation |
+| **📚 Phase 6: Documentation & Polish**   | 1-2 hours | 6.1 Update Documentation<br>6.2 Performance Optimization                                                | Complete API docs, usage examples, production optimization               |
 
-**Total Estimated Time: 20-29 hours**
+**Total Estimated Time: 17-25 hours**
 
 ---
 
@@ -671,586 +670,15 @@ transitions
 
 ---
 
-## 🔧 Phase 4: Algorithm Simplification & Presets (2-3 hours)
+## 🔧 Phase 4: API & Integration (2-3 hours)
 
-### 4.1 Remove Unsupported Algorithms (1 hour)
+### 4.1 Update Client API (1 hour)
 
-**Objective**: Simplify the codebase by removing unnecessary algorithms for better maintainability
-
-**Tasks**:
-
-- [ ] **Remove ChaCha20-Poly1305 Algorithm**:
-  ```typescript
-  // Remove: src/core/encryption/symmetric/implementations/chacha20-poly1305-alg.ts
-  // Update: Remove from symmetric algorithm registry
-  // Update: Remove from algorithm factory
-  ```
-
-- [ ] **Remove ECC Key Provider**:
-  ```typescript
-  // Remove: src/core/providers/ecc-provider.ts (if exists)
-  // Update: Remove ECC from KeyProviderFactory
-  // Update: Remove ECC from SupportedAlgorithms type
-  ```
-
-- [ ] **Update Algorithm Registries**:
-  ```typescript
-  // src/core/encryption/symmetric/registry.ts
-  // Remove ChaCha20-Poly1305 registration
-  
-  // src/core/encryption/asymmetric/registry.ts  
-  // Ensure only ML-KEM algorithms are supported
-  ```
-
-- [ ] **Update Type Definitions**:
-  ```typescript
-  // src/core/types/crypto-provider.types.ts
-  export type SupportedAlgorithms = 'ml-kem-768' | 'ml-kem-1024';
-  
-  // src/core/types/modern-encryption.types.ts
-  export type SupportedSymmetricAlgorithms = 'AES-GCM-256' | 'AES-GCM-512';
-  export type SupportedKDFAlgorithms = 'HKDF-SHA256' | 'HKDF-SHA512';
-  ```
-
-### 4.2 Implement Algorithm Presets (1-2 hours)
-
-**Objective**: Create standardized algorithm combinations for normal and high-security use cases
+**Objective**: Provide clean, modern client interfaces
 
 **Tasks**:
 
-- [ ] **Create Preset Definitions**:
-  ```typescript
-  // src/core/encryption/presets.ts
-  export enum EncryptionPreset {
-    NORMAL = 'normal',
-    HIGH_SECURITY = 'high-security'
-  }
-  
-  export interface PresetConfiguration {
-    asymmetricAlgorithm: 'ml-kem-768' | 'ml-kem-1024';
-    symmetricAlgorithm: 'AES-GCM-256' | 'AES-GCM-512';
-    keyDerivation: 'HKDF-SHA256' | 'HKDF-SHA512';
-    keySize: 256 | 512;
-    description: string;
-  }
-  
-  export const ENCRYPTION_PRESETS: Record<EncryptionPreset, PresetConfiguration> = {
-    [EncryptionPreset.NORMAL]: {
-      asymmetricAlgorithm: 'ml-kem-768',
-      symmetricAlgorithm: 'AES-GCM-256', 
-      keyDerivation: 'HKDF-SHA256',
-      keySize: 256,
-      description: 'Standard security preset with good performance'
-    },
-    [EncryptionPreset.HIGH_SECURITY]: {
-      asymmetricAlgorithm: 'ml-kem-1024',
-      symmetricAlgorithm: 'AES-GCM-512',
-      keyDerivation: 'HKDF-SHA512', 
-      keySize: 512,
-      description: 'Maximum security preset for sensitive data'
-    }
-  };
-  ```
-
-- [ ] **Implement ML-KEM-1024 Support**:
-  ```typescript
-  // src/core/encryption/asymmetric/implementations/post-quantum/ml-kem1024-alg.ts
-  export class MLKEM1024Algorithm implements AsymmetricAlgorithm {
-    getAlgorithmId(): string {
-      return 'ML-KEM-1024';
-    }
-    
-    createSharedSecret(publicKey: Uint8Array): EncapsulationResult {
-      // Implementation using ml_kem1024.encap()
-    }
-    
-    recoverSharedSecret(cipherText: Uint8Array, privateKey: Uint8Array): Uint8Array {
-      // Implementation using ml_kem1024.decap()
-    }
-  }
-  ```
-
-- [ ] **Implement AES-GCM-512 Support**:
-  ```typescript
-  // src/core/encryption/symmetric/implementations/aes-gcm-512-alg.ts
-  export class AES512GCMAlgorithm implements SymmetricAlgorithm {
-    getAlgorithmId(): string {
-      return 'AES-GCM-512';
-    }
-    
-    encrypt(data: Uint8Array, keyMaterial: KeyMaterial): EncryptionResult {
-      // Implementation with 512-bit key size
-    }
-    
-    decrypt(encryptedData: Uint8Array, keyMaterial: KeyMaterial): Uint8Array {
-      // Implementation with 512-bit key size
-    }
-  }
-  ```
-
-- [ ] **Implement HKDF-SHA512 Support**:
-  ```typescript
-  // src/core/utils/key-derivation.util.ts
-  // Add HKDF-SHA512 support to existing KeyDerivation class
-  export class KeyDerivation {
-    static deriveKey(config: KeyDerivationConfig): KeyDerivationResult {
-      switch (config.algorithm) {
-        case 'HKDF-SHA256':
-          return this.hkdfSha256(config);
-        case 'HKDF-SHA512':
-          return this.hkdfSha512(config); // New implementation
-        default:
-          throw new Error(`Unsupported KDF algorithm: ${config.algorithm}`);
-      }
-    }
-    
-    private static hkdfSha512(config: KeyDerivationConfig): KeyDerivationResult {
-      // Implementation using @noble/hashes/hkdf with sha512
-    }
-  }
-  ```
-
-- [ ] **Update ModernHybridEncryption with Presets**:
-  ```typescript
-  // src/core/encryption/modern-hybrid-encryption.ts
-  export class ModernHybridEncryption {
-    static createWithPreset(preset: EncryptionPreset): ModernHybridEncryption {
-      const config = ENCRYPTION_PRESETS[preset];
-      return new ModernHybridEncryption(
-        asymmetricRegistry,
-        symmetricRegistry,
-        config
-      );
-    }
-    
-    static encryptWithPreset(
-      data: any,
-      publicKey: Uint8Array,
-      preset: EncryptionPreset
-    ): Promise<ModernEncryptedData> {
-      const instance = this.createWithPreset(preset);
-      return instance.encrypt(data, publicKey);
-    }
-  }
-  ```
-
-- [ ] **Update KeyManager with Preset Support**:
-  ```typescript
-  // src/core/key-management/index.ts
-  export class KeyManager {
-    constructor(config: KeyManagerConfig = {}) {
-      // Auto-detect preset if not specified
-      const preset = config.preset || EncryptionPreset.NORMAL;
-      const presetConfig = ENCRYPTION_PRESETS[preset];
-      
-      this.config = {
-        algorithm: config.algorithm || presetConfig.asymmetricAlgorithm,
-        keySize: config.keySize || (presetConfig.asymmetricAlgorithm === 'ml-kem-768' ? 768 : 1024),
-        // ... other config
-      };
-    }
-  }
-  ```
-
-### 4.3 Update Algorithm Registries (30 minutes)
-
-**Objective**: Register only the supported algorithms and remove unused ones
-
-**Tasks**:
-
-- [ ] **Update Asymmetric Registry**:
-  ```typescript
-  // src/core/encryption/asymmetric/registry.ts
-  const registry = new AlgorithmRegistry<AsymmetricAlgorithm>();
-  registry.register('ML-KEM-768', () => new MLKEM768Algorithm());
-  registry.register('ML-KEM-1024', () => new MLKEM1024Algorithm());
-  // Remove: ECC registrations
-  // Remove: RSA registrations (already removed)
-  ```
-
-- [ ] **Update Symmetric Registry**:
-  ```typescript
-  // src/core/encryption/symmetric/registry.ts  
-  const registry = new AlgorithmRegistry<SymmetricAlgorithm>();
-  registry.register('AES-GCM-256', () => new AES256GCMAlgorithm());
-  registry.register('AES-GCM-512', () => new AES512GCMAlgorithm());
-  // Remove: ChaCha20-Poly1305 registration
-  ```
-
-- [ ] **Update Provider Factory**:
-  ```typescript
-  // src/core/providers/key-provider-factory.ts
-  export class KeyProviderFactory {
-    static createProvider(algorithm: SupportedAlgorithms): KeyProvider {
-      switch (algorithm) {
-        case 'ml-kem-768':
-        case 'ml-kem-1024':
-          return new MlKemKeyProvider();
-        // Remove: ECC case
-        default:
-          throw new Error(`Unsupported algorithm: ${algorithm}`);
-      }
-    }
-  }
-  ```
-
-### 4.4 Update Examples and Documentation (30 minutes)
-
-**Objective**: Update examples to showcase the new preset system
-
-**Tasks**:
-
-- [ ] **Create Preset Usage Examples**:
-  ```typescript
-  // examples/presets/normal-preset.ts
-  import { ModernHybridEncryption, EncryptionPreset } from '../src/core';
-  
-  // Using normal preset (recommended for most applications)
-  const data = { message: "Hello World", timestamp: Date.now() };
-  const encrypted = await ModernHybridEncryption.encryptWithPreset(
-    data, 
-    publicKey, 
-    EncryptionPreset.NORMAL
-  );
-  
-  // examples/presets/high-security-preset.ts  
-  import { ModernHybridEncryption, EncryptionPreset } from '../src/core';
-  
-  // Using high-security preset (for sensitive data)
-  const sensitiveData = { creditCard: "1234-5678-9012-3456", ssn: "123-45-6789" };
-  const encrypted = await ModernHybridEncryption.encryptWithPreset(
-    sensitiveData,
-    publicKey,
-    EncryptionPreset.HIGH_SECURITY
-  );
-  ```
-
-- [ ] **Update Algorithm Registry Usage Example**:
-  ```typescript
-  // examples/encryptions/algorithm-registry-usage.ts
-  // Update to show only supported algorithms
-  // Remove ChaCha20-Poly1305 examples
-  // Add ML-KEM-1024 and AES-GCM-512 examples
-  ```
-
-**Validation Criteria**:
-- [ ] Only ML-KEM-768, ML-KEM-1024, AES-GCM-256, AES-GCM-512, HKDF-SHA256, HKDF-SHA512 are supported
-- [ ] ChaCha20-Poly1305 and ECC completely removed from codebase
-- [ ] Two presets work correctly: normal and high-security
-- [ ] All existing tests pass with simplified algorithm set
-- [ ] New preset examples work correctly
-- [ ] Documentation reflects the simplified algorithm support
-
-### 4.5 Refactor KeyManager Architecture (1 hour)
-
-**Objective**: Break KeyManager into smaller, more manageable components for better separation of concerns and testability
-
-**Tasks**:
-
-- [ ] **Create Key Provider Interface**:
-  ```typescript
-  // src/core/key-management/interfaces/key-provider.interface.ts
-  export interface KeyProvider {
-    generateKeyPair(config: KeyGenerationConfig): Promise<ModernKeyPair>;
-    validateKeyPair(keyPair: ModernKeyPair): boolean;
-    exportPublicKey(keyPair: ModernKeyPair): Uint8Array;
-    exportPrivateKey(keyPair: ModernKeyPair): Uint8Array;
-    importKeyPair(publicKey: Uint8Array, privateKey: Uint8Array): ModernKeyPair;
-  }
-  
-  export interface KeyGenerationConfig {
-    algorithm: 'ml-kem-768' | 'ml-kem-1024';
-    keySize?: number;
-    metadata?: Record<string, any>;
-  }
-  ```
-
-- [ ] **Create Key Storage Interface**:
-  ```typescript
-  // src/core/key-management/interfaces/key-storage.interface.ts
-  export interface KeyStorage {
-    saveKeyPair(keyPair: ModernKeyPair, version: number): Promise<void>;
-    loadKeyPair(version?: number): Promise<ModernKeyPair | null>;
-    saveMetadata(metadata: KeyMetadata): Promise<void>;
-    loadMetadata(): Promise<KeyMetadata | null>;
-    backupKeyPair(keyPair: ModernKeyPair, reason: string): Promise<void>;
-    listVersions(): Promise<number[]>;
-    deleteVersion(version: number): Promise<void>;
-  }
-  
-  export interface KeyMetadata {
-    currentVersion: number;
-    algorithm: string;
-    createdAt: Date;
-    lastRotated?: Date;
-    rotationHistory: KeyRotationRecord[];
-  }
-  ```
-
-- [ ] **Create Key Rotation Interface**:
-  ```typescript
-  // src/core/key-management/interfaces/key-rotation.interface.ts
-  export interface KeyRotationManager {
-    shouldRotateKeys(): Promise<boolean>;
-    rotateKeys(reason: 'scheduled' | 'manual' | 'compromise'): Promise<KeyRotationResult>;
-    isInGracePeriod(): boolean;
-    getGracePeriodEnd(): Date | null;
-    getPreviousKeyPair(): Promise<ModernKeyPair | null>;
-  }
-  
-  export interface KeyRotationResult {
-    success: boolean;
-    oldVersion: number;
-    newVersion: number;
-    gracePeriodUntil: Date;
-    rotationTime: Date;
-    reason: string;
-  }
-  ```
-
-- [ ] **Implement File System Key Storage**:
-  ```typescript
-  // src/core/key-management/storage/file-system-key-storage.ts
-  export class FileSystemKeyStorage implements KeyStorage {
-    constructor(private certPath: string) {}
-    
-    async saveKeyPair(keyPair: ModernKeyPair, version: number): Promise<void> {
-      // Implementation for saving keys to filesystem
-      const publicKeyPath = path.join(this.certPath, `public-key-v${version}.bin`);
-      const privateKeyPath = path.join(this.certPath, `private-key-v${version}.bin`);
-      
-      await fs.writeFile(publicKeyPath, keyPair.publicKey, { mode: 0o644 });
-      await fs.writeFile(privateKeyPath, keyPair.privateKey, { mode: 0o600 });
-    }
-    
-    async loadKeyPair(version?: number): Promise<ModernKeyPair | null> {
-      // Implementation for loading keys from filesystem
-    }
-    
-    // ... other storage methods
-  }
-  ```
-
-- [ ] **Implement ML-KEM Key Provider**:
-  ```typescript
-  // src/core/key-management/providers/ml-kem-key-provider.ts
-  export class MlKemKeyProvider implements KeyProvider {
-    async generateKeyPair(config: KeyGenerationConfig): Promise<ModernKeyPair> {
-      const algorithm = config.algorithm;
-      const kemAlgorithm = this.getKemAlgorithm(algorithm);
-      
-      const { publicKey, privateKey } = kemAlgorithm.keygen();
-      
-      return {
-        algorithm,
-        publicKey,
-        privateKey,
-        metadata: {
-          version: 1,
-          createdAt: new Date(),
-          keySize: publicKey.length * 8,
-          ...config.metadata
-        }
-      };
-    }
-    
-    validateKeyPair(keyPair: ModernKeyPair): boolean {
-      // Validate key pair structure and content
-    }
-    
-    // ... other provider methods
-  }
-  ```
-
-- [ ] **Implement Key Rotation Manager**:
-  ```typescript
-  // src/core/key-management/rotation/key-rotation-manager.ts
-  export class KeyRotationManagerImpl implements KeyRotationManager {
-    constructor(
-      private storage: KeyStorage,
-      private keyProvider: KeyProvider,
-      private config: KeyRotationConfig
-    ) {}
-    
-    async shouldRotateKeys(): Promise<boolean> {
-      const metadata = await this.storage.loadMetadata();
-      if (!metadata) return true; // No keys exist, should generate
-      
-      const daysSinceRotation = this.getDaysSince(metadata.lastRotated || metadata.createdAt);
-      return daysSinceRotation >= this.config.rotationIntervalDays;
-    }
-    
-    async rotateKeys(reason: 'scheduled' | 'manual' | 'compromise'): Promise<KeyRotationResult> {
-      // Implementation for key rotation with grace period
-    }
-    
-    // ... other rotation methods
-  }
-  ```
-
-- [ ] **Refactor KeyManager to Use Components**:
-  ```typescript
-  // src/core/key-management/key-manager.ts
-  export class KeyManager {
-    private keyProvider: KeyProvider;
-    private keyStorage: KeyStorage;
-    private rotationManager: KeyRotationManager;
-    
-    constructor(config: KeyManagerConfig = {}) {
-      // Initialize components based on configuration
-      this.keyProvider = this.createKeyProvider(config.algorithm || 'ml-kem-768');
-      this.keyStorage = this.createKeyStorage(config.certPath);
-      this.rotationManager = new KeyRotationManagerImpl(
-        this.keyStorage,
-        this.keyProvider,
-        config.rotation || {}
-      );
-    }
-    
-    // Simplified public API that delegates to components
-    async getPublicKey(): Promise<Uint8Array> {
-      const keyPair = await this.getCurrentKeyPair();
-      return this.keyProvider.exportPublicKey(keyPair);
-    }
-    
-    async getPrivateKey(): Promise<Uint8Array> {
-      const keyPair = await this.getCurrentKeyPair();
-      return this.keyProvider.exportPrivateKey(keyPair);
-    }
-    
-    async rotateKeys(reason?: 'scheduled' | 'manual' | 'compromise'): Promise<KeyRotationResult> {
-      return this.rotationManager.rotateKeys(reason || 'manual');
-    }
-    
-    // Private methods for component management
-    private createKeyProvider(algorithm: string): KeyProvider {
-      switch (algorithm) {
-        case 'ml-kem-768':
-        case 'ml-kem-1024':
-          return new MlKemKeyProvider();
-        default:
-          throw new Error(`Unsupported algorithm: ${algorithm}`);
-      }
-    }
-    
-    private createKeyStorage(certPath?: string): KeyStorage {
-      return new FileSystemKeyStorage(certPath || './config/certs');
-    }
-  }
-  ```
-
-- [ ] **Create Component Factory**:
-  ```typescript
-  // src/core/key-management/factory/key-management-factory.ts
-  export class KeyManagementFactory {
-    static createKeyManager(config?: KeyManagerConfig): KeyManager {
-      return new KeyManager(config);
-    }
-    
-    static createKeyProvider(algorithm: string): KeyProvider {
-      switch (algorithm) {
-        case 'ml-kem-768':
-        case 'ml-kem-1024':
-          return new MlKemKeyProvider();
-        default:
-          throw new Error(`Unsupported key provider for algorithm: ${algorithm}`);
-      }
-    }
-    
-    static createKeyStorage(type: 'filesystem' | 'memory', config?: any): KeyStorage {
-      switch (type) {
-        case 'filesystem':
-          return new FileSystemKeyStorage(config?.certPath || './config/certs');
-        case 'memory':
-          return new MemoryKeyStorage();
-        default:
-          throw new Error(`Unsupported storage type: ${type}`);
-      }
-    }
-  }
-  ```
-
-**Validation Criteria**:
-- [ ] KeyManager class has clear separation of concerns
-- [ ] Each component is independently testable with mocks
-- [ ] Key generation, storage, and rotation are separate responsibilities
-- [ ] Interfaces allow for easy swapping of implementations
-- [ ] Factory pattern enables flexible component creation
-- [ ] All existing KeyManager functionality is preserved
-- [ ] Components follow SOLID principles
-- [ ] Comprehensive unit tests for each component
-
----
-
-## 🔧 Phase 5: API & Integration (2-3 hours)
-
-### 5.1 Update Client API (1 hour)
-
-**Objective**: Provide clean, modern client interfaces with preset support
-
-**Tasks**:
-
-- [ ] **Create High-Level Client Class with Presets**:
-  ```typescript
-  // src/client/hybrid-encryption-client.ts
-  export class HybridEncryptionClient {
-    private keyManager: KeyManager;
-    private encryption: ModernHybridEncryption;
-    private preset: EncryptionPreset;
-    
-    constructor(config?: ClientConfig) {
-      this.preset = config?.preset || EncryptionPreset.NORMAL;
-      this.keyManager = KeyManager.getInstance(config?.keyManagerConfig);
-      this.encryption = ModernHybridEncryption.createWithPreset(this.preset);
-    }
-    
-    async encrypt(data: any): Promise<string> {
-      const publicKey = await this.keyManager.getPublicKey();
-      const encrypted = await this.encryption.encrypt(data, publicKey);
-      return this.serializeEncrypted(encrypted);
-    }
-    
-    async decrypt(encryptedData: string): Promise<any> {
-      const parsed = this.parseEncrypted(encryptedData);
-      const privateKey = await this.keyManager.getPrivateKey(); 
-      return this.encryption.decrypt(parsed, privateKey);
-    }
-    
-    // Convenience methods for preset usage
-    static withNormalSecurity(config?: Omit<ClientConfig, 'preset'>): HybridEncryptionClient {
-      return new HybridEncryptionClient({ ...config, preset: EncryptionPreset.NORMAL });
-    }
-    
-    static withHighSecurity(config?: Omit<ClientConfig, 'preset'>): HybridEncryptionClient {
-      return new HybridEncryptionClient({ ...config, preset: EncryptionPreset.HIGH_SECURITY });
-    }
-  }
-  ```
-
-- [ ] **Update Round-Trip Testing**:
-  ```typescript
-  // src/client/utils.ts
-  export async function performRoundTripTest(data: any, preset?: EncryptionPreset): Promise<boolean> {
-    const client = new HybridEncryptionClient({ preset });
-    const encrypted = await client.encrypt(data);
-    const decrypted = await client.decrypt(encrypted);
-    return JSON.stringify(data) === JSON.stringify(decrypted);
-  }
-  
-  export async function performPresetComparison(data: any): Promise<PresetComparisonResult> {
-    const normalClient = HybridEncryptionClient.withNormalSecurity();
-    const highSecClient = HybridEncryptionClient.withHighSecurity();
-    
-    const [normalResult, highSecResult] = await Promise.all([
-      this.testClientRoundTrip(normalClient, data),
-      this.testClientRoundTrip(highSecClient, data)
-    ]);
-    
-    return { normal: normalResult, highSecurity: highSecResult };
-  }
-  ```
-
-- [ ] **Update client exports with preset support**:
+- [ ] **Update client exports**:
 
   ```typescript
   // src/client/index.ts
@@ -1314,105 +742,55 @@ transitions
 - ✅ Algorithm discovery functions
 - ✅ Backward compatible patterns (where possible)
 
-### 5.2 Server Integration Updates (1-2 hours)
+### 4.2 Factory Pattern Implementation (1-2 hours)
 
-**Objective**: Update server components to use the modern architecture with presets
+**Objective**: Provide easy configuration and setup
 
 **Tasks**:
 
-- [ ] **Update Encryption Middleware with Preset Support**:
+- [ ] **Create HybridEncryptionFactory**:
+
   ```typescript
-  // src/server/middleware/encryption.ts
-  export function createEncryptionMiddleware(config?: MiddlewareConfig) {
-    const preset = config?.preset || EncryptionPreset.NORMAL;
-    const encryption = ModernHybridEncryption.createWithPreset(preset);
-    
-    return async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        req.encryption = encryption;
-        req.keyManager = KeyManager.getInstance();
-        req.encryptionPreset = preset;
-        next();
-      } catch (error) {
-        next(createAppropriateError('MIDDLEWARE_INITIALIZATION_FAILED', error));
-      }
-    };
+  // src/core/encryption/factory.ts
+  export class HybridEncryptionFactory {
+    static create(config?: ModernEncryptionOptions): ModernHybridEncryption;
+
+    static createWithKeyManager(
+      keyManagerConfig?: ModernKeyManagerConfig,
+    ): Promise<{
+      encryption: ModernHybridEncryption;
+      keyManager: KeyManager;
+    }>;
   }
   ```
 
-- [ ] **Update API Routes with Preset Selection**:
+- [ ] **Create configuration presets**:
   ```typescript
-  // src/server/routes/round-trip.ts
-  export async function handleRoundTrip(req: Request, res: Response) {
-    try {
-      const { data, preset = EncryptionPreset.NORMAL } = req.body;
-      const client = new HybridEncryptionClient({ preset });
-      
-      const encrypted = await client.encrypt(data);
-      const decrypted = await client.decrypt(encrypted);
-      
-      res.json({
-        success: true,
-        preset: preset,
-        original: data,
-        encrypted: encrypted,
-        decrypted: decrypted,
-        matches: JSON.stringify(data) === JSON.stringify(decrypted)
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  }
-  
-  // New endpoint for preset comparison
-  export async function handlePresetComparison(req: Request, res: Response) {
-    try {
-      const { data } = req.body;
-      const result = await performPresetComparison(data);
-      res.json({ success: true, ...result });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  }
-  ```
-
-- [ ] **Update Key Rotation Jobs**:
-  ```typescript
-  // src/server/cron/key-rotation.ts
-  export function scheduleKeyRotation() {
-    const scheduler = new CronScheduler();
-    
-    scheduler.schedule('0 2 * * 0', async () => { // Every Sunday at 2 AM
-      try {
-        const keyManager = KeyManager.getInstance();
-        await keyManager.rotateKeys();
-        console.log('✅ Scheduled key rotation completed');
-      } catch (error) {
-        console.error('❌ Scheduled key rotation failed:', error);
-        // Send alert to monitoring system
-      }
-    });
-  }
+  export const EncryptionPresets = {
+    QUANTUM_SAFE: {
+      asymmetricAlgorithm: 'ML-KEM-768',
+      symmetricAlgorithm: 'AES-GCM-256',
+      keyDerivation: 'HKDF-SHA256',
+    },
+    HIGH_SECURITY: {
+      asymmetricAlgorithm: 'ML-KEM-1024',
+      symmetricAlgorithm: 'ChaCha20-Poly1305',
+      keyDerivation: 'HKDF-SHA512',
+    },
+  };
   ```
 
 **Acceptance Criteria**:
 
-- ✅ Updated server middleware supports presets
-- ✅ API routes can handle preset selection
-- ✅ Key rotation works with simplified algorithms
-- ✅ Preset comparison endpoint available
+- ✅ Easy setup for common use cases
+- ✅ Sensible defaults
+- ✅ Configuration validation
 
 ---
 
-## 🧪 Phase 6: Testing & Validation (3-4 hours)
+## 🧪 Phase 5: Testing & Validation (3-4 hours)
 
-### 6.1 Update Existing Tests (2 hours)
+### 5.1 Update Existing Tests (2 hours)
 
 **Objective**: Migrate tests from RSA to modern algorithms
 
@@ -1439,7 +817,7 @@ transitions
 - ✅ Tests use modern algorithms only
 - ✅ Test coverage maintained > 90%
 
-### 6.2 Create Modern Algorithm Tests (1-2 hours)
+### 5.2 Create Modern Algorithm Tests (1-2 hours)
 
 **Objective**: Comprehensive testing of new functionality
 
@@ -1482,9 +860,9 @@ transitions
 
 ---
 
-## 📚 Phase 7: Documentation & Polish (1-2 hours)
+## 📚 Phase 6: Documentation & Polish (1-2 hours)
 
-### 7.1 Update Documentation (1 hour)
+### 6.1 Update Documentation (1 hour)
 
 **Objective**: Clear documentation for modern API
 
@@ -1530,7 +908,7 @@ transitions
 - ✅ Clear usage examples
 - ✅ Comprehensive guides
 
-### 7.2 Performance Optimization (Optional, 1 hour)
+### 6.2 Performance Optimization (Optional, 1 hour)
 
 **Objective**: Optimize for production use
 

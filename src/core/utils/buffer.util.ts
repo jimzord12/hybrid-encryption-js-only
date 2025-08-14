@@ -90,7 +90,7 @@ export class BufferUtils {
       }
 
       // Validate Base64 format before attempting decode
-      if (!this.isValidBase64(encodedData)) {
+      if (!BufferUtils.isValidBase64(encodedData)) {
         throw new Error('Invalid Base64 format');
       }
 

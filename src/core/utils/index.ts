@@ -14,7 +14,7 @@ import {
   type SupportedKDFAlgorithms,
 } from './key-derivation.util';
 import {
-  ModernSerialization,
+  Serialization,
   type SerializableData,
   type SerializationMetadata,
   type SerializationOptions,
@@ -29,7 +29,7 @@ import {
 export {
   BufferUtils,
   KeyDerivation,
-  ModernSerialization,
+  Serialization,
   binaryToString,
   constantTimeEqual,
   decodeBase64,
