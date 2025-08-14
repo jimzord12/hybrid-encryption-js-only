@@ -1,7 +1,5 @@
 export type {
-  CryptoKeyPair,
   KeyGenerationConfig,
-  KeyProvider,
   SerializedKeyMetadata,
   SerializedKeys,
 } from '../types/crypto-provider.types';

@@ -1,4 +1,5 @@
-import { KeyProvider, SupportedAlgorithms } from '../types/crypto-provider.types';
+import { KeyProvider } from '.';
+import { SupportedAlgorithms } from '..';
 import { MlKemKeyProvider } from './ml-kem-provider';
 
 /**

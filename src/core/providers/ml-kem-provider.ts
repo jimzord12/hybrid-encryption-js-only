@@ -1,11 +1,8 @@
-import {
-  CryptoKeyPair,
-  KeyGenerationConfig,
-  KeyProvider,
-  SerializedKeys,
-  SupportedAlgorithms,
-} from '../types/crypto-provider.types';
-import { ml_kem768 } from '@noble/post-quantum/ml-kem';
+import { KeyProvider, SupportedAlgorithms } from '..';
+import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
+import { Preset } from '../enums';
+import { KeyPair } from '../interfaces/common/index.interface';
+import { KeyGenerationConfig, SerializedKeys } from '../types/crypto-provider.types';
 
 /**
  * ML-KEM (Kyber) Key Provider
@@ -17,16 +14,18 @@ export class MlKemKeyProvider implements KeyProvider {
    * Note: This is a basic implementation for Phase 3.1 completion
    * Full post-quantum implementation will be added in later phases
    */
-  generateKeyPair(config: KeyGenerationConfig): CryptoKeyPair {
+  generateKeyPair(config: KeyGenerationConfig): KeyPair {
     // Generate real ML-KEM key pair using the @noble/post-quantum library
-    const keySize = config.keySize || 768;
-    
+    const keySize = config.preset === Preset.DEFAULT ? 768 : 1024;
+
     if (keySize !== 768) {
-      throw new Error(`ML-KEM key size ${keySize} not supported. Only 768-bit keys are currently implemented.`);
+      throw new Error(
+        `ML-KEM key size ${keySize} not supported. Only 768-bit keys are currently implemented.`,
+      );
     }
-    
+
     // Generate a real ML-KEM-768 key pair
-    const nativeKeyPair = ml_kem768.keygen();
+    const nativeKeyPair = new MLKEMAlgorithm().generateKeyPair();
 
     const now = new Date();
     const expiryDate = new Date(now);
@@ -35,11 +34,12 @@ export class MlKemKeyProvider implements KeyProvider {
     return {
       publicKey: nativeKeyPair.publicKey,
       secretKey: nativeKeyPair.secretKey,
-      algorithm: config.algorithm,
-      keySize: keySize,
-      version: 1,
-      createdAt: now,
-      expiresAt: expiryDate,
+      preset: config.preset || Preset.DEFAULT,
+      metadata: {
+        version: 1,
+        createdAt: now,
+        expiresAt: expiryDate,
+      },
     };
   }
 

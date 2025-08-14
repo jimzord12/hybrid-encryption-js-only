@@ -1,19 +1,7 @@
-/**
- * Modern Data Serialization Utilities
- *
- * Provides secure and efficient serialization/deserialization for the modern
- * hybrid encryption system. Handles conversion between JavaScript data types
- * and binary formats suitable for cryptographic operations.
- *
- * Features:
- * - Type-aware serialization with integrity preservation
- * - Consistent UTF-8 encoding using modern Buffer APIs
- * - Efficient Base64 encoding/decoding without legacy APIs
- * - Comprehensive error handling and validation
- * - Support for all JavaScript data types
- */
-
+import { Base64 } from '../types/branded-types.types';
 import { BufferUtils } from './buffer.util';
+
+// TODO: Enhance the Error Handling using the `createAppropriateError` src/core/errors/encryption.errors.ts
 
 /**
  * Supported data types for serialization
@@ -74,7 +62,7 @@ export interface SerializationOptions {
  * Provides secure, efficient, and type-aware serialization for all JavaScript
  * data types with proper error handling and data integrity validation.
  */
-export class ModernSerialization {
+export class Serialization {
   /**
    * Current serialization format version
    */
@@ -203,7 +191,7 @@ export class ModernSerialization {
         return '';
       }
 
-      // Use modern BufferUtils for consistent cross-platform Base64 encoding
+      // Use  BufferUtils for consistent cross-platform Base64 encoding
       return BufferUtils.encodeBase64(data);
     } catch (error) {
       throw new Error(
@@ -218,7 +206,7 @@ export class ModernSerialization {
    * @param encodedData - Base64 encoded string
    * @returns Binary data as Uint8Array
    */
-  static decodeBase64(encodedData: string): Uint8Array {
+  static decodeBase64(encodedData: Base64): Uint8Array {
     try {
       if (!encodedData || typeof encodedData !== 'string') {
         throw new Error('Invalid Base64 input: must be a non-empty string');

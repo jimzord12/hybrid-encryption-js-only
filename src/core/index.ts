@@ -1,104 +1,12 @@
-import * as constants from './constants.js';
-import { ModernHybridEncryption } from './encryption';
-import { createAppropriateError } from './errors/modern-encryption.errors.js';
-import { initializeKeyManagement } from './key-management/index.js';
-import { KeyManagerConfig } from './types/key-rotation.types';
-import { ModernEncryptedData, ModernEncryptionOptions } from './types/modern-encryption.types.js';
-import * as utils from './utils/index.js';
-
-// Export key management with Strategy Pattern support
-export {
-  getKeyManager,
-  getPrivateKey,
-  getPublicKey,
-  getRotationHistory,
-  getRotationStats,
-  healthCheck,
-  initializeKeyManagement,
-  KeyManager,
-} from './key-management/index.js';
-
-// Export provider system for extensibility
-export { KeyProviderFactory, MlKemKeyProvider } from './providers';
-
-// Export types for algorithm development
-export type {
-  CryptoKeyPair,
-  KeyGenerationConfig,
-  KeyProvider,
-  SerializedKeyMetadata,
-  SerializedKeys,
-  SupportedAlgorithms,
-} from './types/crypto-provider.types';
-
-export type {
-  KeyManagerConfig,
-  KeyManagerStatus,
-  KeyRotationState,
-  RotationHistory,
-  RotationHistoryEntry,
-  RotationStats,
-} from './types/key-rotation.types';
-
-// Export key derivation utilities
-export type {
-  KeyDerivationConfig,
-  KeyDerivationResult,
-  SupportedKDFAlgorithms,
-} from './utils/key-derivation.util.js';
-
-export { KeyDerivation } from './utils/key-derivation.util.js';
-
-// Export serialization utilities
-export type {
-  SerializableData,
-  SerializationMetadata,
-  SerializationOptions,
-  SerializationResult,
-} from './utils/serialization.util.js';
-
-export { ModernSerialization } from './utils/serialization.util.js';
-
-// Export modern encryption types (Phase 2.0)
-export type {
-  AlgorithmCapabilities,
-  ModernEncryptedData,
-  ModernEncryptionOptions,
-  ModernKeyDerivationConfig,
-  ModernKeyGenerationConfig,
-  ModernKeyPair,
-} from './types/modern-encryption.types.js';
-
-// Export type guards
-export {
-  isModernEncryptedData,
-  isModernEncryptionOptions,
-  isModernKeyGenerationConfig,
-  isModernKeyPair,
-  isSerializable,
-  isValidAlgorithmName,
-  isValidBinaryKey,
-  validateModernEncryptedData,
-  validateModernKeyPair,
-} from './guards/index.js';
-
-// Export custom errors
-export {
-  AlgorithmConfigurationError,
-  AlgorithmNotFoundError,
-  createAppropriateError,
-  CryptographicOperationError,
-  FormatConversionError,
-  KeyDerivationError,
-  KeyValidationError,
-  ModernEncryptionError,
-} from './errors/index.js';
-
-export { constants, ModernHybridEncryption, utils };
-
 // ============================================================================
 // GRACE PERIOD DECRYPTION API
 // ============================================================================
+
+import { Preset } from './enums/index.js';
+import { createAppropriateError } from './errors/encryption.errors.js';
+import { initializeKeyManagement } from './key-management/index.js';
+import { EncryptedData } from './types/encryption.types.js';
+import { KeyManagerConfig } from './types/key-manager.types.js';
 
 /**
  * Decrypt data with automatic grace period support during key rotation
@@ -113,9 +21,9 @@ export { constants, ModernHybridEncryption, utils };
  * @returns Decrypted data in original type
  */
 export async function decrypt<T = any>(
-  encryptedData: ModernEncryptedData,
+  preset: Preset,
+  encryptedData: EncryptedData,
   optionsKeyManager?: KeyManagerConfig,
-  optionsEncryption?: ModernEncryptionOptions,
 ): Promise<T> {
   // Get KeyManager instance
   const keyManager = await initializeKeyManagement(optionsKeyManager);
@@ -125,6 +33,7 @@ export async function decrypt<T = any>(
 
   if (keyPairs.length === 0) {
     throw createAppropriateError('No decryption keys available', {
+      preset
       errorType: 'keymanager',
       operation: 'retrieval',
     });

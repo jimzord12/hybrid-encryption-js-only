@@ -1,14 +1,36 @@
-import { ModernEncryptionOptions } from './types/modern-encryption.types';
+import { Preset } from './enums';
 
-/**
- * Constants for modern encryption
- */
+export const DEFAULT_ENCRYPTION_OPTIONS = {
+  preset: Preset.DEFAULT,
+  // Other default options can be added here
+};
 
-export const DEFAULT_MODERN_OPTIONS: Required<
-  Omit<ModernEncryptionOptions, 'associatedData' | 'metadata'>
-> = {
-  asymmetricAlgorithm: 'ML-KEM-768',
-  symmetricAlgorithm: 'AES-GCM-256',
-  keyDerivation: 'HKDF-SHA256',
-  keySize: 256,
+export const DEFAULT_KEY_MANAGER_OPTIONS = {
+  preset: Preset.DEFAULT,
+  certPath: './config/certs',
+  keyExpiryMonths: 1,
+  autoGenerate: true,
+  enableFileBackup: true,
+  rotationGracePeriod: 15,
+  // Other default options can be added here
+};
+
+export const ML_KEM_STATS = {
+  keySize: {
+    [Preset.DEFAULT]: '768',
+    [Preset.HIGH_SECURITY]: '1024',
+  },
+  publicKeyLength: {
+    [Preset.DEFAULT]: 1184,
+    [Preset.HIGH_SECURITY]: 1536,
+  },
+  privateKeyLength: {
+    [Preset.DEFAULT]: 2400,
+    [Preset.HIGH_SECURITY]: 3168,
+  },
+  ciphertextLength: {
+    [Preset.DEFAULT]: 1088,
+    [Preset.HIGH_SECURITY]: 1536,
+  },
+  sharedSecretLength: 32,
 };

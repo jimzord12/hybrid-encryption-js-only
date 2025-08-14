@@ -4,7 +4,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { createAppropriateError } from '../errors/modern-encryption.errors.js';
+import { createAppropriateError } from '../errors/encryption.errors.js';
 import { KeyProviderFactory } from '../providers';
 import {
   CryptoKeyPair,
@@ -13,6 +13,7 @@ import {
   KeyValidationResult,
   SupportedAlgorithms,
 } from '../types/crypto-provider.types';
+import { ModernKeyPair } from '../types/encryption.types.js';
 import {
   KeyManagerConfig,
   KeyManagerStatus,
@@ -20,8 +21,7 @@ import {
   RotationHistory,
   RotationHistoryEntry,
   RotationStats,
-} from '../types/key-rotation.types';
-import { ModernKeyPair } from '../types/modern-encryption.types';
+} from '../types/key-manager.types.js';
 import { BufferUtils } from '../utils/buffer.util';
 
 // ============================================================================

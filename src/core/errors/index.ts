@@ -4,4 +4,4 @@
  * Centralized exports for all custom error classes
  */
 
-export * from './modern-encryption.errors.js';
+export * from './encryption.errors.js';

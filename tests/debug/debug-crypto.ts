@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { ModernHybridEncryption } from '../../src/core/encryption/modern-hybrid-encryption.js';
+import { ModernHybridEncryption } from '../../src/core/encryption/hybrid-encryption.js';
 import { KeyManager } from '../../src/core/key-management/index.js';
 
 async function debugCrypto() {

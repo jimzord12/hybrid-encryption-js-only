@@ -14,6 +14,7 @@
 
 import { randomBytes } from '@noble/hashes/utils';
 import { Buffer } from 'buffer';
+import { Base64, HexString } from '../types/branded-types.types';
 
 /**
  * Cross-platform Buffer utilities for modern text and binary operations
@@ -60,9 +61,9 @@ export class BufferUtils {
    * @param data - The binary data to encode
    * @returns Base64 encoded string
    */
-  static encodeBase64(data: Uint8Array): string {
+  static encodeBase64(data: Uint8Array): Base64 {
     try {
-      return Buffer.from(data).toString('base64');
+      return Buffer.from(data).toString('base64') as Base64;
     } catch (error) {
       throw new Error(
         `Base64 encoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -77,7 +78,7 @@ export class BufferUtils {
    * @param encodedData - The Base64 encoded string
    * @returns Decoded binary data
    */
-  static decodeBase64(encodedData: string): Uint8Array {
+  static decodeBase64(encodedData: Base64): Uint8Array {
     try {
       if (typeof encodedData !== 'string') {
         throw new Error('Invalid Base64 input: must be a string');
@@ -108,7 +109,7 @@ export class BufferUtils {
    * @param binaryString - String with character codes representing bytes
    * @returns Binary data as Uint8Array
    */
-  static binaryStringToBytes(binaryString: string): Uint8Array {
+  static binaryStringToBytes(binaryString: HexString): Uint8Array {
     try {
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
@@ -129,9 +130,9 @@ export class BufferUtils {
    * @param bytes - Binary data as Uint8Array
    * @returns String with character codes representing bytes
    */
-  static bytesToBinaryString(bytes: Uint8Array): string {
+  static bytesToBinaryString(bytes: Uint8Array): HexString {
     try {
-      return String.fromCharCode(...bytes);
+      return String.fromCharCode(...bytes) as HexString;
     } catch (error) {
       throw new Error(
         `Bytes to binary string conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -162,7 +163,7 @@ export class BufferUtils {
    * @param encodedData - The Base64 string to validate
    * @returns True if valid Base64, false otherwise
    */
-  static isValidBase64(encodedData: string): boolean {
+  static isValidBase64(encodedData: Base64): boolean {
     try {
       // Base64 regex pattern
       const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;

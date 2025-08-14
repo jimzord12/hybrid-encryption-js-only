@@ -4,4 +4,4 @@
  * Centralized exports for all type guard functions
  */
 
-export * from './modern-encryption.guards.js';
+export * from './encryption.guards.js';

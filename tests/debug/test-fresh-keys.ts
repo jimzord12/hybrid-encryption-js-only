@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { ml_kem768 } from '@noble/post-quantum/ml-kem';
-import { ModernHybridEncryption } from '../../src/core/encryption/modern-hybrid-encryption.js';
+import { ModernHybridEncryption } from '../../src/core/encryption/hybrid-encryption.js';
 
 async function testFreshKeys() {
   console.log('🧪 Testing with fresh ML-KEM key pair...');

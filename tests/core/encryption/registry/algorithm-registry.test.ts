@@ -7,8 +7,8 @@ import {
   symmetricRegistry,
   type RegistrableAlgorithm,
 } from '../../../../src/core/encryption/algorithm-registry';
-import { AsymmetricAlgorithm } from '../../../../src/core/encryption/asymmetric/base';
-import { SymmetricAlgorithm } from '../../../../src/core/encryption/symmetric/base';
+import { AsymmetricAlgorithm } from '../../../../src/core/interfaces/encryption/asymmetric-alg.interface';
+import { SymmetricAlgorithm } from '../../../../src/core/interfaces/encryption/symmetric-alg.interface';
 
 // Mock algorithm implementations for testing
 class MockAsymmetricAlgorithm extends AsymmetricAlgorithm {
