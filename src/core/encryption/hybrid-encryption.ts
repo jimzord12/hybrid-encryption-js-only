@@ -1,21 +1,25 @@
 import { randomBytes } from '@noble/hashes/utils.js';
-import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS, ML_KEM_STATS } from '../constants.js';
-import { Preset } from '../enums/index.js';
-import { createAppropriateError, EncryptionError, FormatConversionError } from '../errors/index.js';
 
-import { validateEncryptedData } from '../guards/encryption.guards.js';
-
-import { KeyPair } from '../interfaces/common/index.interface.js';
-import { AsymmetricAlgorithm } from '../interfaces/encryption/asymmetric-alg.interface.js';
+import { Preset } from '../common/enums/index.js';
 import {
-  AEADParams,
-  SymmetricAlgorithm,
-} from '../interfaces/encryption/symmetric-alg.interface.js';
-import { Base64 } from '../types/branded-types.types.js';
-import type { EncryptedData } from '../types/encryption.types.js';
-import { KeyDerivation } from '../utils/key-derivation.util.js';
-import { Serialization } from '../utils/serialization.util.js';
+  createAppropriateError,
+  EncryptionError,
+  FormatConversionError,
+} from '../common/errors/encryption.errors.js';
+import { validateEncryptedData } from '../common/guards/encryption.guards.js';
+import { EncryptedData } from '../common/interfaces/encryption.interfaces.js';
+import { KeyPair } from '../common/interfaces/keys.interfaces.js';
+import { Base64 } from '../common/types/branded-types.types.js';
+import { KeyDerivation } from '../utils/key-derivation.utils.js';
+import { Serialization } from '../utils/serialization.utils.js';
 import { MLKEMAlgorithm } from './asymmetric/implementations/post-quantom/ml-kem-alg.js';
+import {
+  AES_GCM_STATS,
+  DEFAULT_ENCRYPTION_OPTIONS,
+  ML_KEM_STATS,
+} from './constants/defaults.constants.js';
+import { AsymmetricAlgorithm } from './interfaces/asymmetric-alg.interfaces.js';
+import { AEADParams, SymmetricAlgorithm } from './interfaces/symmetric-alg.interfaces.js';
 import { AESGCMAlgorithm } from './symmetric/implementations/aes-gcm-alg.js';
 
 /**
@@ -28,7 +32,7 @@ export class HybridEncryption {
 
   constructor(public readonly preset: Preset = DEFAULT_ENCRYPTION_OPTIONS.preset) {
     this.asymmetricAlgorithm =
-      preset === Preset.DEFAULT ? new MLKEMAlgorithm() : new MLKEMAlgorithm(Preset.HIGH_SECURITY);
+      preset === Preset.NORMAL ? new MLKEMAlgorithm() : new MLKEMAlgorithm(Preset.HIGH_SECURITY);
     this.symmetricAlgorithm = new AESGCMAlgorithm(preset);
   }
 
@@ -130,14 +134,11 @@ export class HybridEncryption {
       }
 
       // Basic length validation for ML-KEM keys using constants
-      const isValidDefault =
-        keyPair.publicKey.length === ML_KEM_STATS.publicKeyLength[Preset.DEFAULT] &&
-        keyPair.secretKey.length === ML_KEM_STATS.secretKeyLength[Preset.DEFAULT];
-      const isValidHighSecurity =
-        keyPair.publicKey.length === ML_KEM_STATS.publicKeyLength[Preset.HIGH_SECURITY] &&
-        keyPair.secretKey.length === ML_KEM_STATS.secretKeyLength[Preset.HIGH_SECURITY];
+      const { publicKey: pk, secretKey: sk, metadata } = keyPair;
+      const hasValidPkLength = pk.length === ML_KEM_STATS.publicKeyLength[metadata.preset];
+      const hasValidSkLength = sk.length === ML_KEM_STATS.secretKeyLength[metadata.preset];
 
-      return isValidDefault || isValidHighSecurity;
+      return hasValidPkLength && hasValidSkLength;
     } catch (error) {
       return false;
     }
@@ -150,7 +151,7 @@ export class HybridEncryption {
     try {
       // Validate inputs
       // Note: null and undefined are valid JSON values, so we don't reject them
-      
+
       if (!publicKey || !(publicKey instanceof Uint8Array)) {
         throw createAppropriateError('Public key must be a valid Uint8Array', {
           errorType: 'validation',
@@ -163,7 +164,7 @@ export class HybridEncryption {
       const expectedLength = ML_KEM_STATS.publicKeyLength[this.preset];
       if (publicKey.length !== expectedLength) {
         throw createAppropriateError(
-          `Invalid ML-KEM-${this.preset === Preset.DEFAULT ? '768' : '1024'} public key length`,
+          `Invalid ML-KEM-${this.preset === Preset.NORMAL ? '768' : '1024'} public key length`,
           {
             errorType: 'algorithm-asymmetric',
             preset: this.preset,
@@ -266,10 +267,10 @@ export class HybridEncryption {
       }
 
       // Validate private key length using constants - use AlgorithmAsymmetricError for key issues
-      const expectedLength = this.preset === Preset.DEFAULT ? 2400 : 3168;
+      const expectedLength = this.preset === Preset.NORMAL ? 2400 : 3168;
       if (privateKey.length !== expectedLength) {
         throw createAppropriateError(
-          `Invalid ML-KEM-${this.preset === Preset.DEFAULT ? '768' : '1024'} secret key length`,
+          `Invalid ML-KEM-${this.preset === Preset.NORMAL ? '768' : '1024'} secret key length`,
           {
             errorType: 'algorithm-asymmetric',
             preset: this.preset,
@@ -395,7 +396,7 @@ export class HybridEncryption {
 
   private encodeBase64(data: Uint8Array): Base64 {
     try {
-      return Serialization.encodeBase64(data);
+      return Serialization.encodeBase64(data) as Base64;
     } catch (error) {
       throw createAppropriateError('Base64 encoding failed', {
         preset: this.preset,

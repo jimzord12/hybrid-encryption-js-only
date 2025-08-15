@@ -14,7 +14,7 @@
 
 import { randomBytes } from '@noble/hashes/utils';
 import { Buffer } from 'buffer';
-import { Base64, HexString } from '../types/branded-types.types';
+import { Base64, HexString } from '../common/types/branded-types.types';
 
 /**
  * Cross-platform Buffer utilities for modern text and binary operations

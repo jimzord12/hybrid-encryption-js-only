@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Base64 } from '../../../../src/core/types/branded-types.types.js';
-import { BufferUtils } from '../../../../src/core/utils/buffer.util.js';
+import { BufferUtils } from '../../../../src/core/utils/buffer.utils.js';
 
 describe('BufferUtils', () => {
   describe('stringToBinary', () => {

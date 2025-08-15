@@ -1,10 +1,13 @@
-import {
-  CryptoKeyPair,
-  KeyGenerationConfig,
-  KeyProvider,
-  SerializedKeys,
-  SupportedAlgorithms,
-} from '../types/crypto-provider.types';
+import { Preset } from '../common/enums';
+import { isValidPreset } from '../common/guards/enum.guards';
+import { KeyPair } from '../common/interfaces/keys.interfaces';
+import { SerializedKeys } from '../common/interfaces/serialization.interfaces';
+import { ValidationResult } from '../common/interfaces/validation.interfaces';
+import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
+import { DEFAULT_KEY_MANAGER_OPTIONS } from '../key-management/constants/defaults.constants';
+import { KeyGenerationConfig } from '../key-management/types/key-manager.types';
+import { BufferUtils } from '../utils';
+import { KeyProvider } from './interfaces/key-provider.interface';
 
 /**
  * ML-KEM (Kyber) Key Provider
@@ -16,114 +19,110 @@ export class MlKemKeyProvider implements KeyProvider {
    * Note: This is a basic implementation for Phase 3.1 completion
    * Full post-quantum implementation will be added in later phases
    */
-  generateKeyPair(config: KeyGenerationConfig): CryptoKeyPair {
-    // For now, generate binary keys using secure random data
-    // This maintains the binary format for Phase 3.1 testing
-    const keySize = config.keySize || 768;
-    const publicKeySize = keySize === 768 ? 1184 : 1568; // ML-KEM public key sizes
-    const privateKeySize = keySize === 768 ? 2400 : 3168; // ML-KEM private key sizes
+  static generateKeyPair(
+    preset: Preset = DEFAULT_KEY_MANAGER_OPTIONS.preset,
+    keyVersion?: number,
+  ): KeyPair {
+    const mlKem = new MLKEMAlgorithm(preset);
 
-    // Generate random key material (placeholder for actual ML-KEM implementation)
-    const publicKey = new Uint8Array(publicKeySize);
-    const privateKey = new Uint8Array(privateKeySize);
-    crypto.getRandomValues(publicKey);
-    crypto.getRandomValues(privateKey);
+    const { publicKey, secretKey } = mlKem.generateKeyPair();
 
     const now = new Date();
     const expiryDate = new Date(now);
-    expiryDate.setMonth(expiryDate.getMonth() + (config.expiryMonths || 1));
+    expiryDate.setMonth(expiryDate.getMonth() + (DEFAULT_KEY_MANAGER_OPTIONS.keyExpiryMonths || 1));
 
     return {
       publicKey,
-      secretKey: privateKey, // Use secretKey to match native ML-KEM format
-      algorithm: config.algorithm,
-      keySize: keySize,
-      version: 1,
-      createdAt: now,
-      expiresAt: expiryDate,
+      secretKey: secretKey,
+      metadata: {
+        preset: preset,
+        createdAt: now,
+        expiresAt: expiryDate,
+        version: keyVersion || 1,
+      },
     };
   }
 
   /**
    * Validate that a key pair is properly formatted
    */
-  validateKeyPair(keyPair: CryptoKeyPair): boolean {
-    // Check for private key material (either secretKey or privateKey)
-    const privateKeyData = keyPair.secretKey || keyPair.privateKey;
-    if (!keyPair.publicKey || !privateKeyData) {
-      return false;
+  validateKeyPair(keyPair: KeyPair): ValidationResult {
+    const errors: string[] = [];
+
+    const sk = keyPair.secretKey;
+    const pk = keyPair.publicKey;
+
+    if (!pk || !sk) {
+      errors.push('Key pair is missing public or secret key');
     }
 
-    // Check that keys are binary (Uint8Array)
-    if (!(keyPair.publicKey instanceof Uint8Array) || !(privateKeyData instanceof Uint8Array)) {
-      return false;
+    if (!(pk instanceof Uint8Array) || !(sk instanceof Uint8Array)) {
+      errors.push('Key pair keys must be Uint8Array');
     }
 
-    // Check key sizes match expected ML-KEM sizes
-    const keySize = keyPair.keySize || 768;
-    const expectedPublicSize = keySize === 768 ? 1184 : 1568;
-    const expectedPrivateSize = keySize === 768 ? 2400 : 3168;
+    const { preset } = keyPair.metadata;
+    const expectedPublicSize = preset === Preset.NORMAL ? 1184 : 1568;
+    const expectedSecretSize = preset === Preset.NORMAL ? 2400 : 3168;
 
-    return (
-      keyPair.publicKey.length === expectedPublicSize &&
-      privateKeyData.length === expectedPrivateSize
-    );
+    if (pk.length !== expectedPublicSize || sk.length !== expectedSecretSize) {
+      errors.push(
+        `Key pair sizes do not match expected sizes: publicKey=${pk.length}/${expectedPublicSize}, secretKey=${sk.length}/${expectedSecretSize}`,
+      );
+    }
+
+    const { createdAt, version, expiresAt } = keyPair.metadata;
+    if (!createdAt || !(createdAt instanceof Date)) errors.push('Invalid createdAt date');
+    if (!expiresAt || !(expiresAt instanceof Date)) errors.push('Invalid expiresAt date');
+    if (!version || typeof version !== 'number') errors.push('Invalid version');
+
+    return {
+      ok: errors.length === 0,
+      errors,
+    };
   }
 
   /**
    * Check if key pair has expired
    */
-  isKeyPairExpired(keyPair: CryptoKeyPair): boolean {
-    if (!keyPair.expiresAt) {
-      return false; // No expiry set
+  isKeyPairExpired(keyPair: KeyPair): ValidationResult {
+    const errors: string[] = [];
+
+    if (!keyPair.metadata.expiresAt) {
+      errors.push('Keypair does not have an expiry date set');
+    } else if (new Date() > keyPair.metadata.expiresAt) {
+      errors.push('Keypair has expired');
     }
 
-    return new Date() > keyPair.expiresAt;
-  }
-
-  /**
-   * Get the expected private key format identifier
-   */
-  getPrivateKeyFormat(): string {
-    return 'ML-KEM-PRIVATE';
-  }
-
-  /**
-   * Get minimum supported key size
-   */
-  getMinKeySize(): number {
-    return 768; // ML-KEM-768 is the minimum
-  }
-
-  /**
-   * Get the algorithm identifier
-   */
-  getAlgorithm(): SupportedAlgorithms {
-    return 'ml-kem-768';
+    return {
+      ok: errors.length === 0,
+      errors,
+    };
   }
 
   /**
    * Serialize key pair for storage (converts to Base64 strings)
    */
-  serializeKeyPair(keyPair: CryptoKeyPair): SerializedKeys {
+  serializeKeyPair(keyPair: KeyPair): SerializedKeys {
+    const { secretKey: sk, publicKey: pk, metadata } = keyPair;
     // For binary format, we already have Uint8Array keys
-    if (!(keyPair.publicKey instanceof Uint8Array) || !(keyPair.privateKey instanceof Uint8Array)) {
-      throw new Error('Keys must be in binary format (Uint8Array) for ML-KEM');
+    if (!(pk instanceof Uint8Array) || !(sk instanceof Uint8Array)) {
+      throw new Error('Keys must be in binary format in order to be Serialized');
     }
 
     // Convert binary keys to Base64 for serialization
-    const publicKeyBase64 = Buffer.from(keyPair.publicKey).toString('base64');
-    const privateKeyBase64 = Buffer.from(keyPair.privateKey).toString('base64');
+    const pk_base64 = BufferUtils.encodeBase64(pk);
+    const sk_base64 = BufferUtils.encodeBase64(sk);
+
+    const { createdAt, expiresAt, version, preset } = metadata;
 
     return {
-      publicKey: publicKeyBase64,
-      privateKey: privateKeyBase64,
+      publicKey: pk_base64,
+      secretKey: sk_base64,
       metadata: {
-        algorithm: keyPair.algorithm || 'ml-kem-768',
-        keySize: keyPair.keySize || 768,
-        createdAt: keyPair.createdAt?.toISOString() || new Date().toISOString(),
-        version: keyPair.version || 1,
-        ...(keyPair.expiresAt && { expiresAt: keyPair.expiresAt.toISOString() }),
+        preset,
+        createdAt: createdAt.toISOString(),
+        expiresAt: expiresAt?.toISOString(),
+        version,
       },
     };
   }
@@ -131,19 +130,23 @@ export class MlKemKeyProvider implements KeyProvider {
   /**
    * Deserialize key pair from storage (converts from Base64 strings)
    */
-  deserializeKeyPair(data: SerializedKeys): CryptoKeyPair {
-    // Convert Base64 strings back to binary
-    const publicKey = new Uint8Array(Buffer.from(data.publicKey, 'base64'));
-    const privateKey = new Uint8Array(Buffer.from(data.privateKey, 'base64'));
+  deserializeKeyPair(data: SerializedKeys): KeyPair {
+    const { publicKey, secretKey, metadata } = data;
+
+    const pk = BufferUtils.decodeBase64(publicKey);
+    const sk = BufferUtils.decodeBase64(secretKey);
+
+    const { createdAt, expiresAt, preset, version } = metadata;
 
     return {
-      publicKey,
-      privateKey,
-      algorithm: data.metadata.algorithm as SupportedAlgorithms,
-      keySize: data.metadata.keySize || 768,
-      version: data.metadata.version || 1,
-      ...(data.metadata.createdAt && { createdAt: new Date(data.metadata.createdAt) }),
-      ...(data.metadata.expiresAt && { expiresAt: new Date(data.metadata.expiresAt) }),
+      publicKey: pk,
+      secretKey: sk,
+      metadata: {
+        createdAt: new Date(createdAt),
+        expiresAt: new Date(expiresAt),
+        version,
+        preset,
+      },
     };
   }
 
@@ -153,14 +156,23 @@ export class MlKemKeyProvider implements KeyProvider {
   validateConfig(config: KeyGenerationConfig): string[] {
     const errors: string[] = [];
 
-    // Validate algorithm
-    if (!config.algorithm || !['ml-kem-768', 'ml-kem-1024'].includes(config.algorithm)) {
-      errors.push('Algorithm must be ml-kem-768 or ml-kem-1024');
+    const { preset, expiryMonths } = config;
+
+    if (!preset) {
+      errors.push('Invalid Key Generation Config, preset is required');
     }
 
-    // Validate key size
-    if (config.keySize && ![768, 1024].includes(config.keySize)) {
-      errors.push('Key size must be 768 or 1024 for ML-KEM');
+    if (isValidPreset(preset)) {
+      errors.push(
+        `Invalid Key Generation Config, preset is not supported. Please use: [${Object.values(Preset).join(', ')}]`,
+      );
+    }
+
+    if (
+      expiryMonths &&
+      (typeof expiryMonths !== 'number' || expiryMonths < 1 || expiryMonths > 12)
+    ) {
+      errors.push('Invalid Key Generation Config, expiryMonths must be a number between 1 and 12');
     }
 
     // Validate expiry

@@ -1,12 +1,12 @@
 import { gcm } from '@noble/ciphers/aes';
-import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS } from '../../../constants';
 import { Preset } from '../../../enums';
 import { createAppropriateError } from '../../../errors';
+import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS } from '../../constants/defaults.constants';
 import {
   AEADParams,
   SymmetricAlgorithm,
   SymmetricEncryptionResult,
-} from '../../../interfaces/encryption/symmetric-alg.interface';
+} from '../../interfaces/symmetric-alg.interfaces';
 
 /**
  * AES-256-GCM symmetric encryption algorithm implementation

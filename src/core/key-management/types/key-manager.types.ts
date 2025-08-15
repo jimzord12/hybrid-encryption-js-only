@@ -1,27 +1,9 @@
-import { Preset } from '../enums';
-import { KeyPair } from '../interfaces/common/index.interface';
-import { Base64 } from './branded-types.types';
+import { Preset } from '../../common/enums';
+import { KeyPair } from '../../common/interfaces/keys.interfaces';
 
 export interface KeyGenerationConfig {
   preset: Preset;
   expiryMonths?: number;
-}
-
-export interface SerializedKeyMetadata {
-  preset: Preset;
-  version?: number;
-  createdAt?: string;
-  expiresAt?: string;
-}
-
-/**
- * Serialized keys interface - for storage and transmission
- * Keys are Base64 encoded for storage in JSON/text formats
- */
-export interface SerializedKeys {
-  publicKey: Base64; // Base64 encoded binary key
-  privateKey: Base64; // Base64 encoded binary key
-  metadata: SerializedKeyMetadata;
 }
 
 export interface KeyValidationResult {
@@ -35,7 +17,7 @@ export interface KeyValidationResult {
 
 export interface KeyManagerConfig {
   preset?: Preset;
-  certPath?: string; // Path to certificate directory (default: ./config/certs)
+  certPath?: string; // Path to certificate directory (default: ./config/certs/keys)
   keyExpiryMonths?: number; // Key expiry in months (default: 1)
   autoGenerate?: boolean; // Auto-generate keys (default: true)
   enableFileBackup?: boolean; // Backup keys to filesystem (default: true)

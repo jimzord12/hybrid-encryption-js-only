@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { AsymmetricAlgorithm } from '../../../../src/core/interfaces/encryption/asymmetric-alg.interface';
-import { SymmetricAlgorithm } from '../../../../src/core/interfaces/encryption/symmetric-alg.interface';
+import { AsymmetricAlgorithm } from '../../../../src/core/encryption/interfaces/asymmetric-alg.interfaces';
+import { SymmetricAlgorithm } from '../../../../src/core/encryption/interfaces/symmetric-alg.interfaces';
 
 // Mock implementations for testing abstract classes
 class MockAsymmetricAlgorithm extends AsymmetricAlgorithm {

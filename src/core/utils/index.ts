@@ -1,3 +1,4 @@
+import { SerializableData } from '../common/interfaces/serialization.interfaces';
 import {
   BufferUtils,
   binaryToString,
@@ -6,20 +7,9 @@ import {
   encodeBase64,
   getSecureRandomBytes,
   stringToBinary,
-} from './buffer.util';
-import {
-  KeyDerivation,
-  type KeyDerivationConfig,
-  type KeyDerivationResult,
-  type SupportedKDFAlgorithms,
-} from './key-derivation.util';
-import {
-  Serialization,
-  type SerializableData,
-  type SerializationMetadata,
-  type SerializationOptions,
-  type SerializationResult,
-} from './serialization.util';
+} from './buffer.utils';
+import { KeyDerivation } from './key-derivation.utils';
+import { Serialization } from './serialization.utils';
 
 // Note: Other utility functions will be added in subsequent phases
 // - Random bytes generation now uses @noble/hashes for cryptographic security
@@ -36,11 +26,5 @@ export {
   encodeBase64,
   getSecureRandomBytes,
   stringToBinary,
-  type KeyDerivationConfig,
-  type KeyDerivationResult,
   type SerializableData,
-  type SerializationMetadata,
-  type SerializationOptions,
-  type SerializationResult,
-  type SupportedKDFAlgorithms,
 };

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { KeyDerivation } from '../../../../../src/core/utils/key-derivation.util.js';
+import { KeyDerivation } from '../../../../../src/core/utils/key-derivation.utils.js';
 
 describe('KeyDerivation Integration with ModernHybridEncryption', () => {
   let testSharedSecret: Uint8Array;

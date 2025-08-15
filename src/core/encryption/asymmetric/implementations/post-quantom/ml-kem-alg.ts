@@ -1,8 +1,8 @@
 import { ml_kem1024, ml_kem768 } from '@noble/post-quantum/ml-kem';
-import { DEFAULT_ENCRYPTION_OPTIONS, ML_KEM_STATS } from '../../../../constants';
-import { Preset } from '../../../../enums';
-import { createAppropriateError } from '../../../../errors';
-import { AsymmetricAlgorithm } from '../../../../interfaces/encryption/asymmetric-alg.interface';
+import { Preset } from '../../../../common/enums';
+import { createAppropriateError } from '../../../../common/errors';
+import { DEFAULT_ENCRYPTION_OPTIONS, ML_KEM_STATS } from '../../../constants/defaults.constants';
+import { AsymmetricAlgorithm } from '../../../interfaces/asymmetric-alg.interfaces';
 
 /**
  * ML-KEM (Post-Quantum) implementation using Key Encapsulation
@@ -15,7 +15,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
 
   generateKeyPair() {
     try {
-      const keyPair = this.preset === Preset.DEFAULT ? ml_kem768.keygen() : ml_kem1024.keygen();
+      const keyPair = this.preset === Preset.NORMAL ? ml_kem768.keygen() : ml_kem1024.keygen();
       return {
         publicKey: keyPair.publicKey,
         secretKey: keyPair.secretKey,
@@ -42,8 +42,8 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
 
     // ML-KEM-768 public key should be 1184 bytes
     if (
-      this.preset === Preset.DEFAULT &&
-      publicKey.length !== ML_KEM_STATS.publicKeyLength[Preset.DEFAULT]
+      this.preset === Preset.NORMAL &&
+      publicKey.length !== ML_KEM_STATS.publicKeyLength[Preset.NORMAL]
     ) {
       throw createAppropriateError('Invalid ML-KEM-768 public key length', {
         errorType: 'algorithm-asymmetric',
@@ -66,7 +66,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     try {
       // ML-KEM uses encapsulation - generates random shared secret
       const { cipherText, sharedSecret } =
-        this.preset === Preset.DEFAULT
+        this.preset === Preset.NORMAL
           ? ml_kem768.encapsulate(publicKey)
           : ml_kem1024.encapsulate(publicKey);
 
@@ -103,7 +103,10 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     }
 
     // ML-KEM ciphertext length validation using constants
-    if (this.preset === Preset.DEFAULT && receivedCipherText.length !== ML_KEM_STATS.ciphertextLength[Preset.DEFAULT]) {
+    if (
+      this.preset === Preset.NORMAL &&
+      receivedCipherText.length !== ML_KEM_STATS.ciphertextLength[Preset.NORMAL]
+    ) {
       throw createAppropriateError('Invalid ML-KEM-768 ciphertext length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -111,7 +114,10 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       });
     }
 
-    if (this.preset === Preset.DEFAULT && secretKey.length !== ML_KEM_STATS.secretKeyLength[Preset.DEFAULT]) {
+    if (
+      this.preset === Preset.NORMAL &&
+      secretKey.length !== ML_KEM_STATS.secretKeyLength[Preset.NORMAL]
+    ) {
       throw createAppropriateError('Invalid ML-KEM-768 secret key length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -120,7 +126,10 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     }
 
     // ML-KEM-1024 validation using constants
-    if (this.preset === Preset.HIGH_SECURITY && receivedCipherText.length !== ML_KEM_STATS.ciphertextLength[Preset.HIGH_SECURITY]) {
+    if (
+      this.preset === Preset.HIGH_SECURITY &&
+      receivedCipherText.length !== ML_KEM_STATS.ciphertextLength[Preset.HIGH_SECURITY]
+    ) {
       throw createAppropriateError('Invalid ML-KEM-1024 ciphertext length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -128,7 +137,10 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       });
     }
 
-    if (this.preset === Preset.HIGH_SECURITY && secretKey.length !== ML_KEM_STATS.secretKeyLength[Preset.HIGH_SECURITY]) {
+    if (
+      this.preset === Preset.HIGH_SECURITY &&
+      secretKey.length !== ML_KEM_STATS.secretKeyLength[Preset.HIGH_SECURITY]
+    ) {
       throw createAppropriateError('Invalid ML-KEM-1024 private key length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -142,7 +154,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     // shared secret that looks valid but is different from the original.
     // This is a security feature to prevent timing attacks.
     const sharedSecret =
-      this.preset === Preset.DEFAULT
+      this.preset === Preset.NORMAL
         ? ml_kem768.decapsulate(receivedCipherText, secretKey)
         : ml_kem1024.decapsulate(receivedCipherText, secretKey);
 

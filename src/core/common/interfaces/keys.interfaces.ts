@@ -6,10 +6,10 @@ export interface Keys {
 }
 
 export interface KeyPair extends Keys {
-  preset: Preset;
   metadata: {
+    preset: Preset;
     version: number; // Key format version
     createdAt: Date; // When the key was generated
-    expiresAt?: Date; // Optional expiration
+    expiresAt: Date; // Optional expiration
   };
 }

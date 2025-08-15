@@ -4,8 +4,8 @@ export { HybridEncryption } from './hybrid-encryption.js';
 // Export algorithm registry
 
 // Export base classes
-export * from '../interfaces/encryption/asymmetric-alg.interface.js';
-export * from '../interfaces/encryption/symmetric-alg.interface.js';
+export * from './interfaces/asymmetric-alg.interfaces.js';
+export * from './interfaces/symmetric-alg.interfaces.js';
 
 // Export types
 export * from './types.js';

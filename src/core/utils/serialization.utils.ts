@@ -1,46 +1,8 @@
-import { Preset } from '../enums';
-import { createAppropriateError } from '../errors';
-import { Base64 } from '../types/branded-types.types';
-import { BufferUtils } from './buffer.util';
+import { Preset } from '../common/enums';
+import { createAppropriateError } from '../common/errors';
+import { Base64 } from '../common/types/branded-types.types';
+import { BufferUtils } from './buffer.utils';
 
-/**
- * Supported data types for serialization
- */
-export type SerializableData =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Uint8Array
-  | Array<any>
-  | Record<string, any>;
-
-/**
- * Serialization metadata for type preservation and validation
- */
-export interface SerializationMetadata {
-  /** Original data type */
-  originalType: string;
-  /** Serialization format version */
-  version: string;
-  /** Encoding used for text data */
-  encoding: string;
-  /** Timestamp when serialized */
-  timestamp: number;
-  /** Data integrity checksum (optional) */
-  checksum?: string;
-}
-
-/**
- * Serialization result with metadata
- */
-export interface SerializationResult {
-  /** Serialized binary data */
-  data: Uint8Array;
-  /** Serialization metadata */
-  metadata: SerializationMetadata;
-}
 /**
  * Modern serialization utility class for hybrid encryption
  *
@@ -48,16 +10,6 @@ export interface SerializationResult {
  * data types with proper error handling and data integrity validation.
  */
 export class Serialization {
-  /**
-   * Current serialization format version
-   */
-  private static readonly SERIALIZATION_VERSION = '2.0.0';
-
-  /**
-   * Default UTF-8 encoding identifier
-   */
-  private static readonly DEFAULT_ENCODING = 'utf-8';
-
   /**
    * Serialize any JavaScript data for encryption
    *
@@ -88,7 +40,7 @@ export class Serialization {
     } catch (error) {
       throw createAppropriateError('Serialization failed', {
         errorType: 'format',
-        preset: Preset.DEFAULT,
+        preset: Preset.NORMAL,
         operation: 'serialize',
         cause: error instanceof Error ? error : undefined,
       });
@@ -110,7 +62,7 @@ export class Serialization {
       if (!data || data.length === 0) {
         throw createAppropriateError('Cannot deserialize empty data', {
           errorType: 'validation',
-          preset: Preset.DEFAULT,
+          preset: Preset.NORMAL,
           operation: 'deserialize',
         });
       }
@@ -132,7 +84,7 @@ export class Serialization {
       }
       throw createAppropriateError('Deserialization failed', {
         errorType: 'format',
-        preset: Preset.DEFAULT,
+        preset: Preset.NORMAL,
         operation: 'deserialize',
         cause: error instanceof Error ? error : undefined,
       });
@@ -156,7 +108,7 @@ export class Serialization {
     } catch (error) {
       throw createAppropriateError('Base64 encoding failed', {
         errorType: 'format',
-        preset: Preset.DEFAULT,
+        preset: Preset.NORMAL,
         operation: 'encode',
         cause: error instanceof Error ? error : undefined,
       });
@@ -175,7 +127,7 @@ export class Serialization {
         throw createAppropriateError('Invalid Base64 input: must be a non-empty string', {
           operation: 'Base64 decoding',
           errorType: 'format',
-          preset: Preset.DEFAULT,
+          preset: Preset.NORMAL,
         });
       }
 
@@ -186,7 +138,7 @@ export class Serialization {
       throw createAppropriateError('Base64 decoding failed', {
         operation: 'Base64 decoding',
         errorType: 'format',
-        preset: Preset.DEFAULT,
+        preset: Preset.NORMAL,
       });
     }
   }

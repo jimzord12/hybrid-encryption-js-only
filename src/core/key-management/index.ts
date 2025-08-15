@@ -1,45 +1,21 @@
-// Key Management & Memory Caching System - Modernized for Algorithm-Agnostic Architecture
-// Dependencies: @noble/ciphers, @noble/hashes, @noble/post-quantum, fs/promises, path
-// File: src/core/key-management/index.ts
+// ============================================================================
+// KEY STORAGE INTERFACES
+// ============================================================================
 
-import fs from 'fs/promises';
-import path from 'path';
-import { createAppropriateError } from '../errors/encryption.errors.js';
-import { KeyProviderFactory } from '../providers';
+import { createAppropriateError } from '../errors';
+import { KeyProvider } from '../providers/interfaces/key-provider.interface';
+import { BufferUtils } from '../utils';
+import { DEFAULT_KEY_MANAGER_OPTIONS } from './constants/defaults.constants';
 import {
-  CryptoKeyPair,
   KeyGenerationConfig,
-  KeyProvider,
-  KeyValidationResult,
-  SupportedAlgorithms,
-} from '../types/crypto-provider.types';
-import { ModernKeyPair } from '../types/encryption.types.js';
-import {
   KeyManagerConfig,
   KeyManagerStatus,
   KeyRotationState,
+  KeyValidationResult,
   RotationHistory,
   RotationHistoryEntry,
   RotationStats,
-} from '../types/key-manager.types.js';
-import { BufferUtils } from '../utils/buffer.util';
-
-// ============================================================================
-// MODERN KEY STORAGE INTERFACES
-// ============================================================================
-
-/**
- * Modern key metadata stored as JSON
- */
-interface KeyMetadata {
-  algorithm: SupportedAlgorithms;
-  keySize: number;
-  created: string;
-  lastRotation: string;
-  version: number;
-  publicKeyPath: string;
-  privateKeyPath: string;
-}
+} from './types/key-manager.types';
 
 // ============================================================================
 // KEY MANAGER SINGLETON CLASS
@@ -61,14 +37,13 @@ export class KeyManager {
   private constructor(config: KeyManagerConfig = {}) {
     // Set default configuration with modern algorithm support
     this.config = {
-      algorithm: config.algorithm || 'ml-kem-768',
-      certPath: config.certPath || path.join(process.cwd(), 'config', 'certs'),
-      keySize: config.keySize || 768, // Default for ML-KEM-768
-      curve: config.curve,
-      keyExpiryMonths: config.keyExpiryMonths || 1,
-      autoGenerate: config.autoGenerate ?? true,
-      enableFileBackup: config.enableFileBackup ?? true,
-      rotationGracePeriod: config.rotationGracePeriod || 5,
+      preset: config.preset || DEFAULT_KEY_MANAGER_OPTIONS.preset,
+      certPath: config.certPath || DEFAULT_KEY_MANAGER_OPTIONS.certPath,
+      keyExpiryMonths: config.keyExpiryMonths || DEFAULT_KEY_MANAGER_OPTIONS.keyExpiryMonths,
+      autoGenerate: config.autoGenerate ?? DEFAULT_KEY_MANAGER_OPTIONS.autoGenerate,
+      enableFileBackup: config.enableFileBackup ?? DEFAULT_KEY_MANAGER_OPTIONS.enableFileBackup,
+      rotationGracePeriod:
+        config.rotationGracePeriod || DEFAULT_KEY_MANAGER_OPTIONS.rotationGracePeriod,
     };
 
     // Initialize the key provider based on algorithm

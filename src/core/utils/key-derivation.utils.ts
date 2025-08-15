@@ -2,8 +2,8 @@ import { hkdf } from '@noble/hashes/hkdf';
 import { sha256, sha512 } from '@noble/hashes/sha2';
 import { randomBytes } from '@noble/hashes/utils';
 import { stringToBinary } from '.';
-import { Preset } from '../enums';
-import { createAppropriateError } from '../errors';
+import { Preset } from '../common/enums';
+import { createAppropriateError } from '../common/errors';
 
 /**
  * Supported key derivation algorithms
@@ -97,11 +97,11 @@ export class KeyDerivation {
    * @returns Random salt
    */
   static generateSalt(preset: Preset): Uint8Array {
-    return randomBytes(preset === Preset.DEFAULT ? 32 : 64);
+    return randomBytes(preset === Preset.NORMAL ? 32 : 64);
   }
 
   static generateSaltForSharedSecretSalt(preset: Preset, sharedSecret: Uint8Array): Uint8Array {
-    const saltSize = preset === Preset.DEFAULT ? 32 : 64; // Default to 256 bits, high security to 512 bits
+    const saltSize = preset === Preset.NORMAL ? 32 : 64; // Default to 256 bits, high security to 512 bits
     return KeyDerivation.createKey(
       preset,
       sharedSecret,
@@ -150,7 +150,7 @@ export class KeyDerivation {
    */
   private static getHashFunction(preset: Preset) {
     switch (preset) {
-      case Preset.DEFAULT:
+      case Preset.NORMAL:
         return sha256;
       case Preset.HIGH_SECURITY:
         return sha512;

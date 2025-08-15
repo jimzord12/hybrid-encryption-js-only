@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   KeyDerivation,
   type KeyDerivationConfig,
-} from '../../../../src/core/utils/key-derivation.util.js';
+} from '../../../../src/core/utils/key-derivation.utils.js';
 
 describe('KeyDerivation', () => {
   let testSharedSecret: Uint8Array;

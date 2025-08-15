@@ -11,6 +11,8 @@ export interface SymmetricEncryptionResult {
   readonly nonce: Uint8Array;
 }
 
+
+
 export abstract class SymmetricAlgorithm {
   constructor(
     public readonly name: string,

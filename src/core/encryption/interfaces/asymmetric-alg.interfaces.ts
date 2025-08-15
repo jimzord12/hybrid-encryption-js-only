@@ -1,4 +1,4 @@
-import { Keys } from '../common/index.interface';
+import { Keys } from '../../common/interfaces/keys.interfaces';
 
 export type AlgorithmID = `${string}-${string}`;
 
@@ -6,6 +6,7 @@ export interface SharedSecretResult {
   readonly sharedSecret: Uint8Array;
   readonly cipherText: Uint8Array;
 }
+
 /**
  * Abstract base class for asymmetric encryption algorithms
  * Defines the interface that all algorithms must implement

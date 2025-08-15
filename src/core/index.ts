@@ -6,7 +6,7 @@ import { Preset } from './enums/index.js';
 import { createAppropriateError } from './errors/encryption.errors.js';
 import { initializeKeyManagement } from './key-management/index.js';
 import { EncryptedData } from './types/encryption.types.js';
-import { KeyManagerConfig } from './types/key-manager.types.js';
+import { KeyManagerConfig } from './key-management/types/key-manager.types.js';
 
 /**
  * Decrypt data with automatic grace period support during key rotation

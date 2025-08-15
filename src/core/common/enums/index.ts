@@ -1,4 +1,4 @@
 export enum Preset {
-  DEFAULT = 'default',
+  NORMAL = 'normal',
   HIGH_SECURITY = 'high_security',
 }

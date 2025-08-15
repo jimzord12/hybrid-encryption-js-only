@@ -6,7 +6,7 @@ import { Preset } from '../../../src/core/enums/index.js';
 // Create the same scenario as the failing test
 const hybridEncryption = new HybridEncryption();
 const data = { message: 'Hello, World!' };
-const pubKey = randomBytes(ML_KEM_STATS.publicKeyLength[Preset.DEFAULT]);
+const pubKey = randomBytes(ML_KEM_STATS.publicKeyLength[Preset.NORMAL]);
 
 console.log('Testing base64 encoding in HybridEncryption...');
 

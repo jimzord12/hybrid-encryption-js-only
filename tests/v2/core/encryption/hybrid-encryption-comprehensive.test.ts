@@ -1,19 +1,22 @@
-import { randomBytes } from '@noble/hashes/utils.js';
-import { AES_GCM_STATS, ML_KEM_STATS } from '../../../../src/core/constants';
+import { randomBytes } from '@noble/hashes/utils';
+import { Preset } from '../../../../src/core/common/enums';
+import {
+  AlgorithmAsymmetricError,
+  CryptographicOperationError,
+  EncryptionError,
+} from '../../../../src/core/common/errors';
+import { EncryptedData } from '../../../../src/core/common/interfaces/encryption.interfaces';
+import { KeyPair } from '../../../../src/core/common/interfaces/keys.interfaces';
 import {
   AsymmetricAlgorithm,
   HybridEncryption,
   SymmetricAlgorithm,
 } from '../../../../src/core/encryption';
 import { MLKEMAlgorithm } from '../../../../src/core/encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
-import { Preset } from '../../../../src/core/enums';
 import {
-  AlgorithmAsymmetricError,
-  CryptographicOperationError,
-  EncryptionError,
-} from '../../../../src/core/errors';
-import { KeyPair } from '../../../../src/core/interfaces/common/index.interface';
-import { EncryptedData } from '../../../../src/core/types/encryption.types';
+  AES_GCM_STATS,
+  ML_KEM_STATS,
+} from '../../../../src/core/encryption/constants/defaults.constants';
 import { bytesNumToBase64Length } from '../../../debug/calculations';
 
 describe('Hybrid Encryption - Comprehensive Tests', () => {
@@ -24,13 +27,13 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
 
   beforeEach(() => {
     // Generate valid key pairs using actual ML-KEM key generation
-    const defaultAlg = new MLKEMAlgorithm(Preset.DEFAULT);
+    const defaultAlg = new MLKEMAlgorithm(Preset.NORMAL);
     const defaultKeys = defaultAlg.generateKeyPair();
     validKeyPair = {
-      preset: Preset.DEFAULT,
       publicKey: defaultKeys.publicKey,
       secretKey: defaultKeys.secretKey,
       metadata: {
+        preset: Preset.NORMAL,
         createdAt: new Date(),
         version: 1,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60),
@@ -40,24 +43,24 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
     const highSecAlg = new MLKEMAlgorithm(Preset.HIGH_SECURITY);
     const highSecKeys = highSecAlg.generateKeyPair();
     highSecurityKeyPair = {
-      preset: Preset.HIGH_SECURITY,
       publicKey: highSecKeys.publicKey,
       secretKey: highSecKeys.secretKey,
       metadata: {
+        preset: Preset.HIGH_SECURITY,
         createdAt: new Date(),
         version: 1,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60),
       },
     };
 
-    hybridEncryption = new HybridEncryption(Preset.DEFAULT);
+    hybridEncryption = new HybridEncryption(Preset.NORMAL);
     highSecurityHybridEncryption = new HybridEncryption(Preset.HIGH_SECURITY);
   });
 
   describe('Constructor and Initialization', () => {
     it('should initialize with DEFAULT preset when no preset specified', () => {
       const defaultEncryption = new HybridEncryption();
-      expect(defaultEncryption.preset).toBe(Preset.DEFAULT);
+      expect(defaultEncryption.preset).toBe(Preset.NORMAL);
       expect(defaultEncryption.asymmetricAlgorithm).toBeInstanceOf(AsymmetricAlgorithm);
       expect(defaultEncryption.symmetricAlgorithm).toBeInstanceOf(SymmetricAlgorithm);
     });
@@ -70,7 +73,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
     });
 
     it('should have different algorithm instances for different presets', () => {
-      const defaultEnc = new HybridEncryption(Preset.DEFAULT);
+      const defaultEnc = new HybridEncryption(Preset.NORMAL);
       const highSecEnc = new HybridEncryption(Preset.HIGH_SECURITY);
 
       expect(defaultEnc.asymmetricAlgorithm).not.toBe(highSecEnc.asymmetricAlgorithm);
@@ -82,7 +85,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
     it('should create default instance via static factory', () => {
       const instance = HybridEncryption.createDefault();
       expect(instance).toBeInstanceOf(HybridEncryption);
-      expect(instance.preset).toBe(Preset.DEFAULT);
+      expect(instance.preset).toBe(Preset.NORMAL);
     });
 
     it('should create separate instances from factory calls', () => {
@@ -219,17 +222,17 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
       const data = { message: 'Default encryption test' };
       const result = hybridEncryption.encrypt(data, validKeyPair.publicKey);
 
-      expect(result.preset).toBe(Preset.DEFAULT);
+      expect(result.preset).toBe(Preset.NORMAL);
       expect(result.encryptedContent).toBeTypeOf('string');
       expect(result.cipherText).toBeTypeOf('string');
       expect(result.nonce).toBeTypeOf('string');
 
       // Verify Base64 encoded sizes match expected byte lengths
       expect(result.cipherText).toHaveLength(
-        bytesNumToBase64Length(ML_KEM_STATS.ciphertextLength[Preset.DEFAULT]),
+        bytesNumToBase64Length(ML_KEM_STATS.ciphertextLength[Preset.NORMAL]),
       );
       expect(result.nonce).toHaveLength(
-        bytesNumToBase64Length(AES_GCM_STATS.nonceLength[Preset.DEFAULT]),
+        bytesNumToBase64Length(AES_GCM_STATS.nonceLength[Preset.NORMAL]),
       );
     });
 
@@ -255,7 +258,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
 
       testCases.forEach((data, index) => {
         const result = hybridEncryption.encrypt(data, validKeyPair.publicKey);
-        expect(result.preset).toBe(Preset.DEFAULT);
+        expect(result.preset).toBe(Preset.NORMAL);
         expect(result.encryptedContent).toBeTypeOf('string');
         expect(result.cipherText).toBeTypeOf('string');
         expect(result.nonce).toBeTypeOf('string');
@@ -375,8 +378,8 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
 
     it('should decrypt data encrypted with different instance but same preset', () => {
       const originalData = { message: 'Cross instance test' };
-      const encryptor = new HybridEncryption(Preset.DEFAULT);
-      const decryptor = new HybridEncryption(Preset.DEFAULT);
+      const encryptor = new HybridEncryption(Preset.NORMAL);
+      const decryptor = new HybridEncryption(Preset.NORMAL);
 
       const encrypted = encryptor.encrypt(originalData, validKeyPair.publicKey);
       const decrypted = decryptor.decrypt(encrypted, validKeyPair.secretKey);
@@ -455,9 +458,9 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
     it('should throw for malformed encrypted data structure', () => {
       const malformedData = [
         {},
-        { preset: Preset.DEFAULT },
-        { preset: Preset.DEFAULT, encryptedContent: 'test' },
-        { preset: Preset.DEFAULT, encryptedContent: 'test', cipherText: 'test' },
+        { preset: Preset.NORMAL },
+        { preset: Preset.NORMAL, encryptedContent: 'test' },
+        { preset: Preset.NORMAL, encryptedContent: 'test', cipherText: 'test' },
         {
           preset: 'invalid-preset' as any,
           encryptedContent: 'test',
@@ -509,9 +512,9 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
 
       // Create additional key pairs for fallback testing
       additionalKeyPairs = Array.from({ length: 3 }, () => ({
-        preset: Preset.DEFAULT,
-        publicKey: randomBytes(ML_KEM_STATS.publicKeyLength[Preset.DEFAULT]),
-        secretKey: randomBytes(ML_KEM_STATS.secretKeyLength[Preset.DEFAULT]),
+        preset: Preset.NORMAL,
+        publicKey: randomBytes(ML_KEM_STATS.publicKeyLength[Preset.NORMAL]),
+        secretKey: randomBytes(ML_KEM_STATS.secretKeyLength[Preset.NORMAL]),
         metadata: {
           createdAt: new Date(),
           version: 1,
@@ -579,7 +582,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
       expect(encrypted).toHaveProperty('encryptedContent');
       expect(encrypted).toHaveProperty('cipherText');
       expect(encrypted).toHaveProperty('nonce');
-      expect(encrypted.preset).toBe(Preset.DEFAULT);
+      expect(encrypted.preset).toBe(Preset.NORMAL);
     });
 
     it('should decrypt using static method', async () => {

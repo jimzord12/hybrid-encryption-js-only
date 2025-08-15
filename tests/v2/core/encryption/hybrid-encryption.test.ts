@@ -1,12 +1,15 @@
-import { AES_GCM_STATS, ML_KEM_STATS } from '../../../../src/core/constants';
+import { Preset } from '../../../../src/core/common/enums';
+import { AlgorithmAsymmetricError } from '../../../../src/core/common/errors';
+import { KeyPair } from '../../../../src/core/common/interfaces/keys.interfaces';
 import {
   AsymmetricAlgorithm,
   HybridEncryption,
   SymmetricAlgorithm,
 } from '../../../../src/core/encryption';
-import { Preset } from '../../../../src/core/enums';
-import { AlgorithmAsymmetricError } from '../../../../src/core/errors';
-import { KeyPair } from '../../../../src/core/interfaces/common/index.interface';
+import {
+  AES_GCM_STATS,
+  ML_KEM_STATS,
+} from '../../../../src/core/encryption/constants/defaults.constants';
 import { bytesNumToBase64Length } from '../../../debug/calculations';
 import { TestsingkeyPairs } from './test-data';
 
@@ -16,7 +19,7 @@ describe('Hybrid Encryption - V2', () => {
       const hybridEncryption = new HybridEncryption();
       expect(hybridEncryption).toBeDefined();
       expect(hybridEncryption).toBeInstanceOf(HybridEncryption);
-      expect(hybridEncryption.preset).toBe(Preset.DEFAULT);
+      expect(hybridEncryption.preset).toBe(Preset.NORMAL);
       expect(hybridEncryption.asymmetricAlgorithm).toBeInstanceOf(AsymmetricAlgorithm);
 
       expect(hybridEncryption.symmetricAlgorithm).toBeInstanceOf(SymmetricAlgorithm);
@@ -118,7 +121,7 @@ describe('Hybrid Encryption - V2', () => {
           pubKey,
         );
 
-        expect(preset).toBe(Preset.DEFAULT);
+        expect(preset).toBe(Preset.NORMAL);
 
         expect(encryptedContent).toBeTypeOf('string');
 

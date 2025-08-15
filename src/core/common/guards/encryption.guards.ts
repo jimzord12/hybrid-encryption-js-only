@@ -5,11 +5,12 @@
  * ensuring type safety when working with external data
  */
 
-import { Preset } from '../enums/index.js';
-import { KeyPair } from '../interfaces/common/index.interface.js';
-import { Base64 } from '../types/branded-types.types.js';
-import type { EncryptedData, KeyGenerationConfig } from '../types/encryption.types.js';
-import { decodeBase64 } from '../utils/buffer.util.js';
+import { KeyGenerationConfig } from '../../key-management/types/key-manager.types';
+import { decodeBase64 } from '../../utils';
+import { Preset } from '../enums';
+import { EncryptedData } from '../interfaces/encryption.interfaces';
+import { KeyPair } from '../interfaces/keys.interfaces';
+import { Base64 } from '../types/branded-types.types';
 
 /**
  * Type guard for ModernEncryptedData
@@ -19,7 +20,7 @@ export function isEncryptedData(obj: any): obj is EncryptedData {
   return (
     typeof obj === 'object' &&
     obj !== null &&
-    (obj.preset === Preset.DEFAULT || obj.preset === Preset.HIGH_SECURITY) &&
+    (obj.preset === Preset.NORMAL || obj.preset === Preset.HIGH_SECURITY) &&
     typeof obj.encryptedContent === 'string' &&
     typeof obj.cipherText === 'string' &&
     typeof obj.nonce === 'string'
@@ -137,7 +138,7 @@ export function validateKeyPair(obj: any): { isValid: boolean; errors: string[] 
     errors.push('Object does not match KeyPair interface');
   } else {
     // Additional validation
-    if (obj.preset !== Preset.DEFAULT && obj.preset !== Preset.HIGH_SECURITY) {
+    if (obj.metadata.preset !== Preset.NORMAL && obj.metadata.preset !== Preset.HIGH_SECURITY) {
       errors.push('Invalid preset name format');
     }
 
