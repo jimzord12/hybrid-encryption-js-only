@@ -1,5 +1,6 @@
 import { Preset } from '../common/enums';
 import { createAppropriateError } from '../common/errors';
+import { SerializableData } from '../common/interfaces/serialization.interfaces';
 import { Base64 } from '../common/types/branded-types.types';
 import { BufferUtils } from './buffer.utils';
 
@@ -20,7 +21,7 @@ export class Serialization {
    * @param options - Serialization options
    * @returns Binary representation of the data
    */
-  static serializeForEncryption(data: any): Uint8Array {
+  static serializeForEncryption(data: SerializableData): Uint8Array {
     try {
       // Handle special cases first
       if (data instanceof Uint8Array) {

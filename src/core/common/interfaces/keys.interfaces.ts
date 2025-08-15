@@ -1,4 +1,4 @@
-import { Preset } from '../../enums';
+import { Preset } from '../enums';
 
 export interface Keys {
   publicKey: Uint8Array;

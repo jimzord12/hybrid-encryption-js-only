@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Preset } from '../../../../src/core/common/enums/index.js';
-import { KeyDerivation } from '../../../../src/core/utils/key-derivation.utils.js';
 import { BufferUtils } from '../../../../src/core/utils/buffer.utils.js';
+import { KeyDerivation } from '../../../../src/core/utils/key-derivation.utils.js';
 
 describe('KeyDerivation', () => {
   describe('deriveKey', () => {
@@ -23,7 +23,7 @@ describe('KeyDerivation', () => {
 
     it('should produce deterministic output for same inputs', () => {
       const sharedSecret = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
-      
+
       const key1 = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
       const key2 = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
 
@@ -32,7 +32,7 @@ describe('KeyDerivation', () => {
 
     it('should produce different keys for different presets', () => {
       const sharedSecret = BufferUtils.getSecureRandomBytes(32);
-      
+
       const normalKey = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
       const highSecKey = KeyDerivation.deriveKey(Preset.HIGH_SECURITY, sharedSecret);
 
@@ -42,7 +42,7 @@ describe('KeyDerivation', () => {
     it('should produce different keys for different shared secrets', () => {
       const sharedSecret1 = BufferUtils.getSecureRandomBytes(32);
       const sharedSecret2 = BufferUtils.getSecureRandomBytes(32);
-      
+
       const key1 = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret1);
       const key2 = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret2);
 
@@ -67,7 +67,7 @@ describe('KeyDerivation', () => {
 
     it('should throw error for empty shared secret', () => {
       const emptySecret = new Uint8Array(0);
-      
+
       expect(() => {
         KeyDerivation.deriveKey(Preset.NORMAL, emptySecret);
       }).toThrow('Shared secret cannot be empty');
@@ -87,7 +87,7 @@ describe('KeyDerivation', () => {
 
     it('should throw error for shared secret that is too short', () => {
       const shortSecret = new Uint8Array([1, 2, 3, 4, 5]); // Only 5 bytes
-      
+
       expect(() => {
         KeyDerivation.deriveKey(Preset.NORMAL, shortSecret);
       }).toThrow('Shared secret too short: 5 bytes. Minimum 16 bytes required.');
@@ -95,7 +95,7 @@ describe('KeyDerivation', () => {
 
     it('should throw error for invalid preset', () => {
       const sharedSecret = BufferUtils.getSecureRandomBytes(32);
-      
+
       expect(() => {
         KeyDerivation.deriveKey('INVALID_PRESET' as any, sharedSecret);
       }).toThrow('Unsupported Preset: INVALID_PRESET');
@@ -104,7 +104,7 @@ describe('KeyDerivation', () => {
     it('should use different hash functions for different presets', () => {
       // This test verifies that different presets use different hash algorithms
       const sharedSecret = new Uint8Array(32).fill(42); // Fixed value for reproducibility
-      
+
       const normalKey = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
       const highSecKey = KeyDerivation.deriveKey(Preset.HIGH_SECURITY, sharedSecret);
 
@@ -114,11 +114,11 @@ describe('KeyDerivation', () => {
 
     it('should work with edge case shared secret sizes', () => {
       const sizes = [16, 17, 31, 32, 33, 63, 64, 65, 127, 128];
-      
+
       sizes.forEach(size => {
         const sharedSecret = BufferUtils.getSecureRandomBytes(size);
         const derivedKey = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
-        
+
         expect(derivedKey).toBeInstanceOf(Uint8Array);
         expect(derivedKey.length).toBe(32);
       });
@@ -165,7 +165,7 @@ describe('KeyDerivation', () => {
   describe('generateSaltForSharedSecretSalt', () => {
     it('should generate deterministic salt from shared secret with NORMAL preset', () => {
       const sharedSecret = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
-      
+
       const salt1 = KeyDerivation.generateSaltForSharedSecretSalt(Preset.NORMAL, sharedSecret);
       const salt2 = KeyDerivation.generateSaltForSharedSecretSalt(Preset.NORMAL, sharedSecret);
 
@@ -175,9 +175,15 @@ describe('KeyDerivation', () => {
 
     it('should generate deterministic salt from shared secret with HIGH_SECURITY preset', () => {
       const sharedSecret = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
-      
-      const salt1 = KeyDerivation.generateSaltForSharedSecretSalt(Preset.HIGH_SECURITY, sharedSecret);
-      const salt2 = KeyDerivation.generateSaltForSharedSecretSalt(Preset.HIGH_SECURITY, sharedSecret);
+
+      const salt1 = KeyDerivation.generateSaltForSharedSecretSalt(
+        Preset.HIGH_SECURITY,
+        sharedSecret,
+      );
+      const salt2 = KeyDerivation.generateSaltForSharedSecretSalt(
+        Preset.HIGH_SECURITY,
+        sharedSecret,
+      );
 
       expect(BufferUtils.constantTimeEqual(salt1, salt2)).toBe(true);
       expect(salt1.length).toBe(64);
@@ -186,7 +192,7 @@ describe('KeyDerivation', () => {
     it('should generate different salts for different shared secrets', () => {
       const sharedSecret1 = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
       const sharedSecret2 = new Uint8Array([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
-      
+
       const salt1 = KeyDerivation.generateSaltForSharedSecretSalt(Preset.NORMAL, sharedSecret1);
       const salt2 = KeyDerivation.generateSaltForSharedSecretSalt(Preset.NORMAL, sharedSecret2);
 
@@ -195,9 +201,12 @@ describe('KeyDerivation', () => {
 
     it('should generate different salts for different presets with same shared secret', () => {
       const sharedSecret = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
-      
+
       const normalSalt = KeyDerivation.generateSaltForSharedSecretSalt(Preset.NORMAL, sharedSecret);
-      const highSecSalt = KeyDerivation.generateSaltForSharedSecretSalt(Preset.HIGH_SECURITY, sharedSecret);
+      const highSecSalt = KeyDerivation.generateSaltForSharedSecretSalt(
+        Preset.HIGH_SECURITY,
+        sharedSecret,
+      );
 
       expect(normalSalt.length).toBe(32);
       expect(highSecSalt.length).toBe(64);
@@ -230,7 +239,7 @@ describe('KeyDerivation', () => {
   describe('validateInputs (internal validation)', () => {
     it('should validate through deriveKey method - valid inputs', () => {
       const validSecret = BufferUtils.getSecureRandomBytes(32);
-      
+
       // Should not throw
       expect(() => {
         KeyDerivation.deriveKey(Preset.NORMAL, validSecret);
@@ -239,7 +248,7 @@ describe('KeyDerivation', () => {
 
     it('should validate through deriveKey method - invalid preset', () => {
       const validSecret = BufferUtils.getSecureRandomBytes(32);
-      
+
       expect(() => {
         KeyDerivation.deriveKey('INVALID' as any, validSecret);
       }).toThrow('Unsupported Preset: INVALID');
@@ -247,7 +256,7 @@ describe('KeyDerivation', () => {
 
     it('should validate through deriveKey method - short shared secret', () => {
       const shortSecret = new Uint8Array([1, 2, 3]); // Too short
-      
+
       expect(() => {
         KeyDerivation.deriveKey(Preset.NORMAL, shortSecret);
       }).toThrow('Shared secret too short: 3 bytes. Minimum 16 bytes required.');
@@ -258,16 +267,16 @@ describe('KeyDerivation', () => {
     it('should work in complete key derivation workflow', () => {
       // Simulate a complete key derivation workflow
       const sharedSecret = BufferUtils.getSecureRandomBytes(32);
-      
+
       // Derive symmetric key
       const symmetricKey = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
-      
+
       // Generate additional salt for other purposes
       const additionalSalt = KeyDerivation.generateSalt(Preset.NORMAL);
-      
+
       // Get context info
       const info = KeyDerivation.getInfo();
-      
+
       expect(symmetricKey).toBeInstanceOf(Uint8Array);
       expect(symmetricKey.length).toBe(32);
       expect(additionalSalt).toBeInstanceOf(Uint8Array);
@@ -278,12 +287,12 @@ describe('KeyDerivation', () => {
 
     it('should be consistent across multiple derivations with same input', () => {
       const sharedSecret = new Uint8Array(32).fill(123);
-      
+
       const keys = [];
       for (let i = 0; i < 5; i++) {
         keys.push(KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret));
       }
-      
+
       // All keys should be identical
       for (let i = 1; i < keys.length; i++) {
         expect(BufferUtils.constantTimeEqual(keys[0], keys[i])).toBe(true);
@@ -293,18 +302,18 @@ describe('KeyDerivation', () => {
     it('should produce high entropy keys', () => {
       const sharedSecret = BufferUtils.getSecureRandomBytes(32);
       const derivedKey = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
-      
+
       // Check that the key doesn't have obvious patterns
       let allSame = true;
       let allZero = true;
       let allMax = true;
-      
+
       for (let i = 1; i < derivedKey.length; i++) {
         if (derivedKey[i] !== derivedKey[0]) allSame = false;
         if (derivedKey[i] !== 0) allZero = false;
         if (derivedKey[i] !== 255) allMax = false;
       }
-      
+
       expect(allSame).toBe(false);
       expect(allZero).toBe(false);
       expect(allMax).toBe(false);
@@ -313,17 +322,17 @@ describe('KeyDerivation', () => {
     it('should handle stress test with many derivations', () => {
       const iterations = 100;
       const results = new Set();
-      
+
       for (let i = 0; i < iterations; i++) {
         const sharedSecret = BufferUtils.getSecureRandomBytes(32);
         const derivedKey = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
         const keyString = Array.from(derivedKey).join(',');
-        
+
         expect(derivedKey.length).toBe(32);
         expect(results.has(keyString)).toBe(false); // Each key should be unique
         results.add(keyString);
       }
-      
+
       expect(results.size).toBe(iterations);
     });
   });
@@ -331,7 +340,7 @@ describe('KeyDerivation', () => {
   describe('error handling', () => {
     it('should provide meaningful error messages', () => {
       const shortSecret = new Uint8Array([1, 2, 3]);
-      
+
       try {
         KeyDerivation.deriveKey(Preset.NORMAL, shortSecret);
         expect.fail('Should have thrown an error');
@@ -351,7 +360,7 @@ describe('KeyDerivation', () => {
         { input: new Uint8Array(0), expectedError: 'Shared secret cannot be empty' },
         { input: new Uint8Array([1, 2, 3, 4, 5]), expectedError: 'Shared secret too short' },
       ];
-      
+
       testCases.forEach(({ input, expectedError }) => {
         expect(() => {
           KeyDerivation.deriveKey(Preset.NORMAL, input as any);

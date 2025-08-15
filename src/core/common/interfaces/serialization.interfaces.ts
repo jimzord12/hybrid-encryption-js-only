@@ -1,5 +1,5 @@
-import { Preset } from '../../enums';
-import { Base64 } from '../../types/branded-types.types';
+import { Preset } from '../enums';
+import { Base64 } from '../types/branded-types.types';
 
 /**
  * Supported data types for serialization

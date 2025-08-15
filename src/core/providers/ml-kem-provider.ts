@@ -52,22 +52,27 @@ export class MlKemKeyProvider implements KeyProvider {
     const sk = keyPair.secretKey;
     const pk = keyPair.publicKey;
 
-    if (!pk || !sk) {
-      errors.push('Key pair is missing public or secret key');
-    }
+    const isSkValid = sk && sk instanceof Uint8Array;
+    const isPkValid = pk && pk instanceof Uint8Array;
 
-    if (!(pk instanceof Uint8Array) || !(sk instanceof Uint8Array)) {
-      errors.push('Key pair keys must be Uint8Array');
-    }
+    if (!isSkValid) errors.push('Invalid Secret Key, Uint8Array is expected');
+    if (!isPkValid) errors.push('Invalid Public Key, Uint8Array is expected');
 
     const { preset } = keyPair.metadata;
-    const expectedPublicSize = preset === Preset.NORMAL ? 1184 : 1568;
-    const expectedSecretSize = preset === Preset.NORMAL ? 2400 : 3168;
 
-    if (pk.length !== expectedPublicSize || sk.length !== expectedSecretSize) {
-      errors.push(
-        `Key pair sizes do not match expected sizes: publicKey=${pk.length}/${expectedPublicSize}, secretKey=${sk.length}/${expectedSecretSize}`,
-      );
+    if (!isValidPreset(preset)) {
+      errors.push(`Invalid Preset, supported only: ${Object.values(Preset)}`);
+    } else {
+      const expectedPublicSize = preset === Preset.NORMAL ? 1184 : 1568;
+      const expectedSecretSize = preset === Preset.NORMAL ? 2400 : 3168;
+
+      if (isSkValid && sk.length !== expectedSecretSize) {
+        errors.push(`Secret Key Length is=${sk.length}, should be=${expectedSecretSize}`);
+      }
+
+      if (isPkValid && pk.length !== expectedPublicSize) {
+        errors.push(`Public Key Length is=${pk.length}, should be=${expectedPublicSize}`);
+      }
     }
 
     const { createdAt, version, expiresAt } = keyPair.metadata;
@@ -168,13 +173,13 @@ export class MlKemKeyProvider implements KeyProvider {
       );
     }
 
-    if (
-      expiryMonths == null ||
-      typeof expiryMonths !== 'number' ||
-      expiryMonths < 1 ||
-      expiryMonths > 12
-    ) {
-      errors.push('Invalid Key Generation Config, expiryMonths must be a number between 1 and 12');
+    if (expiryMonths != null) {
+      if (typeof expiryMonths !== 'number')
+        errors.push('Invalid Key Generation Config, must be of type number');
+      if (expiryMonths < 1 || expiryMonths > 12)
+        errors.push(
+          'Invalid Key Generation Config, expiryMonths must be a number between 1 and 12',
+        );
     }
 
     return {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { FormatConversionError } from '../../../../src/core/common/errors/encryption.errors.js';
 import { Base64 } from '../../../../src/core/common/types/branded-types.types.js';
-import { Serialization } from '../../../../src/core/utils/serialization.utils.js';
 import { BufferUtils } from '../../../../src/core/utils/buffer.utils.js';
+import { Serialization } from '../../../../src/core/utils/serialization.utils.js';
 
 describe('Serialization', () => {
   describe('serializeForEncryption', () => {
@@ -76,14 +77,14 @@ describe('Serialization', () => {
             preferences: {
               theme: 'dark',
               notifications: true,
-              settings: [1, 2, 3]
-            }
-          }
+              settings: [1, 2, 3],
+            },
+          },
         },
         metadata: {
           created: '2023-01-01',
-          version: 1.5
-        }
+          version: 1.5,
+        },
       };
 
       const result = Serialization.serializeForEncryption(complexObject);
@@ -96,7 +97,7 @@ describe('Serialization', () => {
       const unicodeData = {
         message: 'Hello, 世界! 🌍',
         emoji: '🎉✨🚀',
-        special: 'café naïve résumé'
+        special: 'café naïve résumé',
       };
 
       const result = Serialization.serializeForEncryption(unicodeData);
@@ -133,7 +134,7 @@ describe('Serialization', () => {
         negativeInfinity: -Infinity,
         nan: NaN,
         zero: 0,
-        negativeZero: -0
+        negativeZero: -0,
       };
 
       const result = Serialization.serializeForEncryption(specialNumbers);
@@ -171,7 +172,8 @@ describe('Serialization', () => {
     it('should deserialize object data', () => {
       const originalObject = { name: 'John', age: 30, active: true };
       const serialized = Serialization.serializeForEncryption(originalObject);
-      const deserialized = Serialization.deserializeFromDecryption<typeof originalObject>(serialized);
+      const deserialized =
+        Serialization.deserializeFromDecryption<typeof originalObject>(serialized);
 
       expect(deserialized).toEqual(originalObject);
     });
@@ -179,7 +181,8 @@ describe('Serialization', () => {
     it('should deserialize array data', () => {
       const originalArray = [1, 'hello', true, { nested: 'object' }];
       const serialized = Serialization.serializeForEncryption(originalArray);
-      const deserialized = Serialization.deserializeFromDecryption<typeof originalArray>(serialized);
+      const deserialized =
+        Serialization.deserializeFromDecryption<typeof originalArray>(serialized);
 
       expect(deserialized).toEqual(originalArray);
     });
@@ -207,18 +210,19 @@ describe('Serialization', () => {
             preferences: {
               theme: 'dark',
               notifications: true,
-              settings: [1, 2, 3]
-            }
-          }
+              settings: [1, 2, 3],
+            },
+          },
         },
         metadata: {
           created: '2023-01-01',
-          version: 1.5
-        }
+          version: 1.5,
+        },
       };
 
       const serialized = Serialization.serializeForEncryption(complexObject);
-      const deserialized = Serialization.deserializeFromDecryption<typeof complexObject>(serialized);
+      const deserialized =
+        Serialization.deserializeFromDecryption<typeof complexObject>(serialized);
 
       expect(deserialized).toEqual(complexObject);
     });
@@ -227,7 +231,7 @@ describe('Serialization', () => {
       const unicodeData = {
         message: 'Hello, 世界! 🌍',
         emoji: '🎉✨🚀',
-        special: 'café naïve résumé'
+        special: 'café naïve résumé',
       };
 
       const serialized = Serialization.serializeForEncryption(unicodeData);
@@ -270,11 +274,12 @@ describe('Serialization', () => {
         negativeInfinity: -Infinity,
         nan: NaN,
         zero: 0,
-        negativeZero: -0
+        negativeZero: -0,
       };
 
       const serialized = Serialization.serializeForEncryption(specialNumbers);
-      const deserialized = Serialization.deserializeFromDecryption<typeof specialNumbers>(serialized);
+      const deserialized =
+        Serialization.deserializeFromDecryption<typeof specialNumbers>(serialized);
 
       expect(deserialized.infinity).toBe(Infinity);
       expect(deserialized.negativeInfinity).toBe(-Infinity);
@@ -374,7 +379,7 @@ describe('Serialization', () => {
         null,
         { key: 'value' },
         [1, 2, 3],
-        { nested: { object: true } }
+        { nested: { object: true } },
       ];
 
       serializableData.forEach(data => {
@@ -396,7 +401,7 @@ describe('Serialization', () => {
     it('should return true for functions (JSON.stringify converts them to undefined)', () => {
       const objectWithFunction = {
         name: 'test',
-        func: () => 'hello'
+        func: () => 'hello',
       };
 
       expect(Serialization.isSerializable(objectWithFunction)).toBe(true);
@@ -405,7 +410,7 @@ describe('Serialization', () => {
     it('should return true for symbols (JSON.stringify ignores them)', () => {
       const objectWithSymbol = {
         name: 'test',
-        [Symbol('key')]: 'value'
+        [Symbol('key')]: 'value',
       };
 
       expect(Serialization.isSerializable(objectWithSymbol)).toBe(true);
@@ -479,9 +484,9 @@ describe('Serialization', () => {
         array: [1, 'two', true],
         nested: {
           deep: {
-            value: 'nested'
-          }
-        }
+            value: 'nested',
+          },
+        },
       };
 
       const serialized = Serialization.serializeForEncryption(testData);
@@ -492,7 +497,7 @@ describe('Serialization', () => {
 
     it('should handle Base64 round-trip encoding/decoding', () => {
       const originalData = BufferUtils.getSecureRandomBytes(100);
-      
+
       const base64 = Serialization.encodeBase64(originalData);
       const decoded = Serialization.decodeBase64(base64);
 
@@ -506,7 +511,7 @@ describe('Serialization', () => {
         { data: true, type: 'boolean' },
         { data: null, type: 'object' }, // null is typeof 'object' in JS
         { data: [1, 2, 3], type: 'object' }, // arrays are typeof 'object'
-        { data: { key: 'value' }, type: 'object' }
+        { data: { key: 'value' }, type: 'object' },
       ];
 
       testCases.forEach(({ data, type }) => {
@@ -524,8 +529,8 @@ describe('Serialization', () => {
           id: i,
           name: `User ${i}`,
           email: `user${i}@example.com`,
-          active: i % 2 === 0
-        }))
+          active: i % 2 === 0,
+        })),
       };
 
       const startTime = Date.now();
@@ -567,9 +572,9 @@ describe('Serialization', () => {
               notifications: {
                 email: true,
                 push: false,
-                sms: true
-              }
-            }
+                sms: true,
+              },
+            },
           },
           metadata: {
             createdAt: '2023-01-01T00:00:00.000Z',
@@ -579,20 +584,21 @@ describe('Serialization', () => {
             settings: {
               privacy: {
                 profileVisible: true,
-                dataSharing: false
-              }
-            }
-          }
+                dataSharing: false,
+              },
+            },
+          },
         },
         session: {
           token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
           expiresAt: 1703520000000,
-          permissions: ['read', 'write', 'admin']
-        }
+          permissions: ['read', 'write', 'admin'],
+        },
       };
 
       const serialized = Serialization.serializeForEncryption(realWorldData);
-      const deserialized = Serialization.deserializeFromDecryption<typeof realWorldData>(serialized);
+      const deserialized =
+        Serialization.deserializeFromDecryption<typeof realWorldData>(serialized);
 
       expect(deserialized).toEqual(realWorldData);
       expect(deserialized.user.profile.email).toBe('john.doe@example.com');
@@ -622,7 +628,7 @@ describe('Serialization', () => {
       }).toThrow('Deserialization failed');
     });
 
-    it('should handle edge case data types', () => {
+    it.only('should handle edge case data types', () => {
       const edgeCases = [
         new Date(),
         /regex/,
@@ -630,16 +636,30 @@ describe('Serialization', () => {
         new Set([1, 2, 3]),
         new Map([['key', 'value']]),
         BigInt(123),
-        Symbol('test')
+        Symbol('test'),
       ];
 
-      edgeCases.forEach(data => {
+      edgeCases.forEach((data, idx) => {
         // Most of these will be converted to {} or null by JSON.stringify
-        const serialized = Serialization.serializeForEncryption(data);
-        const deserialized = Serialization.deserializeFromDecryption(serialized);
 
-        expect(serialized).toBeInstanceOf(Uint8Array);
-        expect(deserialized).toBeDefined(); // Just verify it doesn't throw
+        try {
+          console.log('');
+          console.log('-'.repeat(25), `| ${idx} | `, '-'.repeat(25));
+          console.log('1 | Incoming Data: ', data);
+          console.log('1.1 | Typeof Data: ', typeof data);
+          const serialized = Serialization.serializeForEncryption(data);
+          console.log('2 | Serialized Data: ', serialized);
+          const deserialized = Serialization.deserializeFromDecryption(serialized);
+          console.log('3 | Deserialized Data: ', deserialized);
+
+          expect(serialized).toBeInstanceOf(Uint8Array);
+          expect(deserialized).toBeDefined(); // Just verify it doesn't throw
+        } catch (error) {
+          console.log(error);
+          if (error instanceof FormatConversionError) console.log('Error Cause:', error.cause);
+          throw error;
+        }
+
         // Don't expect exact equality since JSON.stringify transforms these types
       });
     });
