@@ -153,7 +153,7 @@ export class MlKemKeyProvider implements KeyProvider {
   /**
    * Validate key generation configuration
    */
-  validateConfig(config: KeyGenerationConfig): string[] {
+  validateConfig(config: KeyGenerationConfig): ValidationResult {
     const errors: string[] = [];
 
     const { preset, expiryMonths } = config;
@@ -162,24 +162,24 @@ export class MlKemKeyProvider implements KeyProvider {
       errors.push('Invalid Key Generation Config, preset is required');
     }
 
-    if (isValidPreset(preset)) {
+    if (!isValidPreset(preset)) {
       errors.push(
         `Invalid Key Generation Config, preset is not supported. Please use: [${Object.values(Preset).join(', ')}]`,
       );
     }
 
     if (
-      expiryMonths &&
-      (typeof expiryMonths !== 'number' || expiryMonths < 1 || expiryMonths > 12)
+      expiryMonths == null ||
+      typeof expiryMonths !== 'number' ||
+      expiryMonths < 1 ||
+      expiryMonths > 12
     ) {
       errors.push('Invalid Key Generation Config, expiryMonths must be a number between 1 and 12');
     }
 
-    // Validate expiry
-    if (config.expiryMonths && (config.expiryMonths < 1 || config.expiryMonths > 12)) {
-      errors.push('Expiry months must be between 1 and 12');
-    }
-
-    return errors;
+    return {
+      ok: errors.length === 0,
+      errors,
+    };
   }
 }

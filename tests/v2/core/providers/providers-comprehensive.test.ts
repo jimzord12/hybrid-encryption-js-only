@@ -312,7 +312,7 @@ describe('MlKemKeyProvider', () => {
         expiryMonths: 6,
       };
 
-      const errors = provider.validateConfig(config);
+      const { errors } = provider.validateConfig(config);
 
       expect(errors).toHaveLength(0);
     });
@@ -322,18 +322,20 @@ describe('MlKemKeyProvider', () => {
         expiryMonths: 6,
       } as any;
 
-      const errors = provider.validateConfig(config);
+      const { errors } = provider.validateConfig(config);
 
       expect(errors).toContain('Invalid Key Generation Config, preset is required');
     });
 
-    it('should reject config with invalid expiry months (too low)', () => {
+    it.only('should reject config with invalid expiry months (too low)', () => {
       const config = {
         preset: Preset.NORMAL,
         expiryMonths: 0,
       };
 
-      const errors = provider.validateConfig(config);
+      const { errors } = provider.validateConfig(config);
+
+      console.log(errors);
 
       expect(errors).toContain(
         'Invalid Key Generation Config, expiryMonths must be a number between 1 and 12',
@@ -346,7 +348,7 @@ describe('MlKemKeyProvider', () => {
         expiryMonths: 15,
       };
 
-      const errors = provider.validateConfig(config);
+      const { errors } = provider.validateConfig(config);
 
       expect(errors).toContain(
         'Invalid Key Generation Config, expiryMonths must be a number between 1 and 12',
@@ -359,7 +361,7 @@ describe('MlKemKeyProvider', () => {
         expiryMonths: 'six' as any,
       };
 
-      const errors = provider.validateConfig(config);
+      const { errors } = provider.validateConfig(config);
 
       expect(errors).toContain(
         'Invalid Key Generation Config, expiryMonths must be a number between 1 and 12',
@@ -373,7 +375,9 @@ describe('MlKemKeyProvider', () => {
           expiryMonths: months,
         };
 
-        const errors = provider.validateConfig(config);
+        const { ok, errors } = provider.validateConfig(config);
+
+        expect(ok).toBe(true);
         expect(errors).toHaveLength(0);
       }
     });
@@ -383,8 +387,9 @@ describe('MlKemKeyProvider', () => {
         preset: Preset.HIGH_SECURITY,
       };
 
-      const errors = provider.validateConfig(config);
+      const { ok, errors } = provider.validateConfig(config);
 
+      expect(ok).toBe(true);
       expect(errors).toHaveLength(0);
     });
   });
