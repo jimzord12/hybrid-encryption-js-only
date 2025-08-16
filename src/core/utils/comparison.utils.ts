@@ -37,25 +37,21 @@ const DEFAULT_OPTIONS: DeepComparisonOptions = {
  * @param options - Comparison options
  * @returns True if values are deeply equal, false otherwise
  * @throws {Error} When maximum depth is exceeded
- * 
+ *
  * @example
  * ```typescript
  * const obj1 = { a: 1, b: [2, 3, { c: 4 }] };
  * const obj2 = { a: 1, b: [2, 3, { c: 4 }] };
- * 
+ *
  * console.log(deepEqual(obj1, obj2)); // true
  * console.log(obj1 === obj2); // false
- * 
+ *
  * const arr1 = [1, 2, { a: 'test' }];
  * const arr2 = [1, 2, { a: 'test' }];
  * console.log(deepEqual(arr1, arr2)); // true
  * ```
  */
-export function deepEqual(
-  a: any,
-  b: any,
-  options: DeepComparisonOptions = {},
-): boolean {
+export function deepEqual(a: any, b: any, options: DeepComparisonOptions = {}): boolean {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   return deepEqualInternal(a, b, opts, 0, new Set());
 }
@@ -187,11 +183,11 @@ function getObjectId(obj: any): number {
   if (typeof obj !== 'object' || obj === null) {
     return 0;
   }
-  
+
   if (!objectIdMap.has(obj)) {
     objectIdMap.set(obj, ++objectIdCounter);
   }
-  
+
   return objectIdMap.get(obj)!;
 }
 
@@ -230,14 +226,14 @@ function getType(value: any): string {
 function compareNumbers(a: number, b: number): boolean {
   if (Number.isNaN(a) && Number.isNaN(b)) return true;
   if (Number.isNaN(a) || Number.isNaN(b)) return false;
-  
+
   // Handle +0 and -0 distinction
   if (a === 0 && b === 0) {
     // Use 1/x to distinguish +0 from -0
     // 1/+0 = +Infinity, 1/-0 = -Infinity
-    return (1 / a) === (1 / b);
+    return 1 / a === 1 / b;
   }
-  
+
   return a === b;
 }
 
@@ -290,12 +286,8 @@ function compareObjects(
   const keysB = Object.keys(b);
 
   // Filter out undefined properties if option is set
-  const filteredKeysA = options.ignoreUndefined 
-    ? keysA.filter(key => a[key] !== undefined)
-    : keysA;
-  const filteredKeysB = options.ignoreUndefined 
-    ? keysB.filter(key => b[key] !== undefined)
-    : keysB;
+  const filteredKeysA = options.ignoreUndefined ? keysA.filter(key => a[key] !== undefined) : keysA;
+  const filteredKeysB = options.ignoreUndefined ? keysB.filter(key => b[key] !== undefined) : keysB;
 
   if (filteredKeysA.length !== filteredKeysB.length) return false;
 
@@ -451,7 +443,11 @@ export class ComparisonUtils {
   /**
    * Check if two objects are structurally equal (deep comparison)
    */
-  static objectsEqual(a: Record<string, any>, b: Record<string, any>, options?: DeepComparisonOptions): boolean {
+  static objectsEqual(
+    a: Record<string, any>,
+    b: Record<string, any>,
+    options?: DeepComparisonOptions,
+  ): boolean {
     return deepEqual(a, b, options);
   }
 
@@ -478,6 +474,10 @@ export function arraysDeepEqual<T>(a: T[], b: T[], options?: DeepComparisonOptio
 /**
  * Convenience function for object deep comparison
  */
-export function objectsDeepEqual(a: Record<string, any>, b: Record<string, any>, options?: DeepComparisonOptions): boolean {
+export function objectsDeepEqual(
+  a: Record<string, any>,
+  b: Record<string, any>,
+  options?: DeepComparisonOptions,
+): boolean {
   return deepEqual(a, b, options);
 }

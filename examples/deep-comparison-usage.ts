@@ -1,14 +1,14 @@
 /**
  * Example usage of the deep comparison utility
- * 
+ *
  * This example demonstrates how to use the deepEqual function and ComparisonUtils
  * to properly compare complex data structures like objects, arrays, and more.
  */
 
 import {
-  deepEqual,
   ComparisonUtils,
   arraysDeepEqual,
+  deepEqual,
   objectsDeepEqual,
   type DeepComparisonOptions,
 } from '../src/core/utils/comparison.utils.js';
@@ -34,9 +34,9 @@ const obj1 = {
   address: {
     street: '123 Main St',
     city: 'New York',
-    coordinates: [40.7128, -74.0060]
+    coordinates: [40.7128, -74.006],
   },
-  hobbies: ['reading', 'coding']
+  hobbies: ['reading', 'coding'],
 };
 
 const obj2 = {
@@ -45,9 +45,9 @@ const obj2 = {
   address: {
     street: '123 Main St',
     city: 'New York',
-    coordinates: [40.7128, -74.0060]
+    coordinates: [40.7128, -74.006],
   },
-  hobbies: ['reading', 'coding']
+  hobbies: ['reading', 'coding'],
 };
 
 const obj3 = {
@@ -56,9 +56,9 @@ const obj3 = {
   address: {
     street: '123 Main St',
     city: 'New York',
-    coordinates: [40.7128, -74.0060]
+    coordinates: [40.7128, -74.006],
   },
-  hobbies: ['reading', 'coding']
+  hobbies: ['reading', 'coding'],
 };
 
 console.log(`obj1 === obj2: ${obj1 === obj2}`); // false
@@ -89,8 +89,14 @@ console.log();
 // ===== Maps and Sets =====
 console.log('🗺️ Maps and Sets:');
 
-const map1 = new Map([['key1', 'value1'], ['key2', { nested: 'data' }]]);
-const map2 = new Map([['key1', 'value1'], ['key2', { nested: 'data' }]]);
+const map1 = new Map([
+  ['key1', 'value1'],
+  ['key2', { nested: 'data' }],
+]);
+const map2 = new Map([
+  ['key1', 'value1'],
+  ['key2', { nested: 'data' }],
+]);
 console.log(`Maps equal: ${deepEqual(map1, map2)}`); // true
 
 const set1 = new Set([1, 2, { a: 'test' }]);
@@ -106,15 +112,19 @@ const objWithUndefined1 = { a: 1, b: undefined, c: 3 };
 const objWithUndefined2 = { a: 1, c: 3 };
 
 const ignoreUndefinedOption: DeepComparisonOptions = { ignoreUndefined: true };
-console.log(`Objects equal (ignoring undefined): ${deepEqual(objWithUndefined1, objWithUndefined2, ignoreUndefinedOption)}`); // true
+console.log(
+  `Objects equal (ignoring undefined): ${deepEqual(objWithUndefined1, objWithUndefined2, ignoreUndefinedOption)}`,
+); // true
 
 // Treat null and undefined as equal
-console.log(`null == undefined (with option): ${deepEqual(null, undefined, { nullUndefinedEqual: true })}`); // true
+console.log(
+  `null == undefined (with option): ${deepEqual(null, undefined, { nullUndefinedEqual: true })}`,
+); // true
 
 // Custom comparers for specific types
 const customOptions = ComparisonUtils.createCustomComparer(
   'number',
-  (a: number, b: number) => Math.abs(a - b) < 0.001
+  (a: number, b: number) => Math.abs(a - b) < 0.001,
 );
 
 console.log(`Float comparison (1.0001 vs 1.0002): ${deepEqual(1.0001, 1.0002, customOptions)}`); // true
@@ -139,13 +149,13 @@ console.log('🚀 Performance Test:');
 const largeArray1 = Array.from({ length: 1000 }, (_, i) => ({
   id: i,
   data: `item-${i}`,
-  nested: { value: i * 2 }
+  nested: { value: i * 2 },
 }));
 
 const largeArray2 = Array.from({ length: 1000 }, (_, i) => ({
   id: i,
   data: `item-${i}`,
-  nested: { value: i * 2 }
+  nested: { value: i * 2 },
 }));
 
 console.time('Large array comparison');
@@ -158,11 +168,15 @@ console.log();
 console.log('🛠️ ComparisonUtils Class:');
 
 // Shallow array comparison
-console.log(`ComparisonUtils.arraysEqual([1,2,3], [1,2,3]): ${ComparisonUtils.arraysEqual([1, 2, 3], [1, 2, 3])}`);
+console.log(
+  `ComparisonUtils.arraysEqual([1,2,3], [1,2,3]): ${ComparisonUtils.arraysEqual([1, 2, 3], [1, 2, 3])}`,
+);
 
 // Check if objects have same keys
-console.log(`ComparisonUtils.sameKeys({a:1, b:2}, {a:3, b:4}): ${ComparisonUtils.sameKeys({ a: 1, b: 2 }, { a: 3, b: 4 })}`);
+console.log(
+  `ComparisonUtils.sameKeys({a:1, b:2}, {a:3, b:4}): ${ComparisonUtils.sameKeys({ a: 1, b: 2 }, { a: 3, b: 4 })}`,
+);
 
 console.log('\n✅ Deep comparison examples completed!');
 
-export { deepEqual, ComparisonUtils, arraysDeepEqual, objectsDeepEqual };
+export { ComparisonUtils, arraysDeepEqual, deepEqual, objectsDeepEqual };

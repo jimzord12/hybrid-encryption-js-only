@@ -8,6 +8,13 @@ import {
   getSecureRandomBytes,
   stringToBinary,
 } from './buffer.utils';
+import {
+  ComparisonUtils,
+  arraysDeepEqual,
+  deepEqual,
+  objectsDeepEqual,
+  type DeepComparisonOptions,
+} from './comparison.utils';
 import { KeyDerivation } from './key-derivation.utils';
 import { Serialization } from './serialization.utils';
 
@@ -18,13 +25,18 @@ import { Serialization } from './serialization.utils';
 
 export {
   BufferUtils,
+  ComparisonUtils,
   KeyDerivation,
   Serialization,
+  arraysDeepEqual,
   binaryToString,
   constantTimeEqual,
   decodeBase64,
+  deepEqual,
   encodeBase64,
   getSecureRandomBytes,
+  objectsDeepEqual,
   stringToBinary,
+  type DeepComparisonOptions,
   type SerializableData,
 };
