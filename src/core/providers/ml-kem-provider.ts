@@ -5,7 +5,6 @@ import { SerializedKeys } from '../common/interfaces/serialization.interfaces';
 import { ValidationResult } from '../common/interfaces/validation.interfaces';
 import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
 import { DEFAULT_KEY_MANAGER_OPTIONS } from '../key-management/constants/defaults.constants';
-import { KeyGenerationConfig } from '../key-management/types/key-manager.types';
 import { BufferUtils } from '../utils';
 import { KeyProvider } from './interfaces/key-provider.interface';
 
@@ -86,23 +85,23 @@ export class MlKemKeyProvider implements KeyProvider {
     };
   }
 
-  /**
-   * Check if key pair has expired
-   */
-  isKeyPairExpired(keyPair: KeyPair): ValidationResult {
-    const errors: string[] = [];
+  // /**
+  //  * Check if key pair has expired
+  //  */
+  // isKeyPairExpired(keyPair: KeyPair): ValidationResult {
+  //   const errors: string[] = [];
 
-    if (!keyPair.metadata.expiresAt) {
-      errors.push('Keypair does not have an expiry date set');
-    } else if (new Date() > keyPair.metadata.expiresAt) {
-      errors.push('Keypair has expired');
-    }
+  //   if (!keyPair.metadata.expiresAt) {
+  //     errors.push('Keypair does not have an expiry date set');
+  //   } else if (new Date() > keyPair.metadata.expiresAt) {
+  //     errors.push('Keypair has expired');
+  //   }
 
-    return {
-      ok: errors.length === 0,
-      errors,
-    };
-  }
+  //   return {
+  //     ok: errors.length === 0,
+  //     errors,
+  //   };
+  // }
 
   /**
    * Serialize key pair for storage (converts to Base64 strings)
@@ -152,39 +151,6 @@ export class MlKemKeyProvider implements KeyProvider {
         version,
         preset,
       },
-    };
-  }
-
-  /**
-   * Validate key generation configuration
-   */
-  validateConfig(config: KeyGenerationConfig): ValidationResult {
-    const errors: string[] = [];
-
-    const { preset, expiryMonths } = config;
-
-    if (!preset) {
-      errors.push('Invalid Key Generation Config, preset is required');
-    }
-
-    if (!isValidPreset(preset)) {
-      errors.push(
-        `Invalid Key Generation Config, preset is not supported. Please use: [${Object.values(Preset).join(', ')}]`,
-      );
-    }
-
-    if (expiryMonths != null) {
-      if (typeof expiryMonths !== 'number')
-        errors.push('Invalid Key Generation Config, must be of type number');
-      if (expiryMonths < 1 || expiryMonths > 12)
-        errors.push(
-          'Invalid Key Generation Config, expiryMonths must be a number between 1 and 12',
-        );
-    }
-
-    return {
-      ok: errors.length === 0,
-      errors,
     };
   }
 }

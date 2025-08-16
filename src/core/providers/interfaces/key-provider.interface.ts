@@ -1,8 +1,7 @@
 import { Preset } from '../../common/enums';
-import { KeyPair } from '../../common/interfaces/keys.interfaces';
+import { KeyPair, Keys } from '../../common/interfaces/keys.interfaces';
 import { SerializedKeys } from '../../common/interfaces/serialization.interfaces';
 import { ValidationResult } from '../../common/interfaces/validation.interfaces';
-import { KeyGenerationConfig } from '../../key-management/types/key-manager.types';
 
 /**
  * Generic interface for cryptographic key providers
@@ -12,7 +11,7 @@ export abstract class KeyProvider {
   /**
    * Generate a new key pair
    */
-  static generateKeyPair(_preset: Preset, _version?: number): KeyPair {
+  static generateKeyPair(_preset: Preset): Keys {
     throw new Error('generateKeyPair method not implemented');
   }
 
@@ -42,13 +41,5 @@ export abstract class KeyProvider {
    */
   static deserializeKeyPair(_data: SerializedKeys): KeyPair {
     throw new Error('deserializeKeyPair method not implemented');
-  }
-
-  /**
-   * Validate configuration parameters for this algorithm
-   * returns an array of error messages, or an empty array if valid
-   */
-  static validateConfig(_config: KeyGenerationConfig): string[] {
-    throw new Error('validateConfig method not implemented');
   }
 }

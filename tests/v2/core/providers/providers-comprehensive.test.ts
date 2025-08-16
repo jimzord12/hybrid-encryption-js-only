@@ -237,38 +237,6 @@ describe('MlKemKeyProvider', () => {
     });
   });
 
-  describe('isKeyPairExpired', () => {
-    it('should return false for non-expired key pair', () => {
-      const keyPair = MlKemKeyProvider.generateKeyPair();
-
-      const result = provider.isKeyPairExpired(keyPair);
-
-      expect(result.ok).toBe(true);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('should return true for expired key pair', () => {
-      const keyPair = MlKemKeyProvider.generateKeyPair();
-      // Set expiry date to past
-      keyPair.metadata.expiresAt = new Date(Date.now() - 1000);
-
-      const result = provider.isKeyPairExpired(keyPair);
-
-      expect(result.ok).toBe(false);
-      expect(result.errors).toContain('Keypair has expired');
-    });
-
-    it('should return error for key pair without expiry date', () => {
-      const keyPair = MlKemKeyProvider.generateKeyPair();
-      keyPair.metadata.expiresAt = null as any;
-
-      const result = provider.isKeyPairExpired(keyPair);
-
-      expect(result.ok).toBe(false);
-      expect(result.errors).toContain('Keypair does not have an expiry date set');
-    });
-  });
-
   describe('serializeKeyPair', () => {
     it('should serialize a valid key pair', () => {
       const keyPair = MlKemKeyProvider.generateKeyPair();
@@ -319,93 +287,6 @@ describe('MlKemKeyProvider', () => {
       // Validate the deserialized key pair
       const validation = provider.validateKeyPair(deserialized);
       expect(validation.ok).toBe(true);
-    });
-  });
-
-  describe('validateConfig', () => {
-    it('should validate valid config', () => {
-      const config = {
-        preset: Preset.NORMAL,
-        expiryMonths: 6,
-      };
-
-      const { errors } = provider.validateConfig(config);
-
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should reject config without preset', () => {
-      const config = {
-        expiryMonths: 6,
-      } as any;
-
-      const { errors } = provider.validateConfig(config);
-
-      expect(errors).toContain('Invalid Key Generation Config, preset is required');
-    });
-
-    it('should reject config with invalid expiry months (too low)', () => {
-      const config = {
-        preset: Preset.NORMAL,
-        expiryMonths: 0,
-      };
-
-      const { errors } = provider.validateConfig(config);
-
-      expect(errors).toContain(
-        'Invalid Key Generation Config, expiryMonths must be a number between 1 and 12',
-      );
-    });
-
-    it('should reject config with invalid expiry months (too high)', () => {
-      const config = {
-        preset: Preset.NORMAL,
-        expiryMonths: 15,
-      };
-
-      const { errors } = provider.validateConfig(config);
-
-      expect(errors).toContain(
-        'Invalid Key Generation Config, expiryMonths must be a number between 1 and 12',
-      );
-    });
-
-    it('should reject config with non-numeric expiry months', () => {
-      const config = {
-        preset: Preset.NORMAL,
-        expiryMonths: 'six' as any,
-      };
-
-      const { errors } = provider.validateConfig(config);
-
-      console.log(errors);
-
-      expect(errors).toContain('Invalid Key Generation Config, must be of type number');
-    });
-
-    it('should validate config with valid expiry months range', () => {
-      for (let months = 1; months <= 12; months++) {
-        const config = {
-          preset: Preset.NORMAL,
-          expiryMonths: months,
-        };
-
-        const { ok, errors } = provider.validateConfig(config);
-
-        expect(ok).toBe(true);
-        expect(errors).toHaveLength(0);
-      }
-    });
-
-    it('should validate config without expiry months (optional)', () => {
-      const config = {
-        preset: Preset.HIGH_SECURITY,
-      };
-
-      const { ok, errors } = provider.validateConfig(config);
-
-      expect(ok).toBe(true);
-      expect(errors).toHaveLength(0);
     });
   });
 });
