@@ -13,3 +13,12 @@ export interface KeyPair extends Keys {
     expiresAt: Date; // Optional expiration
   };
 }
+
+export type SerializableKeyPair = Keys & {
+  metadata: {
+    preset: Preset;
+    version: number;
+    createdAt: string;
+    expiresAt: string;
+  };
+};

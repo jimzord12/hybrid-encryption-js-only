@@ -1,30 +1,37 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 // ============================================================================
 // KEY STORAGE INTERFACES
 // ============================================================================
 
-import { createAppropriateError } from '../errors';
+import { createAppropriateError } from '../common/errors';
+import { FileSystemError } from '../common/errors/interfaces/filesystem.interfaces';
+import { isValidPreset } from '../common/guards/enum.guards';
+import { isFSError } from '../common/guards/error.guards';
+import { KeyPair, Keys, SerializableKeyPair } from '../common/interfaces/keys.interfaces';
+import { MlKemKeyProvider } from '../providers';
 import { KeyProvider } from '../providers/interfaces/key-provider.interface';
 import { BufferUtils } from '../utils';
 import { DEFAULT_KEY_MANAGER_OPTIONS } from './constants/defaults.constants';
 import {
-  KeyGenerationConfig,
   KeyManagerConfig,
   KeyManagerStatus,
   KeyRotationState,
   KeyValidationResult,
   RotationHistory,
   RotationHistoryEntry,
-  RotationStats,
 } from './types/key-manager.types';
 
 // ============================================================================
 // KEY MANAGER SINGLETON CLASS
 // ============================================================================
 
+const MONTH = 30 * 24 * 60 * 60 * 1000;
+
 export class KeyManager {
   public static instance: KeyManager | null = null;
   public config: Required<KeyManagerConfig>;
-  public currentKeys: CryptoKeyPair | null = null;
+  public currentKeys: KeyPair | null = null;
   public rotationState: KeyRotationState;
   public lastValidation: Date | null = null;
   public isInitialized = false;
@@ -32,7 +39,8 @@ export class KeyManager {
   private keyProvider: KeyProvider;
   private rotationHistoryCache: RotationHistory | null = null;
   private rotationHistoryCacheTime: number | null = null;
-  private readonly ROTATION_HISTORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly ROTATION_HISTORY_CACHE_TTL =
+    DEFAULT_KEY_MANAGER_OPTIONS.rotationGracePeriod * 60 * 1000; // 5 minutes
 
   private constructor(config: KeyManagerConfig = {}) {
     // Set default configuration with modern algorithm support
@@ -47,7 +55,7 @@ export class KeyManager {
     };
 
     // Initialize the key provider based on algorithm
-    this.keyProvider = KeyProviderFactory.createProvider(this.config.algorithm);
+    this.keyProvider = new MlKemKeyProvider(config.preset);
 
     // Note: Configuration validation is deferred to initialize() to match test expectations
 
@@ -78,6 +86,7 @@ export class KeyManager {
     if (KeyManager.instance) {
       // Clean up any running timers
       KeyManager.instance.cleanup();
+      KeyManager.instance.updateConfig({});
     }
     KeyManager.instance = null;
   }
@@ -98,16 +107,7 @@ export class KeyManager {
     this.isInitialized = false;
 
     // Reset configuration to default values
-    this.config = {
-      algorithm: this.config.algorithm || 'ml-kem-768',
-      certPath: this.config.certPath || path.join(process.cwd(), 'config', 'certs'),
-      keySize: this.config.keySize || 768,
-      curve: this.config.curve,
-      keyExpiryMonths: this.config.keyExpiryMonths || 1,
-      autoGenerate: this.config.autoGenerate ?? true,
-      enableFileBackup: this.config.enableFileBackup ?? true,
-      rotationGracePeriod: this.config.rotationGracePeriod || 5,
-    };
+    this.config = {} as any;
 
     // Reset rotation state
     this.rotationState = {
@@ -143,9 +143,9 @@ export class KeyManager {
       const validation = await this.validateCurrentKeys();
       if (!validation.isValid) {
         throw createAppropriateError(`Key validation failed: ${validation.errors.join(', ')}`, {
+          preset: this.config.preset,
           errorType: 'keymanager',
           operation: 'initialization',
-          algorithm: this.config.algorithm,
           cause: new Error('Key validation failed'),
         });
       }
@@ -156,9 +156,9 @@ export class KeyManager {
       const initError = createAppropriateError(
         `KeyManager initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         {
+          preset: this.config.preset,
           errorType: 'keymanager',
           operation: 'initialization',
-          algorithm: this.config.algorithm,
           cause: error instanceof Error ? error : new Error('Unknown initialization error'),
         },
       );
@@ -170,7 +170,7 @@ export class KeyManager {
   /**
    * Check if rotation is needed and wait for completion if in progress
    */
-  public async ensureValidKeys(): Promise<CryptoKeyPair> {
+  public async ensureValidKeys(): Promise<KeyPair> {
     console.log('[ensureValidKeys]: Is rotation in progress?', this.rotationState.isRotating);
     // If rotation is in progress, wait for it to complete
     if (this.rotationState.isRotating && this.rotationState.rotationPromise) {
@@ -188,7 +188,7 @@ export class KeyManager {
       throw createAppropriateError('No valid keys available after rotation attempt', {
         errorType: 'keymanager',
         operation: 'retrieval',
-        algorithm: this.config.algorithm,
+        preset: this.config.preset,
         rotationState: this.rotationState.isRotating ? 'rotating' : 'idle',
       });
     }
@@ -224,11 +224,10 @@ export class KeyManager {
   public async getPrivateKey(): Promise<Uint8Array> {
     const keys = await this.ensureValidKeys();
     // Handle both ML-KEM (secretKey) and RSA/ECC (privateKey) formats
-    const privateKey = keys.secretKey || keys.privateKey;
-    if (!privateKey) {
+    if (!keys.secretKey) {
       throw new Error('No private/secret key found in key pair');
     }
-    return privateKey;
+    return keys.secretKey;
   }
 
   /**
@@ -244,7 +243,7 @@ export class KeyManager {
   /**
    * Get current key pair (server-side only)
    */
-  public async getKeyPair(): Promise<CryptoKeyPair> {
+  public async getKeyPair(): Promise<KeyPair> {
     return await this.ensureValidKeys();
   }
 
@@ -252,7 +251,7 @@ export class KeyManager {
    * Get keys for decryption (includes previous keys during rotation)
    * This is meant to be used by the Encryption Core Module
    */
-  public async getDecryptionKeys(): Promise<CryptoKeyPair[]> {
+  public async getDecryptionKeys(): Promise<KeyPair[]> {
     const keys = [await this.ensureValidKeys()];
 
     // During rotation, also include previous keys for decrypting in-flight requests
@@ -267,12 +266,40 @@ export class KeyManager {
   // KEY ROTATION & LIFECYCLE
   // ============================================================================
 
+  public haveKeysExpired(keyPair?: KeyPair): boolean {
+    if (keyPair != null) return new Date() > keyPair.metadata.expiresAt;
+    if (this.currentKeys != null) return new Date() > this.currentKeys.metadata.expiresAt;
+    return true;
+  }
+
   /**
    * Check if keys need rotation
    */
   public needsRotation(): boolean {
     if (!this.currentKeys) return true;
-    return this.keyProvider.isKeyPairExpired(this.currentKeys);
+    const keyPair = this.currentKeys;
+
+    if (!keyPair.metadata.expiresAt) return true;
+    if (this.haveKeysExpired(this.currentKeys)) return true;
+
+    return false;
+  }
+
+  public addMetaDataToKeys(keys: Keys, metadata?: Partial<KeyPair['metadata']>): KeyPair {
+    const { publicKey, secretKey } = keys;
+
+    return {
+      publicKey,
+      secretKey,
+      metadata: {
+        preset: this.config.preset,
+        createdAt: new Date(),
+        expiresAt:
+          metadata?.expiresAt ||
+          new Date(Date.now() + DEFAULT_KEY_MANAGER_OPTIONS.keyExpiryMonths * MONTH),
+        version: metadata?.version || 1,
+      },
+    };
   }
 
   /**
@@ -298,41 +325,17 @@ export class KeyManager {
 
     try {
       // Generate new keys using the key provider
-      console.log(`🔑 Generating new ${this.config.algorithm.toUpperCase()} key pair...`);
-      const keyGenConfig: KeyGenerationConfig = {
-        algorithm: this.config.algorithm,
-        keySize: this.config.keySize,
-        expiryMonths: this.config.keyExpiryMonths,
-      };
+      console.log(`🔑 Generating new key pair (PRESET: ${this.config.preset})...`);
 
-      console.log(`🔑 Key generation config: ${JSON.stringify(keyGenConfig)}`);
+      const nextVersion = (await this.getNextVersionNumber()) ?? 1;
 
-      // Only add curve if it's defined (for ECC algorithms)
-      if (this.config.curve !== undefined) {
-        keyGenConfig.curve = this.config.curve;
-      }
-
-      const newKeys = this.keyProvider.generateKeyPair(keyGenConfig);
-
-      // Validate new keys using the key provider
-      if (!this.keyProvider.validateKeyPair(newKeys)) {
-        throw createAppropriateError('Generated invalid key pair', {
-          errorType: 'keymanager',
-          operation: 'rotation',
-          algorithm: this.config.algorithm,
-          keyVersion: this.currentKeys?.version,
-        });
-      }
+      const newKeyPair = this.createNewKeyPair({ version: nextVersion });
 
       // Set rotation state only after keys are generated and validated
       this.rotationState.isRotating = true;
       this.rotationState.rotationStartTime = new Date();
       this.rotationState.previousKeys = this.currentKeys;
-      this.rotationState.newKeys = newKeys;
-
-      // Get next version number
-      const nextVersion = await this.getNextVersionNumber();
-      newKeys.version = nextVersion;
+      this.rotationState.newKeys = newKeyPair;
 
       // Backup old keys if they exist
       if (this.currentKeys && this.config.enableFileBackup) {
@@ -341,12 +344,12 @@ export class KeyManager {
 
       // Save new keys to filesystem and update rotation history
       if (this.config.enableFileBackup) {
-        await this.saveKeysToFile(newKeys);
-        await this.updateRotationHistory(newKeys);
+        await this.saveKeysToFile(newKeyPair);
+        await this.updateRotationHistory(newKeyPair);
       }
 
       // Update current keys (atomic operation)
-      this.currentKeys = newKeys;
+      this.currentKeys = newKeyPair;
       this.lastValidation = new Date();
 
       console.log(`✅ Key rotation completed successfully (version ${nextVersion})`);
@@ -368,10 +371,10 @@ export class KeyManager {
       throw createAppropriateError(
         `Key rotation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         {
+          preset: this.config.preset,
           errorType: 'keymanager',
           operation: 'rotation',
-          algorithm: this.config.algorithm,
-          keyVersion: this.currentKeys?.version,
+          keyVersion: this.currentKeys?.metadata.version,
           rotationState: 'failed',
           cause: error instanceof Error ? error : new Error('Unknown rotation error'),
         },
@@ -411,11 +414,11 @@ export class KeyManager {
   /**
    * Get the next version number for key rotation
    */
-  private async getNextVersionNumber(): Promise<number> {
+  private async getNextVersionNumber(): Promise<number | undefined> {
     const history = await this.getRotationHistory();
 
     if (history.rotations.length === 0) {
-      return 1; // First key pair
+      return;
     }
 
     // Find the highest version number and increment
@@ -426,17 +429,20 @@ export class KeyManager {
   /**
    * Update rotation history with new key information
    */
-  private async updateRotationHistory(keyPair: CryptoKeyPair): Promise<void> {
+  private async updateRotationHistory(keyPair: KeyPair): Promise<void> {
     const historyPath = path.join(this.config.certPath, 'rotation-history.json');
 
     try {
       const history = await this.getRotationHistory();
 
-      const rotationEntry = {
-        version: keyPair.version!,
-        createdAt: keyPair.createdAt!.toISOString(),
-        expiresAt: keyPair.expiresAt!.toISOString(),
-        keySize: keyPair.keySize || this.config.keySize,
+      const { metadata } = keyPair;
+      const { createdAt, expiresAt, preset, version } = metadata;
+
+      const rotationEntry: RotationHistoryEntry = {
+        preset,
+        version,
+        createdAt: createdAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
         rotatedAt: new Date().toISOString(),
         reason: (history.rotations.length > 0
           ? 'scheduled_rotation'
@@ -460,18 +466,25 @@ export class KeyManager {
     }
   }
 
+  public getRotationCache() {
+    const now = Date.now();
+    const cache =
+      this.rotationHistoryCache &&
+      this.rotationHistoryCacheTime &&
+      now - this.rotationHistoryCacheTime < this.ROTATION_HISTORY_CACHE_TTL;
+
+    return cache ? this.rotationHistoryCache : null;
+  }
+
   /**
    * Get rotation history
    */
   public async getRotationHistory(): Promise<RotationHistory> {
     // Check if we have a valid cache
     const now = Date.now();
-    if (
-      this.rotationHistoryCache &&
-      this.rotationHistoryCacheTime &&
-      now - this.rotationHistoryCacheTime < this.ROTATION_HISTORY_CACHE_TTL
-    ) {
-      return this.rotationHistoryCache;
+    const cache = this.getRotationCache();
+    if (cache) {
+      return cache;
     }
 
     const historyPath = path.join(this.config.certPath, 'rotation-history.json');
@@ -485,7 +498,25 @@ export class KeyManager {
       this.rotationHistoryCacheTime = now;
 
       return history;
-    } catch {
+    } catch (error) {
+      if (isFSError(error)) {
+        const fsError = error as FileSystemError;
+        // Handle fs.readFile errors
+        if (fsError.code === 'ENOENT') throw new Error(`File not found: ${fsError.path}`);
+
+        if (fsError.code === 'EACCES') throw new Error(`Permission denied: ${fsError.path}`);
+
+        if (fsError.code === 'EISDIR')
+          throw new Error(`Path is a directory, not a file: ${fsError.path}`);
+      } else if (error instanceof SyntaxError) {
+        const jsonError = error as SyntaxError;
+        throw new Error(`Invalid JSON, name: ${jsonError.name}, message: ${jsonError.message}`);
+      } else {
+        throw error;
+      }
+
+      // Re-throw unknown errors
+
       // Return default history if file doesn't exist
       const defaultHistory = {
         totalRotations: 0,
@@ -502,57 +533,57 @@ export class KeyManager {
     }
   }
 
-  /**
-   * Get rotation statistics
-   */
-  public async getRotationStats(): Promise<RotationStats> {
-    const history = await this.getRotationHistory();
+  // /**
+  //  * Get rotation statistics
+  //  */
+  // public async getRotationStats(): Promise<RotationStats> {
+  //   const history = await this.getRotationHistory();
 
-    if (history.rotations.length === 0) {
-      return {
-        totalRotations: 0,
-        averageKeyLifetime: 0,
-        oldestRotation: null,
-        newestRotation: null,
-        rotationsThisYear: 0,
-        rotationsThisMonth: 0,
-      };
-    }
+  //   if (history.rotations.length === 0) {
+  //     return {
+  //       totalRotations: 0,
+  //       averageKeyLifetimeDays: 0,
+  //       oldestRotation: null,
+  //       newestRotation: null,
+  //       rotationsThisYear: 0,
+  //       rotationsThisMonth: 0,
+  //     };
+  //   }
 
-    const now = new Date();
-    const thisYear = now.getFullYear();
-    const thisMonth = now.getMonth();
+  //   const now = new Date();
+  //   const thisYear = now.getFullYear();
+  //   const thisMonth = now.getMonth();
 
-    const rotationsThisYear = history.rotations.filter(
-      r => new Date(r.createdAt).getFullYear() === thisYear,
-    ).length;
+  //   const rotationsThisYear = history.rotations.filter(
+  //     r => new Date(r.createdAt).getFullYear() === thisYear,
+  //   ).length;
 
-    const rotationsThisMonth = history.rotations.filter(r => {
-      const date = new Date(r.createdAt);
-      return date.getFullYear() === thisYear && date.getMonth() === thisMonth;
-    }).length;
+  //   const rotationsThisMonth = history.rotations.filter(r => {
+  //     const date = new Date(r.createdAt);
+  //     return date.getFullYear() === thisYear && date.getMonth() === thisMonth;
+  //   }).length;
 
-    // Calculate average lifetime
-    let totalLifetime = 0;
-    for (let i = 1; i < history.rotations.length; i++) {
-      const prev = new Date(history.rotations[i - 1].createdAt);
-      const curr = new Date(history.rotations[i].createdAt);
-      totalLifetime += curr.getTime() - prev.getTime();
-    }
-    const averageKeyLifetime =
-      history.rotations.length > 1
-        ? Math.round(totalLifetime / (history.rotations.length - 1) / (1000 * 60 * 60 * 24)) // days
-        : 0;
+  //   // Calculate average lifetime
+  //   let totalLifetime = 0;
+  //   for (let i = 1; i < history.rotations.length; i++) {
+  //     const prev = new Date(history.rotations[i - 1].createdAt);
+  //     const curr = new Date(history.rotations[i].createdAt);
+  //     totalLifetime += curr.getTime() - prev.getTime();
+  //   }
+  //   const averageKeyLifetime =
+  //     history.rotations.length > 1
+  //       ? Math.round(totalLifetime / (history.rotations.length - 1) / (1000 * 60 * 60 * 24)) // days
+  //       : 0;
 
-    return {
-      totalRotations: history.totalRotations,
-      averageKeyLifetime,
-      oldestRotation: history.rotations[0],
-      newestRotation: history.rotations[history.rotations.length - 1],
-      rotationsThisYear,
-      rotationsThisMonth,
-    };
-  }
+  //   return {
+  //     totalRotations: history.totalRotations,
+  //     averageKeyLifetime,
+  //     oldestRotation: history.rotations[0],
+  //     newestRotation: history.rotations[history.rotations.length - 1],
+  //     rotationsThisYear,
+  //     rotationsThisMonth,
+  //   };
+  // }
 
   /**
    * Ensure certificate directory exists
@@ -577,9 +608,9 @@ export class KeyManager {
         `Failed to create cert directory: ${error instanceof Error ? error.message : 'Unknown error'}`,
         {
           errorType: 'keymanager',
+          preset: this.config.preset,
           operation: 'storage',
           filePath: this.config.certPath,
-          algorithm: this.config.algorithm,
           cause: error instanceof Error ? error : new Error('Directory creation failed'),
         },
       );
@@ -595,48 +626,10 @@ export class KeyManager {
       const loadedKeys = await this.loadKeysFromFile();
 
       if (loadedKeys) {
-        // Handle both key formats during conversion
-        const loadedKeysWithBothFormats = loadedKeys as CryptoKeyPair & { secretKey?: Uint8Array };
-        const privateKeyData = loadedKeysWithBothFormats.secretKey || loadedKeys.privateKey;
-
-        if (!privateKeyData) {
-          throw new Error('Loaded keys missing both secretKey and privateKey data');
-        }
-
-        const convertedKeys: CryptoKeyPair = {
-          publicKey: loadedKeys.publicKey,
-          secretKey: privateKeyData, // Use secretKey for ML-KEM compatibility
-          algorithm: this.config.algorithm,
-        };
-
-        if (loadedKeys.version !== undefined) {
-          convertedKeys.version = loadedKeys.version;
-        } else {
-          // When undefined, get next version from history but don't do comparisons
-          convertedKeys.version = await this.getNextVersionNumber();
-        }
-
-        if (loadedKeys.createdAt !== undefined) {
-          convertedKeys.createdAt = loadedKeys.createdAt;
-        }
-
-        if (loadedKeys.expiresAt !== undefined) {
-          convertedKeys.expiresAt = loadedKeys.expiresAt;
-        }
-
-        if (this.config.keySize !== undefined) {
-          convertedKeys.keySize = this.config.keySize;
-        }
-
-        // Only add curve if it's defined and algorithm supports it
-        if (this.config.curve !== undefined) {
-          convertedKeys.curve = this.config.curve;
-        }
-
-        this.currentKeys = convertedKeys;
+        this.currentKeys = loadedKeys;
 
         console.log('📂 Loaded existing keys from filesystem');
-        console.log(`🔢 Current key version: ${this.currentKeys.version}`);
+        console.log(`🔢 Current key version: ${loadedKeys.metadata.version}`);
         return;
       }
     } catch (error) {
@@ -645,7 +638,7 @@ export class KeyManager {
 
     // Generate new keys if none found or auto-generate is enabled
     if (this.config.autoGenerate) {
-      console.log(`🔑 Generating new ${this.config.algorithm.toUpperCase()} key pair...`);
+      console.log(`🔑 Generating new key pair (PRESET: ${this.config.preset})...`);
 
       console.log(
         'Checking Directory Write Permissions:',
@@ -653,22 +646,11 @@ export class KeyManager {
       );
 
       // Get next version number
-      const nextVersion = await this.getNextVersionNumber();
+      const nextVersion = (await this.getNextVersionNumber()) ?? 1;
 
-      // Generate keys using the key provider
-      const keyGenConfig: KeyGenerationConfig = {
-        algorithm: this.config.algorithm,
-        keySize: this.config.keySize,
-        expiryMonths: this.config.keyExpiryMonths,
-      };
+      const newKeyPair = this.createNewKeyPair({ version: nextVersion });
 
-      // Only add curve if it's defined (for ECC algorithms)
-      if (this.config.curve !== undefined) {
-        keyGenConfig.curve = this.config.curve;
-      }
-
-      this.currentKeys = this.keyProvider.generateKeyPair(keyGenConfig);
-      this.currentKeys.version = nextVersion;
+      this.currentKeys = newKeyPair;
 
       // Save to filesystem and update rotation history
       if (this.config.enableFileBackup) {
@@ -679,82 +661,95 @@ export class KeyManager {
       console.log(`✅ Generated and saved new key pair (version ${nextVersion})`);
     } else {
       throw createAppropriateError('No keys found and auto-generation is disabled', {
+        preset: this.config.preset,
         errorType: 'keymanager',
         operation: 'initialization',
-        algorithm: this.config.algorithm,
       });
     }
+  }
+
+  private createNewKeyPair(metadata?: Partial<KeyPair['metadata']>): KeyPair {
+    const newKeys = this.keyProvider.generateKeyPair();
+    const newKeyPair = this.addMetaDataToKeys(newKeys, metadata);
+
+    const { ok, errors } = this.keyProvider.validateKeyPair(newKeyPair);
+
+    // Validate new keys using the key provider
+    if (!ok) {
+      throw createAppropriateError('Generated invalid key pair', {
+        preset: this.config.preset,
+        errorType: 'keymanager',
+        operation: 'rotation',
+        keyVersion: this.currentKeys?.metadata.version,
+        cause: new Error(`New Keys validation failed: ${errors.join(', ')}`),
+      });
+    }
+
+    return newKeyPair;
   }
 
   /**
    * Load keys from binary files (modern format)
    */
-  private async loadKeysFromFile(): Promise<CryptoKeyPair | null> {
+  private async loadKeysFromFile(): Promise<KeyPair | null> {
     const publicKeyPath = path.join(this.config.certPath, 'public-key.bin');
-    const privateKeyPath = path.join(this.config.certPath, 'private-key.bin');
+    const secretKeyPath = path.join(this.config.certPath, 'secret-key.bin');
     const metadataPath = path.join(this.config.certPath, 'key-metadata.json');
 
     try {
       console.log('🚛 Loading modern binary key files...');
 
       // Read binary key files and JSON metadata
-      const [publicKeyBinary, privateKeyBinary, metadataStr] = await Promise.all([
+      const [publicKeyBinary, secretKeyBinary, metadataStr] = await Promise.all([
         fs.readFile(publicKeyPath),
-        fs.readFile(privateKeyPath),
+        fs.readFile(secretKeyPath),
         fs.readFile(metadataPath, 'utf8').catch(() => '{}'),
       ]);
 
       console.log('1. Loaded key files:', {
         publicKey: publicKeyBinary.length > 0 ? '✔️' : '❌',
-        privateKey: privateKeyBinary.length > 0 ? '✔️' : '❌',
+        secretKey: secretKeyBinary.length > 0 ? '✔️' : '❌',
         metadata: metadataStr ? '✔️' : '❌',
       });
 
-      let metadata: Partial<KeyMetadata> = {};
+      let metadata: Partial<KeyPair['metadata']> = {};
       try {
         metadata = JSON.parse(metadataStr);
       } catch {
         console.log('⚠️ Failed to parse key metadata, using defaults');
+        return null;
       }
 
-      if (!publicKeyBinary || !privateKeyBinary) {
+      if (!publicKeyBinary || !secretKeyBinary) {
         console.log('⚠️ Missing key material, generating new keys');
         return null;
       }
 
-      if (!metadata.created || !metadata.algorithm) {
+      if (!metadata.createdAt || !metadata.preset || !metadata.version || !metadata.expiresAt) {
         console.log('⚠️ Missing metadata properties, generating new keys');
         return null;
       }
 
-      const createdAt = metadata.created ? new Date(metadata.created) : new Date();
-      const expiresAt = new Date(createdAt);
-      expiresAt.setMonth(expiresAt.getMonth() + this.config.keyExpiryMonths);
+      const createdAt = new Date(metadata.createdAt);
+      const expiresAt = new Date(metadata.expiresAt);
+      const version = metadata.version;
 
-      const keyPair: CryptoKeyPair = {
+      const keyPair: KeyPair = {
         publicKey: new Uint8Array(publicKeyBinary),
-        secretKey: new Uint8Array(privateKeyBinary), // Use secretKey for ML-KEM compatibility
-        algorithm: metadata.algorithm,
-        version: metadata.version || 1,
-        keySize: metadata.keySize || this.config.keySize,
-        createdAt,
-        expiresAt,
+        secretKey: new Uint8Array(secretKeyBinary), // Use secretKey for ML-KEM compatibili]ty
+        metadata: {
+          preset: metadata.preset,
+          version,
+          createdAt,
+          expiresAt,
+        },
       };
 
-      console.log('3. Loaded modern key pair:', {
-        algorithm: keyPair.algorithm,
-        version: keyPair.version,
-        keySize: keyPair.keySize,
-        allProperties: Object.keys(keyPair),
-        publicKeyType: typeof keyPair.publicKey,
-        publicKeyLength: keyPair.publicKey?.length,
-        secretKeyType: typeof (keyPair as any).secretKey,
-        secretKeyLength: (keyPair as any).secretKey?.length,
-      });
+      console.log('3. Loaded Key Pair:', keyPair);
 
       return keyPair;
     } catch (error) {
-      console.log('⚠️ Failed to load modern keys from filesystem:', error);
+      console.log('⚠️ Failed to load keys from filesystem:', error);
       return null;
     }
   }
@@ -763,45 +758,26 @@ export class KeyManager {
    * Save keys to binary files with modern format
    * @param keyPair - ModernKeyPair with binary keys as Uint8Array
    */
-  private async saveKeysToFile(keyPair: ModernKeyPair | CryptoKeyPair): Promise<void> {
+  private async saveKeysToFile(keyPair: KeyPair): Promise<void> {
     const publicKeyPath = path.join(this.config.certPath, 'public-key.bin');
-    const privateKeyPath = path.join(this.config.certPath, 'private-key.bin');
+    const secretPath = path.join(this.config.certPath, 'secret-key.bin');
     const metadataPath = path.join(this.config.certPath, 'key-metadata.json');
 
+    const { publicKey, secretKey } = keyPair;
+
     try {
-      // Handle both key formats (secretKey for ML-KEM, privateKey for RSA/ECC)
-      const publicKeyData =
-        keyPair.publicKey instanceof Uint8Array ? keyPair.publicKey : new Uint8Array(); // This shouldn't happen with modern keys
-
-      // Type assertion to access both possible key formats
-      const keyPairWithBothFormats = keyPair as CryptoKeyPair & { secretKey?: Uint8Array };
-      const privateKeyData =
-        keyPairWithBothFormats.secretKey instanceof Uint8Array
-          ? keyPairWithBothFormats.secretKey
-          : keyPair.privateKey instanceof Uint8Array
-            ? keyPair.privateKey
-            : new Uint8Array();
-
-      // Validate that we have proper binary keys
-      if (publicKeyData.length === 0 || privateKeyData.length === 0) {
-        throw new Error('Invalid key data: Keys must be Uint8Array with non-zero length');
-      }
-
       // Create metadata with key information
-      const metadata: KeyMetadata = {
-        algorithm: this.config.algorithm,
-        keySize: this.config.keySize,
-        created: new Date().toISOString(),
-        lastRotation: new Date().toISOString(),
-        version: 'version' in keyPair && keyPair.version ? keyPair.version : 1,
-        publicKeyPath,
-        privateKeyPath,
+      const metadata: SerializableKeyPair['metadata'] = {
+        preset: this.config.preset,
+        version: keyPair.metadata.version,
+        createdAt: keyPair.metadata.createdAt.toISOString(),
+        expiresAt: keyPair.metadata.expiresAt.toISOString(),
       };
 
       // Write binary key files and metadata
       await Promise.all([
-        fs.writeFile(publicKeyPath, publicKeyData),
-        fs.writeFile(privateKeyPath, privateKeyData),
+        fs.writeFile(publicKeyPath, publicKey),
+        fs.writeFile(secretPath, secretKey),
         fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8'),
       ]);
 
@@ -809,13 +785,13 @@ export class KeyManager {
       if (process.platform === 'win32') {
         // Windows: Set file as read-only and try to set NTFS permissions
         try {
-          await fs.chmod(privateKeyPath, 0o600);
+          await fs.chmod(secretPath, 0o600);
         } catch (error) {
           console.warn('⚠️ Could not set Windows file permissions:', error);
         }
       } else {
         // Unix-like systems: Set proper octal permissions
-        await fs.chmod(privateKeyPath, 0o600);
+        await fs.chmod(secretPath, 0o600);
       }
 
       console.log('✅ Successfully saved binary keys to filesystem');
@@ -824,11 +800,11 @@ export class KeyManager {
       throw createAppropriateError(
         `Failed to save binary keys: ${error instanceof Error ? error.message : 'Unknown error'}`,
         {
+          preset: this.config.preset,
           errorType: 'keymanager',
           operation: 'storage',
-          algorithm: this.config.algorithm,
           filePath: this.config.certPath,
-          keyVersion: 'version' in keyPair && keyPair.version ? keyPair.version : 1,
+          keyVersion: keyPair.metadata.version,
           cause: error instanceof Error ? error : new Error('Key save operation failed'),
         },
       );
@@ -838,7 +814,7 @@ export class KeyManager {
   /**
    * Backup expired keys
    */
-  private async backupExpiredKeys(keyPair: CryptoKeyPair): Promise<void> {
+  private async backupExpiredKeys(keyPair: KeyPair): Promise<void> {
     const timestamp = new Date().toISOString().slice(0, 7); // YYYY-MM format
     const backupDir = path.join(this.config.certPath, 'backup');
 
@@ -855,22 +831,18 @@ export class KeyManager {
       }
 
       const backupPublicPath = path.join(backupDir, `pub-key-expired-${timestamp}.pem`);
-      const backupPrivatePath = path.join(backupDir, `priv-key-expired-${timestamp}.pem`);
+      const backupSecretPath = path.join(backupDir, `secret-key-expired-${timestamp}.pem`);
 
-      // Handle both key formats for backup
-      const keyPairWithBothFormats = keyPair as CryptoKeyPair & { secretKey?: Uint8Array };
-      const privateKeyForBackup = keyPairWithBothFormats.secretKey || keyPair.privateKey;
-
-      if (!privateKeyForBackup) {
-        throw new Error('No private key data found for backup');
+      if (!keyPair.secretKey) {
+        throw new Error('No secret key data found for backup');
       }
 
       await Promise.all([
         fs.writeFile(backupPublicPath, keyPair.publicKey),
-        fs.writeFile(backupPrivatePath, privateKeyForBackup),
+        fs.writeFile(backupSecretPath, keyPair.secretKey),
       ]);
 
-      await fs.chmod(backupPrivatePath, 0o600);
+      await fs.chmod(backupSecretPath, 0o600);
       console.log(`📦 Backed up expired keys to ${backupDir}`);
     } catch (error) {
       console.warn('⚠️ Failed to backup expired keys:', error);
@@ -915,20 +887,9 @@ export class KeyManager {
   private validateConfig(): void {
     const errors: string[] = [];
 
-    // Use key provider for algorithm-specific validation
-    const keyGenConfig: KeyGenerationConfig = {
-      algorithm: this.config.algorithm,
-      keySize: this.config.keySize,
-      expiryMonths: this.config.keyExpiryMonths,
-    };
-
-    // Only add curve if it's defined
-    if (this.config.curve !== undefined) {
-      keyGenConfig.curve = this.config.curve;
+    if (!isValidPreset(this.config.preset)) {
+      errors.push(`Invalid preset (got ${this.config.preset})`);
     }
-
-    const providerErrors = this.keyProvider.validateConfig(keyGenConfig);
-    errors.push(...providerErrors);
 
     // Validate key expiry months
     if (this.config.keyExpiryMonths <= 0) {
@@ -965,9 +926,9 @@ export class KeyManager {
     if (errors.length > 0) {
       throw createAppropriateError(`Invalid configuration: ${errors.join(', ')}`, {
         errorType: 'config',
-        algorithm: this.config.algorithm,
+        preset: this.config.preset,
         parameterName: 'configuration',
-        validValues: ['Valid algorithm, positive expiry months, valid cert path'],
+        validValues: ['Valid preset, positive expiry months, valid cert path'],
       });
     }
   }
@@ -982,9 +943,9 @@ export class KeyManager {
       isValid: false,
       errors: [],
       publicKeyValid: false,
-      privateKeyValid: false,
+      secretKeyValid: false,
       keyPairMatches: false,
-      notExpired: false,
+      hasExpired: false,
     };
 
     if (!this.currentKeys) {
@@ -1000,46 +961,43 @@ export class KeyManager {
         result.publicKeyValid = true;
       }
 
-      // Check for private key data (support both ML-KEM secretKey and RSA/ECC privateKey)
-      const keyPairWithBothFormats = this.currentKeys as CryptoKeyPair & { secretKey?: Uint8Array };
-      const privateKeyData = keyPairWithBothFormats.secretKey || this.currentKeys.privateKey;
+      const hasSecretKey = Boolean(this.currentKeys.secretKey);
+      const secretKey = this.currentKeys.secretKey;
 
       console.log('🔍 Key validation debug:', {
-        hasSecretKey: !!keyPairWithBothFormats.secretKey,
-        secretKeyLength: keyPairWithBothFormats.secretKey?.length,
-        hasPrivateKey: !!this.currentKeys.privateKey,
-        privateKeyLength: this.currentKeys.privateKey?.length,
-        hasPrivateKeyData: !!privateKeyData,
-        privateKeyDataLength: privateKeyData?.length,
+        hasSecretKey,
+        secretKeyLength: secretKey.length,
       });
 
-      if (!privateKeyData || privateKeyData.length === 0) {
-        result.errors.push('Invalid or empty private key data');
+      if (!hasSecretKey || secretKey.length === 0) {
+        result.errors.push('Invalid or empty secret key data');
       } else {
-        result.privateKeyValid = true;
+        result.secretKeyValid = true;
       }
 
       // Key pair validation using the provider
-      if (result.publicKeyValid && result.privateKeyValid) {
-        if (this.keyProvider.validateKeyPair(this.currentKeys)) {
+      if (result.publicKeyValid && result.secretKeyValid) {
+        const { ok, errors: keyProviderErrors } = this.keyProvider.validateKeyPair(
+          this.currentKeys,
+        );
+        if (ok) {
           result.keyPairMatches = true;
         } else {
-          result.errors.push('Key pair mismatch - public and private keys do not match');
+          result.errors.push('Key pair mismatch - public and secret keys do not match');
+          result.errors.push(...keyProviderErrors);
         }
       }
 
       // Expiry validation using the provider
-      if (!this.keyProvider.isKeyPairExpired(this.currentKeys)) {
-        result.notExpired = true;
-      } else {
-        result.errors.push('Keys have expired');
-      }
+      result.hasExpired = this.haveKeysExpired(this.currentKeys);
+
+      if (result.hasExpired) result.errors.push('Keys have expired');
 
       result.isValid =
         result.publicKeyValid &&
-        result.privateKeyValid &&
+        result.secretKeyValid &&
         result.keyPairMatches &&
-        result.notExpired;
+        !result.hasExpired;
 
       this.lastValidation = new Date();
       return result;
@@ -1067,11 +1025,11 @@ export class KeyManager {
     return {
       hasKeys: this.currentKeys !== null,
       keysValid: validation.isValid,
-      keysExpired: this.currentKeys ? this.keyProvider.isKeyPairExpired(this.currentKeys) : false,
+      keysExpired: this.currentKeys ? this.haveKeysExpired(this.currentKeys) : true,
       isRotating: this.rotationState.isRotating,
-      currentKeyVersion: this.currentKeys?.version || null,
-      createdAt: this.currentKeys?.createdAt || null,
-      expiresAt: this.currentKeys?.expiresAt || null,
+      currentKeyVersion: this.currentKeys?.metadata.version || null,
+      createdAt: this.currentKeys?.metadata.createdAt || null,
+      expiresAt: this.currentKeys?.metadata.expiresAt || null,
       certPath: this.config.certPath,
       lastRotation: this.rotationState.rotationStartTime,
     };
@@ -1111,9 +1069,9 @@ export class KeyManager {
       const healthError = createAppropriateError(
         `Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         {
+          preset: this.config.preset,
           errorType: 'keymanager',
           operation: 'validation',
-          algorithm: this.config.algorithm,
           cause: error instanceof Error ? error : new Error('Health check failed'),
         },
       );
@@ -1177,11 +1135,11 @@ export class KeyManager {
    */
   public securelyClearKeys(): void {
     if (this.currentKeys) {
-      // Overwrite private key data with zeros
-      if (this.currentKeys.privateKey) {
-        const privateKeyArray = this.currentKeys.privateKey as Uint8Array;
-        for (let i = 0; i < privateKeyArray.length; i++) {
-          privateKeyArray[i] = 0;
+      // Overwrite secret key data with zeros
+      if (this.currentKeys.secretKey) {
+        const secretKeyArray = this.currentKeys.secretKey as Uint8Array;
+        for (let i = 0; i < secretKeyArray.length; i++) {
+          secretKeyArray[i] = 0;
         }
       }
 
@@ -1200,10 +1158,10 @@ export class KeyManager {
     // Also clear any keys in rotation state
     if (this.rotationState.previousKeys) {
       const prevKeys = this.rotationState.previousKeys;
-      if (prevKeys.privateKey) {
-        const privateKeyArray = prevKeys.privateKey as Uint8Array;
-        for (let i = 0; i < privateKeyArray.length; i++) {
-          privateKeyArray[i] = 0;
+      if (prevKeys.secretKey) {
+        const secretKeyArray = prevKeys.secretKey as Uint8Array;
+        for (let i = 0; i < secretKeyArray.length; i++) {
+          secretKeyArray[i] = 0;
         }
       }
 
@@ -1219,10 +1177,10 @@ export class KeyManager {
 
     if (this.rotationState.newKeys) {
       const newKeys = this.rotationState.newKeys;
-      if (newKeys.privateKey) {
-        const privateKeyArray = newKeys.privateKey as Uint8Array;
-        for (let i = 0; i < privateKeyArray.length; i++) {
-          privateKeyArray[i] = 0;
+      if (newKeys.secretKey) {
+        const secretKeyArray = newKeys.secretKey as Uint8Array;
+        for (let i = 0; i < secretKeyArray.length; i++) {
+          secretKeyArray[i] = 0;
         }
       }
 
@@ -1290,12 +1248,4 @@ export async function healthCheck(): Promise<{ healthy: boolean; issues: string[
 export async function getRotationHistory(): Promise<RotationHistory> {
   const manager = getKeyManager();
   return manager.getRotationHistory();
-}
-
-/**
- * Get rotation statistics
- */
-export async function getRotationStats(): Promise<RotationStats> {
-  const manager = getKeyManager();
-  return manager.getRotationStats();
 }

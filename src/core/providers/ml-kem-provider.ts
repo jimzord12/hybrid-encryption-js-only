@@ -1,6 +1,7 @@
 import { Preset } from '../common/enums';
+import { createAppropriateError } from '../common/errors';
 import { isValidPreset } from '../common/guards/enum.guards';
-import { KeyPair } from '../common/interfaces/keys.interfaces';
+import { KeyPair, Keys } from '../common/interfaces/keys.interfaces';
 import { SerializedKeys } from '../common/interfaces/serialization.interfaces';
 import { ValidationResult } from '../common/interfaces/validation.interfaces';
 import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
@@ -18,13 +19,22 @@ export class MlKemKeyProvider implements KeyProvider {
    * Note: This is a basic implementation for Phase 3.1 completion
    * Full post-quantum implementation will be added in later phases
    */
-  static generateKeyPair(
-    preset: Preset = DEFAULT_KEY_MANAGER_OPTIONS.preset,
-    keyVersion?: number,
-  ): KeyPair {
-    const mlKem = new MLKEMAlgorithm(preset);
 
-    const { publicKey, secretKey } = mlKem.generateKeyPair();
+  private mlKem: MLKEMAlgorithm;
+
+  constructor(private readonly preset: Preset = DEFAULT_KEY_MANAGER_OPTIONS.preset) {
+    if (!isValidPreset(preset)) {
+      throw createAppropriateError('Invalid preset for ML-KEM Provider', {
+        preset: this.preset,
+        errorType: 'config',
+      });
+    }
+
+    this.mlKem = new MLKEMAlgorithm(this.preset);
+  }
+
+  generateKeyPair(): Keys {
+    const { publicKey, secretKey } = this.mlKem.generateKeyPair();
 
     const now = new Date();
     const expiryDate = new Date(now);
@@ -33,14 +43,10 @@ export class MlKemKeyProvider implements KeyProvider {
     return {
       publicKey,
       secretKey: secretKey,
-      metadata: {
-        preset: preset,
-        createdAt: now,
-        expiresAt: expiryDate,
-        version: keyVersion || 1,
-      },
     };
   }
+
+
 
   /**
    * Validate that a key pair is properly formatted
@@ -84,24 +90,6 @@ export class MlKemKeyProvider implements KeyProvider {
       errors,
     };
   }
-
-  // /**
-  //  * Check if key pair has expired
-  //  */
-  // isKeyPairExpired(keyPair: KeyPair): ValidationResult {
-  //   const errors: string[] = [];
-
-  //   if (!keyPair.metadata.expiresAt) {
-  //     errors.push('Keypair does not have an expiry date set');
-  //   } else if (new Date() > keyPair.metadata.expiresAt) {
-  //     errors.push('Keypair has expired');
-  //   }
-
-  //   return {
-  //     ok: errors.length === 0,
-  //     errors,
-  //   };
-  // }
 
   /**
    * Serialize key pair for storage (converts to Base64 strings)

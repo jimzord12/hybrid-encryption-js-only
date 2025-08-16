@@ -10,9 +10,9 @@ export interface KeyValidationResult {
   isValid: boolean;
   errors: string[];
   publicKeyValid: boolean;
-  privateKeyValid: boolean;
+  secretKeyValid: boolean;
   keyPairMatches: boolean;
-  notExpired: boolean;
+  hasExpired: boolean;
 }
 
 export interface KeyManagerConfig {
@@ -44,11 +44,13 @@ export interface KeyManagerStatus {
   lastRotation: Date | null;
 }
 
+// -- ROTATION
+
 export interface RotationHistoryEntry {
   version: number;
   createdAt: string;
   expiresAt: string;
-  keySize: number;
+  preset: Preset;
   rotatedAt: string;
   reason: 'initial_generation' | 'scheduled_rotation' | 'manual_rotation';
 }
