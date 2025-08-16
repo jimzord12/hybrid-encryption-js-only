@@ -1,6 +1,6 @@
 import { gcm } from '@noble/ciphers/aes';
-import { Preset } from '../../../enums';
-import { createAppropriateError } from '../../../errors';
+import { Preset } from '../../../common/enums';
+import { createAppropriateError } from '../../../common/errors';
 import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS } from '../../constants/defaults.constants';
 import {
   AEADParams,
