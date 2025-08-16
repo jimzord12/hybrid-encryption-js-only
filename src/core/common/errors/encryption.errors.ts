@@ -60,7 +60,7 @@ export class EncryptionError extends Error {
  * Error for key validation failures
  * Used when keys fail format or security validation
  */
-export class KeyValidationError extends Error {
+export class ValidationError extends Error {
   public readonly timestamp: Date;
   public readonly errorId: string;
 
@@ -76,7 +76,7 @@ export class KeyValidationError extends Error {
     this.errorId = `kv-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, KeyValidationError);
+      Error.captureStackTrace(this, ValidationError);
     }
   }
 
@@ -416,7 +416,7 @@ export function createAppropriateError(
 
   switch (errorType) {
     case 'validation':
-      return new KeyValidationError(message, preset, additionalContext.validationErrors, cause);
+      return new ValidationError(message, preset, additionalContext.validationErrors, cause);
 
     case 'algorithm-asymmetric':
       return new AlgorithmAsymmetricError(message, preset, cause);
