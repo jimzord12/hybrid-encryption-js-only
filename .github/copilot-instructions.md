@@ -3,14 +3,14 @@
 ## Project Overview
 
 This is a **Hybrid Encryption TypeScript Library** that implements secure
-encryption using a combination of RSA (asymmetric) and AES-GCM (symmetric)
+encryption using a combination of ML-KEM (asymmetric) and AES-GCM (symmetric)
 cryptography. The library provides production-ready encryption/decryption
 capabilities with automatic key management, rotation, and enterprise-level
 security features.
 
 ### Key Features
 
-- **Hybrid Encryption**: RSA + AES-GCM for optimal security and performance
+- **Hybrid Encryption**: ML-KEM + AES-GCM for optimal security and performance
 - **Automatic Key Management**: Singleton-based key manager with rotation
   support
 - **Strategy Pattern Architecture**: Algorithm-agnostic design for future
@@ -24,7 +24,8 @@ security features.
 ### Core Modules
 
 - **`src/core/`**: Core encryption and key management logic
-- **`src/client/`**: Client-side utilities and round-trip testing
+- **`src/sender/`**: Utilities required for Sending Encrypted Messages
+- **`src/receiver/`**: Utilities required for Receiving Encrypted Messages
 - **`src/server/`**: Server-side middleware, routes, and cron jobs
 - **`src/types/`**: Shared TypeScript type definitions
 
@@ -33,8 +34,6 @@ security features.
 1. **Strategy Pattern**: For algorithm-agnostic key providers (`KeyProvider`
    interface)
 2. **Singleton Pattern**: For `KeyManager` instance management
-3. **Factory Pattern**: For creating appropriate key providers
-   (`KeyProviderFactory`)
 4. **Repository Pattern**: For key storage and serialization
 
 ## Technology Stack
