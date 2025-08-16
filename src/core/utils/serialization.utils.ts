@@ -147,7 +147,7 @@ export class Serialization {
       throw createAppropriateError('Base64 encoding failed', {
         errorType: 'format',
         preset: Preset.NORMAL,
-        operation: 'encode',
+        operation: 'encodeBase64',
         cause: error instanceof Error ? error : undefined,
       });
     }
@@ -164,8 +164,8 @@ export class Serialization {
       if (encodedData == null || typeof encodedData !== 'string') {
         throw createAppropriateError('Invalid Base64 input: must be a non-empty string', {
           operation: 'Base64 decoding',
-          errorType: 'format',
-          preset: Preset.NORMAL,
+          errorType: 'validation',
+          preset: undefined as any,
         });
       }
 
@@ -173,10 +173,13 @@ export class Serialization {
       // (includes validation internally)
       return BufferUtils.decodeBase64(encodedData);
     } catch (error) {
+      if (error instanceof ValidationError) {
+        throw error;
+      }
       throw createAppropriateError('Base64 decoding failed', {
         operation: 'Base64 decoding',
         errorType: 'format',
-        preset: Preset.NORMAL,
+        preset: undefined as any,
       });
     }
   }

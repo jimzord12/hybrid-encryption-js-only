@@ -31,80 +31,12 @@ export class HybridEncryption {
   private symmetricAlgorithm: SymmetricAlgorithm;
 
   constructor(public readonly preset: Preset = DEFAULT_ENCRYPTION_OPTIONS.preset) {
+    // Initialize asymmetric algorithm based on preset
     this.asymmetricAlgorithm =
       preset === Preset.NORMAL ? new MLKEMAlgorithm() : new MLKEMAlgorithm(Preset.HIGH_SECURITY);
+
+    // Use AES-GCM as the symmetric algorithm for all presets
     this.symmetricAlgorithm = new AESGCMAlgorithm(preset);
-  }
-
-  /**
-   * Static factory method to create with default registries
-   */
-  static createDefault(): HybridEncryption {
-    return new HybridEncryption();
-  }
-
-  /**
-   * Encrypt data using modern KEM-based hybrid encryption
-   *
-   * Workflow:
-   * 1. Serialize data to binary format
-   * 2. Get algorithms from registries based on options
-   * 3. Generate shared secret using KEM
-   * 4. Derive symmetric key using HKDF
-   * 5. Encrypt data with AEAD algorithm
-   * 6. Return structured encrypted data
-   *
-   * @param data - Data to encrypt (any serializable type)
-   * @param publicKey - Public key in binary format
-   * @param options - Encryption options (algorithms, key size, etc.)
-   * @returns Encrypted data with algorithm metadata
-   */
-  static async encrypt(data: any, publicKey: Uint8Array): Promise<EncryptedData> {
-    const instance = await HybridEncryption.createDefault();
-    return instance.encrypt(data, publicKey);
-  }
-
-  /**
-   * Decrypt data using algorithm information embedded in encrypted data
-   *
-   * Workflow:
-   * 1. Parse algorithm identifiers from encrypted data
-   * 2. Get algorithms from registries
-   * 3. Recover shared secret from KEM ciphertext
-   * 4. Derive symmetric key using HKDF
-   * 5. Decrypt and verify with AEAD algorithm
-   * 6. Deserialize and return typed result
-   *
-   * @param encryptedData - Encrypted data with algorithm metadata
-   * @param privateKey - Private key in binary format
-   * @param options - Decryption options (optional, mainly for validation)
-   * @returns Decrypted data in original type
-   */
-  static async decrypt<T = any>(encryptedData: EncryptedData, privateKey: Uint8Array): Promise<T> {
-    const instance = await HybridEncryption.createDefault();
-    return instance.decrypt<T>(encryptedData, privateKey);
-  }
-
-  /**
-   * Decrypt data with grace period support during key rotation
-   *
-   * Workflow:
-   * 1. Try decryption with provided private key
-   * 2. If decryption fails and fallback keys are provided:
-   *    - Attempt decryption with fallback keys
-   *    - Return successful result or throw authentication error
-   *
-   * @param encryptedData - Data to decrypt
-   * @param privateKeys - Primary private key and optional fallback keys
-   * @param options - Decryption options (optional)
-   * @returns Decrypted data in original type
-   */
-  static async decryptWithGracePeriod<T = any>(
-    encryptedData: EncryptedData,
-    privateKeys: Uint8Array[],
-  ): Promise<T> {
-    const instance = await HybridEncryption.createDefault();
-    return instance.decryptWithGracePeriod<T>(encryptedData, privateKeys);
   }
 
   /**
@@ -395,29 +327,10 @@ export class HybridEncryption {
   }
 
   private encodeBase64(data: Uint8Array): Base64 {
-    try {
-      return Serialization.encodeBase64(data) as Base64;
-    } catch (error) {
-      throw createAppropriateError('Base64 encoding failed', {
-        preset: this.preset,
-        errorType: 'operation',
-        operation: 'encodeBase64',
-        cause: error instanceof Error ? error : undefined,
-      });
-    }
+    return Serialization.encodeBase64(data) as Base64;
   }
 
   private decodeBase64(data: Base64): Uint8Array {
-    try {
-      return Serialization.decodeBase64(data);
-    } catch (error) {
-      throw new FormatConversionError(
-        `Base64 decoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'base64',
-        'Uint8Array',
-        data.length,
-        error instanceof Error ? error : undefined,
-      );
-    }
+    return Serialization.decodeBase64(data);
   }
 }

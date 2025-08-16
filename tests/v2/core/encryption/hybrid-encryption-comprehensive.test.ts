@@ -81,20 +81,6 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
     });
   });
 
-  describe('Static Factory Methods', () => {
-    it('should create default instance via static factory', () => {
-      const instance = HybridEncryption.createDefault();
-      expect(instance).toBeInstanceOf(HybridEncryption);
-      expect(instance.preset).toBe(Preset.NORMAL);
-    });
-
-    it('should create separate instances from factory calls', () => {
-      const instance1 = HybridEncryption.createDefault();
-      const instance2 = HybridEncryption.createDefault();
-      expect(instance1).not.toBe(instance2);
-    });
-  });
-
   describe('Data Serialization Edge Cases', () => {
     it('should serialize and deserialize null values', () => {
       const data = { value: null, empty: undefined };
@@ -570,36 +556,6 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
       expect(() => {
         hybridEncryption.decryptWithGracePeriod(encryptedData, invalidKeys);
       }).toThrow(/Grace period decryption failed with all \d+ available keys/);
-    });
-  });
-
-  describe('Static Method Integration', () => {
-    it('should encrypt using static method', async () => {
-      const data = { message: 'static encrypt test' };
-      const encrypted = await HybridEncryption.encrypt(data, validKeyPair.publicKey);
-
-      expect(encrypted).toHaveProperty('preset');
-      expect(encrypted).toHaveProperty('encryptedContent');
-      expect(encrypted).toHaveProperty('cipherText');
-      expect(encrypted).toHaveProperty('nonce');
-      expect(encrypted.preset).toBe(Preset.NORMAL);
-    });
-
-    it('should decrypt using static method', async () => {
-      const originalData = { message: 'static decrypt test' };
-      const encrypted = await HybridEncryption.encrypt(originalData, validKeyPair.publicKey);
-      const decrypted = await HybridEncryption.decrypt(encrypted, validKeyPair.secretKey);
-
-      expect(decrypted).toEqual(originalData);
-    });
-
-    it('should handle grace period decryption using static method', async () => {
-      const originalData = { message: 'static grace period test' };
-      const encrypted = await HybridEncryption.encrypt(originalData, validKeyPair.publicKey);
-      const keys = [validKeyPair.secretKey];
-      const decrypted = await HybridEncryption.decryptWithGracePeriod(encrypted, keys);
-
-      expect(decrypted).toEqual(originalData);
     });
   });
 

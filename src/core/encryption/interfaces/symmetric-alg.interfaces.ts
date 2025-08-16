@@ -1,5 +1,5 @@
 import { randomBytes } from '@noble/hashes/utils';
-import { Preset } from '../../enums';
+import { Preset } from '../../common/enums';
 
 export interface AEADParams {
   readonly key: Uint8Array;
@@ -10,8 +10,6 @@ export interface SymmetricEncryptionResult {
   readonly encryptedData: Uint8Array;
   readonly nonce: Uint8Array;
 }
-
-
 
 export abstract class SymmetricAlgorithm {
   constructor(
