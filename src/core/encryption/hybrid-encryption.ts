@@ -252,22 +252,21 @@ export class HybridEncryption {
   /**
    * Instance method for decryption with grace period support
    */
-  decryptWithGracePeriod<T = any>(encryptedData: EncryptedData, privateKeys: Uint8Array[]): T {
-    if (!privateKeys || privateKeys.length === 0) {
-      createAppropriateError('At least one private key must be provided', {
+  decryptWithGracePeriod<T = any>(encryptedData: EncryptedData, secretKeys: Uint8Array[]): T {
+    if (!secretKeys || secretKeys.length === 0) {
+      createAppropriateError('At least one secret key must be provided', {
         preset: this.preset,
         errorType: 'operation',
         operation: 'decrypt',
       });
-      throw new EncryptionError('At least one private key must be provided', undefined, 'decrypt');
     }
 
     // Try each key until one works (primary key first, then fallback keys)
     let lastError: Error | null = null;
 
-    for (let i = 0; i < privateKeys.length; i++) {
+    for (let i = 0; i < secretKeys.length; i++) {
       try {
-        const result = this.decrypt<T>(encryptedData, privateKeys[i]);
+        const result = this.decrypt<T>(encryptedData, secretKeys[i]);
 
         // Log successful fallback if not using primary key
         if (i > 0) {
@@ -279,7 +278,7 @@ export class HybridEncryption {
         lastError = error instanceof Error ? error : new Error('Unknown decryption error');
 
         // Continue to next key if available
-        if (i < privateKeys.length - 1) {
+        if (i < secretKeys.length - 1) {
           console.log(`⚠️ Decryption failed with key ${i}, trying next key...`);
           continue;
         }
@@ -288,7 +287,7 @@ export class HybridEncryption {
 
     // All keys failed, throw the last error
     throw createAppropriateError(
-      `Grace period decryption failed with all ${privateKeys.length} available keys: ${lastError?.message}`,
+      `Grace period decryption failed with all ${secretKeys.length} available keys: ${lastError?.message}`,
       {
         preset: this.preset,
         errorType: 'operation',

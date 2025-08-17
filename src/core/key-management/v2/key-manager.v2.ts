@@ -1,0 +1,311 @@
+import { createAppropriateError } from '../../../core/common/errors';
+import { KeyPair } from '../../../core/common/interfaces/keys.interfaces';
+import { DEFAULT_KEY_MANAGER_OPTIONS } from '../../../core/key-management/constants/defaults.constants';
+import {
+  KeyManagerConfig,
+  KeyManagerStatus,
+  KeyRotationState,
+} from '../../../core/key-management/types/key-manager.types';
+import { BufferUtils } from '../../../core/utils';
+import { KeyConfigurationService } from './key-configuration.service';
+import { KeyLifecycleService } from './key-lifecycle.service';
+import { KeyRotationService } from './key-rotation.service';
+import { KeyStorageService } from './key-storage.service';
+import { RotationHistoryService } from './rotation-history.service';
+
+export class KeyManagerV2 {
+  public static instance: KeyManagerV2 | null = null;
+
+  private readonly config: Required<KeyManagerConfig>;
+
+  // Services
+  private readonly configService: KeyConfigurationService;
+  private readonly storageService: KeyStorageService;
+  private readonly lifecycleService: KeyLifecycleService;
+  private readonly rotationService: KeyRotationService;
+  private readonly historyService: RotationHistoryService;
+
+  // State
+  public currentKeys: KeyPair | null = null;
+  public rotationState: KeyRotationState;
+  public isInitialized = false;
+  public lastValidation: Date | null = null;
+  public cleanupTimer: NodeJS.Timeout | null = null;
+
+  private constructor(config: KeyManagerConfig = {}) {
+    this.config = { ...DEFAULT_KEY_MANAGER_OPTIONS, ...config };
+
+    // Instantiate services
+    this.configService = new KeyConfigurationService();
+    this.storageService = new KeyStorageService(this.config);
+    this.lifecycleService = new KeyLifecycleService(this.config);
+    this.rotationService = new KeyRotationService(this.config);
+    this.historyService = new RotationHistoryService(this.config);
+
+    this.rotationState = {
+      isRotating: false,
+      rotationPromise: null,
+      rotationStartTime: null,
+      previousKeys: null,
+      newKeys: null,
+    };
+  }
+
+  public static getInstance(config?: KeyManagerConfig): KeyManagerV2 {
+    if (!KeyManagerV2.instance) {
+      KeyManagerV2.instance = new KeyManagerV2(config);
+    }
+    return KeyManagerV2.instance;
+  }
+
+  public static resetInstance(): void {
+    if (KeyManagerV2.instance) {
+      KeyManagerV2.instance.cleanup();
+    }
+    KeyManagerV2.instance = null;
+  }
+
+  private cleanup(): void {
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+    this.lifecycleService.securelyClearKeys([
+      this.currentKeys,
+      this.rotationState.previousKeys,
+      this.rotationState.newKeys,
+    ]);
+    this.currentKeys = null;
+    this.lastValidation = null;
+    this.isInitialized = false;
+    this.rotationState = {
+      isRotating: false,
+      rotationPromise: null,
+      rotationStartTime: null,
+      previousKeys: null,
+      newKeys: null,
+    };
+  }
+
+  public async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+
+    try {
+      // 1. Validate configuration
+      this.configService.validateConfig(this.config);
+
+      // 2. Ensure cert directory exists
+      await this.storageService.ensureCertDirectory();
+
+      // 3. Load existing keys or generate new ones
+      let keys = await this.storageService.loadKeysFromFile();
+      if (!keys) {
+        if (this.config.autoGenerate) {
+          console.log(`🔑 Generating new key pair (PRESET: ${this.config.preset})...`);
+          const nextVersion = (await this.historyService.getNextVersionNumber()) ?? 1;
+          keys = this.lifecycleService.createNewKeyPair({ version: nextVersion });
+          if (this.config.enableFileBackup) {
+            await this.storageService.saveKeysToFile(keys);
+            await this.historyService.updateRotationHistory(keys);
+          }
+        } else {
+          throw createAppropriateError('No keys found and auto-generation is disabled', {
+            preset: this.config.preset,
+            errorType: 'keymanager',
+            operation: 'initialization',
+          });
+        }
+      }
+      this.currentKeys = keys;
+
+      // 4. Validate current keys
+      const validation = await this.lifecycleService.validateKeys(this.currentKeys);
+      if (!validation.isValid) {
+        throw createAppropriateError(`Key validation failed: ${validation.errors.join(', ')}`, {
+          preset: this.config.preset,
+          errorType: 'keymanager',
+          operation: 'initialization',
+          cause: new Error('Key validation failed'),
+        });
+      }
+
+      this.isInitialized = true;
+      this.lastValidation = new Date();
+      console.log('✅ KeyManagerV2 initialized successfully');
+    } catch (error) {
+      const initError = createAppropriateError(
+        `KeyManagerV2 initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          preset: this.config.preset,
+          errorType: 'keymanager',
+          operation: 'initialization',
+          cause: error instanceof Error ? error : new Error('Unknown initialization error'),
+        },
+      );
+      throw initError;
+    }
+  }
+
+  public async ensureValidKeys(): Promise<KeyPair> {
+    if (this.rotationState.isRotating && this.rotationState.rotationPromise !== null) {
+      await this.rotationState.rotationPromise;
+    }
+
+    if (this.rotationService.needsRotation(this.currentKeys)) {
+      await this.rotateKeys();
+    }
+
+    if (this.currentKeys === null) {
+      throw createAppropriateError('No valid keys available after rotation attempt', {
+        errorType: 'keymanager',
+        operation: 'retrieval',
+        preset: this.config.preset,
+        rotationState: this.rotationState.isRotating ? 'rotating' : 'idle',
+      });
+    }
+
+    return this.currentKeys;
+  }
+
+  public async getPublicKey(): Promise<Uint8Array> {
+    const keys = await this.ensureValidKeys();
+    return keys.publicKey;
+  }
+
+  public async getPublicKeyBase64(): Promise<string> {
+    const publicKey = await this.getPublicKey();
+    return BufferUtils.encodeBase64(publicKey);
+  }
+
+  public async getPrivateKey(): Promise<Uint8Array> {
+    const keys = await this.ensureValidKeys();
+    if (!keys.secretKey) {
+      throw new Error('No private/secret key found in key pair');
+    }
+    return keys.secretKey;
+  }
+
+  public async getPrivateKeyBase64(): Promise<string> {
+    const privateKey = await this.getPrivateKey();
+    return BufferUtils.encodeBase64(privateKey);
+  }
+
+  public async getKeyPair(): Promise<KeyPair> {
+    return await this.ensureValidKeys();
+  }
+
+  public async getDecryptionKeys(): Promise<KeyPair[]> {
+    const keys = [await this.ensureValidKeys()];
+
+    if (
+      this.rotationState.previousKeys &&
+      this.rotationService.isInGracePeriod(this.rotationState)
+    ) {
+      keys.push(this.rotationState.previousKeys);
+    }
+
+    return keys;
+  }
+
+  public async rotateKeys(): Promise<void> {
+    if (this.rotationState.isRotating && this.rotationState.rotationPromise) {
+      return this.rotationState.rotationPromise;
+    }
+
+    const rotationLogic = async () => {
+      this.rotationState.isRotating = true;
+      this.rotationState.rotationStartTime = new Date();
+
+      const { newKeys, previousKeys } = await this.rotationService.performKeyRotation(
+        this.currentKeys,
+        this.lifecycleService,
+        this.storageService,
+        this.historyService,
+      );
+
+      this.rotationState.previousKeys = previousKeys;
+      this.rotationState.newKeys = newKeys;
+      this.currentKeys = newKeys;
+      this.lastValidation = new Date();
+
+      // Clean up rotation state after grace period
+      this.cleanupTimer = setTimeout(
+        () => {
+          const clearedState = this.rotationService.cleanupRotationState();
+          this.lifecycleService.securelyClearKey(this.rotationState.previousKeys);
+          this.rotationState = clearedState;
+        },
+        this.config.rotationGracePeriod * 60 * 1000,
+      );
+
+      this.rotationState.isRotating = false;
+      this.rotationState.rotationPromise = null;
+    };
+
+    this.rotationState.rotationPromise = rotationLogic().catch(error => {
+      this.rotationState.isRotating = false;
+      this.rotationState.rotationPromise = null;
+      this.rotationState.rotationStartTime = null;
+      this.rotationState.newKeys = null;
+      throw error; // re-throw the error from performKeyRotation
+    });
+
+    return this.rotationState.rotationPromise;
+  }
+
+  public async getStatus(): Promise<KeyManagerStatus> {
+    const validation = this.currentKeys
+      ? await this.lifecycleService.validateKeys(this.currentKeys)
+      : { isValid: false, hasExpired: true };
+
+    return {
+      hasKeys: this.currentKeys !== null,
+      keysValid: validation.isValid,
+      keysExpired: this.currentKeys ? validation.hasExpired : true,
+      isRotating: this.rotationState.isRotating,
+      currentKeyVersion: this.currentKeys?.metadata.version || null,
+      createdAt: this.currentKeys?.metadata.createdAt || null,
+      expiresAt: this.currentKeys?.metadata.expiresAt || null,
+      certPath: this.config.certPath,
+      lastRotation: this.rotationState.rotationStartTime,
+    };
+  }
+
+  public async healthCheck(): Promise<{ healthy: boolean; issues: string[] }> {
+    const issues: string[] = [];
+
+    try {
+      if (!this.isInitialized) {
+        issues.push('KeyManager not initialized');
+      }
+
+      if (!this.currentKeys) {
+        issues.push('No keys available');
+      } else {
+        const validation = await this.lifecycleService.validateKeys(this.currentKeys);
+        if (!validation.isValid) {
+          issues.push(...validation.errors);
+        }
+      }
+
+      if (this.rotationService.needsRotation(this.currentKeys)) {
+        issues.push('Keys need rotation');
+      }
+
+      return {
+        healthy: issues.length === 0,
+        issues,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        healthy: false,
+        issues: [`Health check failed: ${message}`],
+      };
+    }
+  }
+
+  public getConfig(): Required<KeyManagerConfig> {
+    return { ...this.config };
+  }
+}
