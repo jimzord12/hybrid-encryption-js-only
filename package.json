@@ -2,7 +2,8 @@
   "name": "hybrid-encryption-js-only",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
+  "main": "./dist/server/server.cjs",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -22,7 +23,8 @@
     "format:check": "prettier --check .",
     "quality-check": "npm run lint:errors && npm run type-check",
     "prepare": "husky",
-    "pre-commit": "lint-staged"
+    "pre-commit": "lint-staged",
+    "bundle": "tsdown"
   },
   "repository": {
     "type": "git",
@@ -31,7 +33,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/jimzord12/hybrid-encryption-js-only/issues"
   },
@@ -66,5 +67,14 @@
     "*.{js,jsx,json,css,scss,md,yaml,yml}": [
       "prettier --write"
     ]
+  },
+  "module": "./dist/server/server.js",
+  "types": "./dist/server/server.d.cts",
+  "exports": {
+    ".": {
+      "import": "./dist/server/server.js",
+      "require": "./dist/server/server.cjs"
+    },
+    "./package.json": "./package.json"
   }
 }
