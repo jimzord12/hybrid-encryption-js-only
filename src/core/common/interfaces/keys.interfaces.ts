@@ -22,3 +22,8 @@ export type SerializableKeyPair = Keys & {
     expiresAt: string;
   };
 };
+
+export interface MlKemSecrets {
+  sharedSecret: Uint8Array<ArrayBufferLike>;
+  cipherText: Uint8Array<ArrayBufferLike>;
+}

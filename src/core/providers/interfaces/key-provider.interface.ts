@@ -1,4 +1,4 @@
-import { KeyPair, Keys } from '../../common/interfaces/keys.interfaces';
+import { KeyPair } from '../../common/interfaces/keys.interfaces';
 import { SerializedKeys } from '../../common/interfaces/serialization.interfaces';
 import { ValidationResult } from '../../common/interfaces/validation.interfaces';
 
@@ -10,8 +10,12 @@ export abstract class KeyProvider {
   /**
    * Generate a new key pair
    */
-  generateKeyPair(): Keys {
+  generateKeyPair(_metadata?: Partial<KeyPair['metadata']>): KeyPair {
     throw new Error('generateKeyPair method not implemented');
+  }
+
+  addMetaDataToKeys(_metadata?: Partial<KeyPair['metadata']>): KeyPair['metadata'] {
+    throw new Error('addMetaDataToKeys method not implemented');
   }
 
   /**

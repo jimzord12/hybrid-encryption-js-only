@@ -136,7 +136,7 @@ export class KeyStorageService {
         fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8'),
       ]);
 
-      // Set secure permissions on private key file
+      // Set secure permissions on secret key file
       if (process.platform === 'win32') {
         // Windows: Set file as read-only and try to set NTFS permissions
         try {
@@ -215,7 +215,7 @@ export class KeyStorageService {
 
     try {
       const files = await fs.readdir(backupDir);
-      const expiredFiles = files.filter(file => {
+      const expiredFiles = files.filter((file) => {
         const match = file.match(/expired-(\d{4}-\d{2})/);
         if (!match) return false;
 

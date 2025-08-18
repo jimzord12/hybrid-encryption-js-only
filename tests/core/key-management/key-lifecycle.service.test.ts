@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';
-import { KeyLifecycleService } from '../../../src/core/key-management/v2/key-lifecycle.service';
-import { TEST_CONFIG_V2 } from './test-utils';
+import { KeyLifecycleService } from '../../../src/core/key-management/services/key-lifecycle.service';
+import { TEST_CONFIG } from './test-utils';
 
 describe('KeyLifecycleService', () => {
   let lifecycleService: KeyLifecycleService;
 
   beforeEach(() => {
-    lifecycleService = new KeyLifecycleService(TEST_CONFIG_V2);
+    lifecycleService = new KeyLifecycleService(TEST_CONFIG);
   });
 
   describe('createNewKeyPair', () => {
@@ -18,7 +18,7 @@ describe('KeyLifecycleService', () => {
       expect(keyPair.publicKey).toBeInstanceOf(Uint8Array);
       expect(keyPair.secretKey).toBeInstanceOf(Uint8Array);
       expect(keyPair.metadata.version).toBe(1);
-      expect(keyPair.metadata.preset).toBe(TEST_CONFIG_V2.preset);
+      expect(keyPair.metadata.preset).toBe(TEST_CONFIG.preset);
     });
   });
 
@@ -50,8 +50,8 @@ describe('KeyLifecycleService', () => {
     it('should clear the key material from a key pair', () => {
       const keyPair = lifecycleService.createNewKeyPair();
       lifecycleService.securelyClearKey(keyPair);
-      expect(keyPair.publicKey.every(b => b === 0)).toBe(true);
-      expect(keyPair.secretKey.every(b => b === 0)).toBe(true);
+      expect(keyPair.publicKey.every((b) => b === 0)).toBe(true);
+      expect(keyPair.secretKey.every((b) => b === 0)).toBe(true);
     });
   });
 });

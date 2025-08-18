@@ -245,15 +245,16 @@ export class Serialization {
    * Parse JSON string back to original type
    */
   private static fromJsonString(jsonString: string, _originalType?: string): any {
-    const parsed = JSON.parse(jsonString);
+    const parsed: (object & { __type: string; value: SerializableData }) | null =
+      JSON.parse(jsonString);
 
     // Handle type-preserved data
-    if (parsed && typeof parsed === 'object' && parsed.__type) {
+    if (parsed != null && typeof parsed === 'object' && parsed.__type) {
       switch (parsed.__type) {
         case 'undefined':
           return undefined;
         case 'Uint8Array':
-          return new Uint8Array(parsed.value);
+          return new Uint8Array(parsed.value as Uint8Array);
         case 'string':
         case 'number':
         case 'boolean':

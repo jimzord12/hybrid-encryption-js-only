@@ -45,7 +45,7 @@ export const expected: string[][] = [
 ];
 
 export const keyPairsToTest = typesToTest.map(
-  type =>
+  (type) =>
     ({
       publicKey: type as any,
       secretKey: type as any,

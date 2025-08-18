@@ -34,7 +34,7 @@ security features.
 1. **Strategy Pattern**: For algorithm-agnostic key providers (`KeyProvider`
    interface)
 2. **Singleton Pattern**: For `KeyManager` instance management
-4. **Repository Pattern**: For key storage and serialization
+3. **Repository Pattern**: For key storage and serialization
 
 ## Technology Stack
 

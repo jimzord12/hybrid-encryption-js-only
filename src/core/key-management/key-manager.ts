@@ -1,20 +1,16 @@
-import { createAppropriateError } from '../../../core/common/errors';
-import { KeyPair } from '../../../core/common/interfaces/keys.interfaces';
-import { DEFAULT_KEY_MANAGER_OPTIONS } from '../../../core/key-management/constants/defaults.constants';
-import {
-  KeyManagerConfig,
-  KeyManagerStatus,
-  KeyRotationState,
-} from '../../../core/key-management/types/key-manager.types';
-import { BufferUtils } from '../../../core/utils';
-import { KeyConfigurationService } from './key-configuration.service';
-import { KeyLifecycleService } from './key-lifecycle.service';
-import { KeyRotationService } from './key-rotation.service';
-import { KeyStorageService } from './key-storage.service';
-import { RotationHistoryService } from './rotation-history.service';
+import { createAppropriateError } from '../common/errors';
+import { KeyPair } from '../common/interfaces/keys.interfaces';
+import { BufferUtils } from '../utils';
+import { DEFAULT_KEY_MANAGER_OPTIONS } from './constants/defaults.constants';
+import { KeyConfigurationService } from './services/key-configuration.service';
+import { KeyLifecycleService } from './services/key-lifecycle.service';
+import { KeyRotationService } from './services/key-rotation.service';
+import { KeyStorageService } from './services/key-storage.service';
+import { RotationHistoryService } from './services/rotation-history.service';
+import { KeyManagerConfig, KeyManagerStatus, KeyRotationState } from './types/key-manager.types';
 
-export class KeyManagerV2 {
-  public static instance: KeyManagerV2 | null = null;
+export class KeyManager {
+  public static instance: KeyManager | null = null;
 
   private readonly config: Required<KeyManagerConfig>;
 
@@ -51,18 +47,18 @@ export class KeyManagerV2 {
     };
   }
 
-  public static getInstance(config?: KeyManagerConfig): KeyManagerV2 {
-    if (!KeyManagerV2.instance) {
-      KeyManagerV2.instance = new KeyManagerV2(config);
+  public static getInstance(config?: KeyManagerConfig): KeyManager {
+    if (!KeyManager.instance) {
+      KeyManager.instance = new KeyManager(config);
     }
-    return KeyManagerV2.instance;
+    return KeyManager.instance;
   }
 
   public static resetInstance(): void {
-    if (KeyManagerV2.instance) {
-      KeyManagerV2.instance.cleanup();
+    if (KeyManager.instance) {
+      KeyManager.instance.cleanup();
     }
-    KeyManagerV2.instance = null;
+    KeyManager.instance = null;
   }
 
   private cleanup(): void {
@@ -131,10 +127,10 @@ export class KeyManagerV2 {
 
       this.isInitialized = true;
       this.lastValidation = new Date();
-      console.log('✅ KeyManagerV2 initialized successfully');
+      console.log('✅ KeyManager initialized successfully');
     } catch (error) {
       const initError = createAppropriateError(
-        `KeyManagerV2 initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `KeyManager initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         {
           preset: this.config.preset,
           errorType: 'keymanager',
@@ -177,17 +173,17 @@ export class KeyManagerV2 {
     return BufferUtils.encodeBase64(publicKey);
   }
 
-  public async getPrivateKey(): Promise<Uint8Array> {
+  public async getSecretKey(): Promise<Uint8Array> {
     const keys = await this.ensureValidKeys();
     if (!keys.secretKey) {
-      throw new Error('No private/secret key found in key pair');
+      throw new Error('No secret key found in key pair');
     }
     return keys.secretKey;
   }
 
-  public async getPrivateKeyBase64(): Promise<string> {
-    const privateKey = await this.getPrivateKey();
-    return BufferUtils.encodeBase64(privateKey);
+  public async getSecretKeyBase64(): Promise<string> {
+    const secretKey = await this.getSecretKey();
+    return BufferUtils.encodeBase64(secretKey);
   }
 
   public async getKeyPair(): Promise<KeyPair> {
@@ -235,14 +231,14 @@ export class KeyManagerV2 {
           this.lifecycleService.securelyClearKey(this.rotationState.previousKeys);
           this.rotationState = clearedState;
         },
-        this.config.rotationGracePeriod * 60 * 1000,
+        this.config.rotationGracePeriodInMinutes * 60 * 1000 + 100,
       );
 
       this.rotationState.isRotating = false;
       this.rotationState.rotationPromise = null;
     };
 
-    this.rotationState.rotationPromise = rotationLogic().catch(error => {
+    this.rotationState.rotationPromise = rotationLogic().catch((error) => {
       this.rotationState.isRotating = false;
       this.rotationState.rotationPromise = null;
       this.rotationState.rotationStartTime = null;

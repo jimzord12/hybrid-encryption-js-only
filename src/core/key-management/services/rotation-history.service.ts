@@ -13,7 +13,7 @@ export class RotationHistoryService {
   private rotationHistoryCache: RotationHistory | null = null;
   private rotationHistoryCacheTime: number | null = null;
   private readonly ROTATION_HISTORY_CACHE_TTL =
-    DEFAULT_KEY_MANAGER_OPTIONS.rotationGracePeriod * 60 * 1000; // 5 minutes
+    DEFAULT_KEY_MANAGER_OPTIONS.rotationGracePeriodInMinutes * 60 * 1000; // 15 minutes
 
   constructor(config: Pick<Required<KeyManagerConfig>, 'certPath'>) {
     this.config = config;
@@ -33,7 +33,7 @@ export class RotationHistoryService {
     console.log('🍁 History Rotations: ', history);
 
     // Find the highest version number and increment
-    const maxVersion = Math.max(...history.rotations.map(r => r.version));
+    const maxVersion = Math.max(...history.rotations.map((r) => r.version));
     return maxVersion + 1;
   }
 

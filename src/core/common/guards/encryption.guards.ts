@@ -37,7 +37,7 @@ export function isKeyPair(obj: any): obj is KeyPair {
     obj !== null &&
     typeof obj.algorithm === 'string' &&
     obj.publicKey instanceof Uint8Array &&
-    obj.privateKey instanceof Uint8Array &&
+    obj.secretKey instanceof Uint8Array &&
     typeof obj.metadata === 'object' &&
     obj.metadata !== null &&
     typeof obj.metadata.version === 'number' &&

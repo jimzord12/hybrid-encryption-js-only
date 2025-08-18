@@ -1,28 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { KeyManagerV2 } from '../../../src/core/key-management/v2/key-manager.v2';
-import { TEST_CONFIG_V2, cleanTestDirectory } from './test-utils';
+import { KeyManager } from '../../../src/core/key-management/key-manager';
+import { TEST_CONFIG, cleanTestDirectory } from './test-utils';
 
-describe('KeyManagerV2', () => {
+describe('KeyManager', () => {
   beforeEach(async () => {
-    KeyManagerV2.resetInstance();
+    KeyManager.resetInstance();
     await cleanTestDirectory();
   });
 
   afterEach(() => {
-    KeyManagerV2.resetInstance();
+    KeyManager.resetInstance();
   });
 
   describe('Singleton Pattern', () => {
     it('should return the same instance on multiple calls', () => {
-      const instance1 = KeyManagerV2.getInstance();
-      const instance2 = KeyManagerV2.getInstance();
+      const instance1 = KeyManager.getInstance();
+      const instance2 = KeyManager.getInstance();
       expect(instance1).toBe(instance2);
     });
   });
 
   describe('Initialization', () => {
     it('should initialize successfully with default config', async () => {
-      const manager = KeyManagerV2.getInstance(TEST_CONFIG_V2);
+      const manager = KeyManager.getInstance(TEST_CONFIG);
       await expect(manager.initialize()).resolves.not.toThrow();
       const status = await manager.getStatus();
       expect(status.hasKeys).toBe(true);
@@ -30,8 +30,8 @@ describe('KeyManagerV2', () => {
     });
 
     it('should fail when no keys exist and autoGenerate is false', async () => {
-      const config = { ...TEST_CONFIG_V2, autoGenerate: false };
-      const manager = KeyManagerV2.getInstance(config);
+      const config = { ...TEST_CONFIG, autoGenerate: false };
+      const manager = KeyManager.getInstance(config);
       await expect(manager.initialize()).rejects.toThrow(
         'No keys found and auto-generation is disabled',
       );
@@ -39,19 +39,19 @@ describe('KeyManagerV2', () => {
   });
 
   describe('Key Access', () => {
-    it('should get public and private keys', async () => {
-      const manager = KeyManagerV2.getInstance(TEST_CONFIG_V2);
+    it('should get public and secret keys', async () => {
+      const manager = KeyManager.getInstance(TEST_CONFIG);
       await manager.initialize();
       const publicKey = await manager.getPublicKeyBase64();
-      const privateKey = await manager.getPrivateKeyBase64();
+      const secretKey = await manager.getSecretKeyBase64();
       expect(publicKey).toBeTruthy();
-      expect(privateKey).toBeTruthy();
+      expect(secretKey).toBeTruthy();
     });
   });
 
   describe('Key Rotation', () => {
     it('should rotate keys when needed', async () => {
-      const manager = KeyManagerV2.getInstance(TEST_CONFIG_V2);
+      const manager = KeyManager.getInstance(TEST_CONFIG);
       await manager.initialize();
       const initialKeys = await manager.getKeyPair();
 
@@ -69,7 +69,7 @@ describe('KeyManagerV2', () => {
 
   describe('Status and Health Check', () => {
     it('should return a healthy status', async () => {
-      const manager = KeyManagerV2.getInstance(TEST_CONFIG_V2);
+      const manager = KeyManager.getInstance(TEST_CONFIG);
       await manager.initialize();
       const health = await manager.healthCheck();
       expect(health.healthy).toBe(true);

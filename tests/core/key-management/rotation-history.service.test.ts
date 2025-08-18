@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs/promises';
 import path from 'path';
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';
-import { KeyLifecycleService } from '../../../src/core/key-management/v2/key-lifecycle.service';
-import { RotationHistoryService } from '../../../src/core/key-management/v2/rotation-history.service';
-import { TEST_CERT_PATH_V2, TEST_CONFIG_V2, cleanTestDirectory } from './test-utils';
+import { KeyLifecycleService } from '../../../src/core/key-management/services/key-lifecycle.service';
+import { RotationHistoryService } from '../../../src/core/key-management/services/rotation-history.service';
+import { TEST_CERT_PATH, TEST_CONFIG, cleanTestDirectory } from './test-utils';
 
 describe('RotationHistoryService', () => {
   let historyService: RotationHistoryService;
@@ -14,8 +14,8 @@ describe('RotationHistoryService', () => {
 
   beforeEach(async () => {
     await cleanTestDirectory();
-    historyService = new RotationHistoryService(TEST_CONFIG_V2);
-    lifecycleService = new KeyLifecycleService(TEST_CONFIG_V2);
+    historyService = new RotationHistoryService(TEST_CONFIG);
+    lifecycleService = new KeyLifecycleService(TEST_CONFIG);
     testKeys = lifecycleService.createNewKeyPair();
   });
 
@@ -60,7 +60,7 @@ describe('RotationHistoryService', () => {
       await historyService.getRotationHistory();
 
       // Corrupt the history file
-      const historyPath = path.join(TEST_CERT_PATH_V2, 'rotation-history.json');
+      const historyPath = path.join(TEST_CERT_PATH, 'rotation-history.json');
       await fs.writeFile(historyPath, 'invalid-json', 'utf8');
 
       // Second call, should read from cache

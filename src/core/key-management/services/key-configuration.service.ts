@@ -18,9 +18,9 @@ export class KeyConfigurationService {
     }
 
     // Validate rotation grace period
-    if (config.rotationGracePeriod < 0) {
+    if (config.rotationGracePeriodInMinutes < 0) {
       errors.push(
-        `Rotation grace period cannot be negative (got ${config.rotationGracePeriod})`,
+        `Rotation grace period cannot be negative (got ${config.rotationGracePeriodInMinutes})`,
       );
     }
 

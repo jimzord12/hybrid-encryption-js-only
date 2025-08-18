@@ -176,13 +176,18 @@ import {
 
 const app = express();
 
-// Add encryption and decryption middleware
-app.use(
-  encryptionMiddleware({
-    asymmetricAlgorithm: 'ML-KEM-768',
-    certPath: './config/certs',
-  }),
-);
+// Initialize HybridEncryption Server
+await hybridEncryptionServerInit({
+  preset: Preset.NORMAL,
+  certPath: './config/certs/keys',
+  keyExpiryMonths: 1,
+  autoGenerate: true,
+  enableFileBackup: true,
+  rotationGracePeriod: 15 * 60 * 1000, // 15 minutes in ms
+} satisfies KeyManagerConfig);
+
+// In your middleware Add encryption and decryption middleware
+app.use(encryptionMiddleware());
 
 app.use(decryptionMiddleware());
 

@@ -89,11 +89,11 @@ console.log();
 // ===== Maps and Sets =====
 console.log('🗺️ Maps and Sets:');
 
-const map1 = new Map([
+const map1 = new Map<string, string | object>([
   ['key1', 'value1'],
   ['key2', { nested: 'data' }],
 ]);
-const map2 = new Map([
+const map2 = new Map<string, any>([
   ['key1', 'value1'],
   ['key2', { nested: 'data' }],
 ]);

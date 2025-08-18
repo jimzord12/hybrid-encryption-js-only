@@ -1,11 +1,11 @@
-import { KeyManagerV2 } from '../src/v2/core/key-management/key-manager.v2';
-import { Preset } from '../src/core/common/enums';
 import { rm } from 'fs/promises';
+import { Preset } from '../src/core/common/enums';
+import { KeyManager } from '../src/core/key-management/key-manager';
 
 async function main() {
-  console.log('--- KeyManagerV2 Example ---');
+  console.log('--- KeyManager Example ---');
 
-  const certPath = './example-certs-v2';
+  const certPath = './config/certs/keys';
 
   // Clean up previous run
   await rm(certPath, { recursive: true, force: true });
@@ -16,23 +16,23 @@ async function main() {
     keyExpiryMonths: 1,
     autoGenerate: true,
     enableFileBackup: true,
-    rotationGracePeriod: 1, // 1 minute
+    rotationGracePeriod: 15, // 1 minute
   };
 
-  // 1. Get an instance of KeyManagerV2
-  const keyManager = KeyManagerV2.getInstance(config);
-  console.log('KeyManagerV2 instance created.');
+  // 1. Get an instance of KeyManager
+  const keyManager = KeyManager.getInstance(config);
+  console.log('KeyManager instance created.');
 
   // 2. Initialize the key manager
   await keyManager.initialize();
-  console.log('KeyManagerV2 initialized.');
+  console.log('KeyManager initialized.');
 
   // 3. Access keys
   const publicKey = await keyManager.getPublicKeyBase64();
   console.log('Public Key (Base64):', publicKey.substring(0, 30) + '...');
 
-  const privateKey = await keyManager.getPrivateKeyBase64();
-  console.log('Private Key (Base64):', privateKey.substring(0, 30) + '...');
+  const secretKey = await keyManager.getSecretKeyBase64();
+  console.log('Secret Key (Base64):', secretKey.substring(0, 30) + '...');
 
   // 4. Check health
   const health = await keyManager.healthCheck();
@@ -49,6 +49,6 @@ async function main() {
   console.log('--- Example End ---');
 }
 
-main().catch(error => {
-    console.error('An error occurred in the example:', error);
+main().catch((error) => {
+  console.error('An error occurred in the example:', error);
 });

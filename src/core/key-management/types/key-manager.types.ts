@@ -21,7 +21,7 @@ export interface KeyManagerConfig {
   keyExpiryMonths?: number; // Key expiry in months (default: 1)
   autoGenerate?: boolean; // Auto-generate keys (default: true)
   enableFileBackup?: boolean; // Backup keys to filesystem (default: true)
-  rotationGracePeriod?: number; // Grace period in minutes during rotation (default: 15)
+  rotationGracePeriodInMinutes?: number; // Grace period in minutes during rotation (default: 15)
 }
 
 export interface KeyRotationState {

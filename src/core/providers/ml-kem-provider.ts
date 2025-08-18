@@ -1,7 +1,7 @@
 import { Preset } from '../common/enums';
 import { createAppropriateError } from '../common/errors';
 import { isValidPreset } from '../common/guards/enum.guards';
-import { KeyPair, Keys } from '../common/interfaces/keys.interfaces';
+import { KeyPair } from '../common/interfaces/keys.interfaces';
 import { SerializedKeys } from '../common/interfaces/serialization.interfaces';
 import { ValidationResult } from '../common/interfaces/validation.interfaces';
 import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
@@ -33,20 +33,38 @@ export class MlKemKeyProvider implements KeyProvider {
     this.mlKem = new MLKEMAlgorithm(this.preset);
   }
 
-  generateKeyPair(): Keys {
+  generateKeyPair(metadata?: Partial<KeyPair['metadata']>): KeyPair {
     const { publicKey, secretKey } = this.mlKem.generateKeyPair();
-
-    const now = new Date();
-    const expiryDate = new Date(now);
-    expiryDate.setMonth(expiryDate.getMonth() + (DEFAULT_KEY_MANAGER_OPTIONS.keyExpiryMonths || 1));
+    const finalMetadata = this.addMetaDataToKeys(metadata);
 
     return {
       publicKey,
       secretKey: secretKey,
+      metadata: finalMetadata,
     };
   }
 
+  addMetaDataToKeys(metadata?: Partial<KeyPair['metadata']>): KeyPair['metadata'] {
+    const now = new Date();
+    let expiryDate: Date;
 
+    if (metadata?.expiresAt && metadata.expiresAt instanceof Date) {
+      expiryDate = metadata.expiresAt;
+    } else if (metadata?.expiresAt && typeof metadata.expiresAt === 'string') {
+      expiryDate = new Date(metadata.expiresAt);
+    } else {
+      expiryDate = now;
+    }
+
+    expiryDate.setMonth(expiryDate.getMonth() + (DEFAULT_KEY_MANAGER_OPTIONS.keyExpiryMonths || 1));
+
+    return {
+      preset: this.preset,
+      createdAt: new Date(),
+      expiresAt: expiryDate,
+      version: metadata?.version || 1,
+    };
+  }
 
   /**
    * Validate that a key pair is properly formatted

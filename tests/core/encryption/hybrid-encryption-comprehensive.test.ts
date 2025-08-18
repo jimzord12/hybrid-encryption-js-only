@@ -7,17 +7,15 @@ import {
 } from '../../../src/core/common/errors';
 import { EncryptedData } from '../../../src/core/common/interfaces/encryption.interfaces';
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';
-import {
-  AsymmetricAlgorithm,
-  HybridEncryption,
-  SymmetricAlgorithm,
-} from '../../../src/core/encryption';
+import { Base64 } from '../../../src/core/common/types/branded-types.types';
+import { AsymmetricAlgorithm, SymmetricAlgorithm } from '../../../src/core/encryption';
 import { MLKEMAlgorithm } from '../../../src/core/encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
 import {
   AES_GCM_STATS,
   ML_KEM_STATS,
-} from '../../../src/core/encryption/constants/defaults.constants';
-import { bytesNumToBase64Length } from '../../debug/calculations';
+} from '../../../src/core/encryption/constants/encryption.constants';
+import { HybridEncryption } from '../../../src/core/encryption/hybrid-encryption-all-public';
+import { bytesNumToBase64Length } from '../utils/debug/calculations';
 
 describe('Hybrid Encryption - Comprehensive Tests', () => {
   let validKeyPair: KeyPair;
@@ -242,7 +240,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
         { complex: { nested: { deep: { value: 'test' } } } },
       ];
 
-      testCases.forEach((data, index) => {
+      testCases.forEach((data) => {
         const result = hybridEncryption.encrypt(data, validKeyPair.publicKey);
         expect(result.preset).toBe(Preset.NORMAL);
         expect(result.encryptedContent).toBeTypeOf('string');
@@ -399,7 +397,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
         { complex: { nested: { array: [{ id: 1 }, { id: 2 }] } } },
       ];
 
-      testCases.forEach(originalData => {
+      testCases.forEach((originalData) => {
         const encrypted = hybridEncryption.encrypt(originalData, validKeyPair.publicKey);
         const decrypted = hybridEncryption.decrypt(encrypted, validKeyPair.secretKey);
         expect(decrypted).toEqual(originalData);
@@ -455,7 +453,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
         },
       ];
 
-      malformedData.forEach(invalidData => {
+      malformedData.forEach((invalidData) => {
         expect(() => {
           hybridEncryption.decrypt(invalidData as any, validKeyPair.secretKey);
         }).toThrow();
@@ -498,10 +496,10 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
 
       // Create additional key pairs for fallback testing
       additionalKeyPairs = Array.from({ length: 3 }, () => ({
-        preset: Preset.NORMAL,
         publicKey: randomBytes(ML_KEM_STATS.publicKeyLength[Preset.NORMAL]),
         secretKey: randomBytes(ML_KEM_STATS.secretKeyLength[Preset.NORMAL]),
         metadata: {
+          preset: Preset.NORMAL,
           createdAt: new Date(),
           version: 1,
           expiresAt: new Date(Date.now() + 1000 * 60 * 60),
@@ -510,7 +508,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
     });
 
     it('should decrypt with primary key (first in array)', () => {
-      const keys = [validKeyPair.secretKey, ...additionalKeyPairs.map(kp => kp.secretKey)];
+      const keys = [validKeyPair.secretKey, ...additionalKeyPairs.map((kp) => kp.secretKey)];
       const decrypted = hybridEncryption.decryptWithGracePeriod(encryptedData, keys);
 
       expect(decrypted).toEqual({ message: 'grace period test' });
@@ -530,7 +528,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
     });
 
     it('should throw when no valid keys are provided', () => {
-      const invalidKeys = additionalKeyPairs.map(kp => kp.secretKey);
+      const invalidKeys = additionalKeyPairs.map((kp) => kp.secretKey);
 
       expect(() => {
         hybridEncryption.decryptWithGracePeriod(encryptedData, invalidKeys);
@@ -551,7 +549,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
     });
 
     it('should throw meaningful error when all keys fail', () => {
-      const invalidKeys = additionalKeyPairs.map(kp => kp.secretKey);
+      const invalidKeys = additionalKeyPairs.map((kp) => kp.secretKey);
 
       expect(() => {
         hybridEncryption.decryptWithGracePeriod(encryptedData, invalidKeys);
@@ -589,7 +587,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
       // Corrupt the encrypted content
       const corruptedData = {
         ...validEncrypted,
-        encryptedContent: validEncrypted.encryptedContent.replace(/./g, 'X'),
+        encryptedContent: validEncrypted.encryptedContent.replace(/./g, 'X') as Base64,
       };
 
       expect(() => {
@@ -603,7 +601,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
       // Corrupt the ciphertext
       const corruptedData = {
         ...validEncrypted,
-        cipherText: validEncrypted.cipherText.replace(/./g, 'Y'),
+        cipherText: validEncrypted.cipherText.replace(/./g, 'Y') as Base64,
       };
 
       expect(() => {
@@ -617,7 +615,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
       // Corrupt the nonce
       const corruptedData = {
         ...validEncrypted,
-        nonce: validEncrypted.nonce.replace(/./g, 'Z'),
+        nonce: validEncrypted.nonce.replace(/./g, 'Z') as Base64,
       };
 
       expect(() => {
@@ -651,9 +649,9 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
       );
 
       // All ciphertexts should be different due to randomness
-      const uniqueCipherTexts = new Set(results.map(r => r.cipherText));
-      const uniqueNonces = new Set(results.map(r => r.nonce));
-      const uniqueContents = new Set(results.map(r => r.encryptedContent));
+      const uniqueCipherTexts = new Set(results.map((r) => r.cipherText));
+      const uniqueNonces = new Set(results.map((r) => r.nonce));
+      const uniqueContents = new Set(results.map((r) => r.encryptedContent));
 
       expect(uniqueCipherTexts.size).toBe(100);
       expect(uniqueNonces.size).toBe(100);
@@ -685,7 +683,7 @@ describe('Hybrid Encryption - Comprehensive Tests', () => {
 
       // Decrypt all in different order
       const shuffled = [...operations].sort(() => Math.random() - 0.5);
-      shuffled.forEach(op => {
+      shuffled.forEach((op) => {
         const decrypted = hybridEncryption.decrypt(op.encrypted, validKeyPair.secretKey);
         expect(decrypted).toEqual(data);
       });

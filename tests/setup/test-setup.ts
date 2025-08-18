@@ -2,7 +2,7 @@
 // This file runs before all tests to ensure proper isolation
 
 import { afterEach, beforeEach, vi } from 'vitest';
-import { waitFor } from '../debug/async';
+import { waitFor } from '../core/utils/debug/async';
 
 beforeEach(async () => {
   // Add small delay to prevent tests from stressing the computer

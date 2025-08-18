@@ -6,6 +6,3 @@ export { HybridEncryption } from './hybrid-encryption.js';
 // Export base classes
 export * from './interfaces/asymmetric-alg.interfaces.js';
 export * from './interfaces/symmetric-alg.interfaces.js';
-
-// Export types
-export * from './types.js';

@@ -403,7 +403,7 @@ describe('Serialization', () => {
         { nested: { object: true } },
       ];
 
-      serializableData.forEach(data => {
+      serializableData.forEach((data) => {
         expect(Serialization.isSerializable(data)).toBe(true);
       });
     });
@@ -518,7 +518,7 @@ describe('Serialization', () => {
       }
 
       // All results should be identical
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result).toEqual(testData);
       });
     });
@@ -594,9 +594,9 @@ describe('Serialization', () => {
     });
 
     it('should handle edge case data types (Easy)', () => {
-      Object.entries(edgeCasesTestCases).forEach(([description, testObj], idx) => {
+      Object.entries(edgeCasesTestCases).forEach(([_, testObj], idx) => {
         try {
-          const { expected, input } = testObj;
+          const { input } = testObj;
           console.log('IS DATE?: ', input instanceof Date);
           console.log('');
           console.log('-'.repeat(25), `| ${idx} | `, '-'.repeat(25));

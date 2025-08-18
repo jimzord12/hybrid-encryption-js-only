@@ -20,12 +20,13 @@ import { AEADParams, SymmetricAlgorithm } from './interfaces/symmetric-alg.inter
 import { AESGCMAlgorithm } from './symmetric/implementations/aes-gcm-alg.js';
 
 /**
- * Modern Hybrid Encryption implementation using KEM + AEAD approach
- * Replaces legacy RSA-based encryption with post-quantum secure algorithms
+ * 🧪 THIS IS A TEST VERSION OF THE CLASS 🧪
+ * ⚠️ ALL METHODS ARE PUBLIC FOR TESTING PURPOSES ⚠️
+ * 🚨 DO NOT USE IN PRODUCTION - DO NOT EXPORT TO PUBLIC API 🚨
  */
 export class HybridEncryption {
-  private asymmetricAlgorithm: AsymmetricAlgorithm;
-  private symmetricAlgorithm: SymmetricAlgorithm;
+  public asymmetricAlgorithm: AsymmetricAlgorithm;
+  public symmetricAlgorithm: SymmetricAlgorithm;
 
   constructor(public readonly preset: Preset = DEFAULT_ENCRYPTION_OPTIONS.preset) {
     // Initialize asymmetric algorithm based on preset
@@ -188,14 +189,14 @@ export class HybridEncryption {
 
       // Validate inputs
       if (!secretKey || !(secretKey instanceof Uint8Array)) {
-        throw createAppropriateError('Secret key must be a valid Uint8Array', {
+        throw createAppropriateError('public key must be a valid Uint8Array', {
           errorType: 'validation',
           preset: this.preset,
           operation: 'decrypt',
         });
       }
 
-      // Validate secret key length using constants - use AlgorithmAsymmetricError for key issues
+      // Validate public key length using constants - use AlgorithmAsymmetricError for key issues
       const expectedLength = this.preset === Preset.NORMAL ? 2400 : 3168;
       if (secretKey.length !== expectedLength) {
         throw createAppropriateError(
@@ -294,7 +295,7 @@ export class HybridEncryption {
     );
   }
 
-  private serializeData(data: any): Uint8Array {
+  public serializeData(data: any): Uint8Array {
     try {
       return Serialization.serializeForEncryption(data);
     } catch (error) {
@@ -308,7 +309,7 @@ export class HybridEncryption {
     }
   }
 
-  private deserializeData<T>(data: Uint8Array): T {
+  public deserializeData<T>(data: Uint8Array): T {
     try {
       return Serialization.deserializeFromDecryption<T>(data);
     } catch (error) {
@@ -322,11 +323,11 @@ export class HybridEncryption {
     }
   }
 
-  private encodeBase64(data: Uint8Array): Base64 {
+  public encodeBase64(data: Uint8Array): Base64 {
     return Serialization.encodeBase64(data) as Base64;
   }
 
-  private decodeBase64(data: Base64): Uint8Array {
+  public decodeBase64(data: Base64): Uint8Array {
     return Serialization.decodeBase64(data);
   }
 }

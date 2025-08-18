@@ -286,8 +286,12 @@ function compareObjects(
   const keysB = Object.keys(b);
 
   // Filter out undefined properties if option is set
-  const filteredKeysA = options.ignoreUndefined ? keysA.filter(key => a[key] !== undefined) : keysA;
-  const filteredKeysB = options.ignoreUndefined ? keysB.filter(key => b[key] !== undefined) : keysB;
+  const filteredKeysA = options.ignoreUndefined
+    ? keysA.filter((key) => a[key] !== undefined)
+    : keysA;
+  const filteredKeysB = options.ignoreUndefined
+    ? keysB.filter((key) => b[key] !== undefined)
+    : keysB;
 
   if (filteredKeysA.length !== filteredKeysB.length) return false;
 

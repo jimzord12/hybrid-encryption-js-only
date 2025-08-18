@@ -1,16 +1,13 @@
 import { Preset } from '../../../src/core/common/enums';
 import { AlgorithmAsymmetricError } from '../../../src/core/common/errors';
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';
-import {
-  AsymmetricAlgorithm,
-  HybridEncryption,
-  SymmetricAlgorithm,
-} from '../../../src/core/encryption';
+import { AsymmetricAlgorithm, SymmetricAlgorithm } from '../../../src/core/encryption';
 import {
   AES_GCM_STATS,
   ML_KEM_STATS,
-} from '../../../src/core/encryption/constants/defaults.constants';
-import { bytesNumToBase64Length } from '../../debug/calculations';
+} from '../../../src/core/encryption/constants/encryption.constants';
+import { HybridEncryption } from '../../../src/core/encryption/hybrid-encryption-all-public';
+import { bytesNumToBase64Length } from '../utils/debug/calculations';
 import { TestsingkeyPairs } from './test-data';
 
 describe('Hybrid Encryption - V2', () => {
@@ -28,9 +25,9 @@ describe('Hybrid Encryption - V2', () => {
     it('should have the correct methods', async () => {
       const hybridEncryption = new HybridEncryption();
       const methods = Object.getOwnPropertyNames(HybridEncryption.prototype).filter(
-        name =>
+        (name) =>
           name !== 'constructor' &&
-          (typeof HybridEncryption.prototype[name] as string) === 'function',
+          (typeof (HybridEncryption.prototype as any)[name] as string) === 'function',
       );
       const properties = Object.keys(hybridEncryption);
 
@@ -114,7 +111,7 @@ describe('Hybrid Encryption - V2', () => {
           throw new Error('[Vitest]: Public key is not defined');
         }
 
-        const binary = hybridEncryption.serializeData(data);
+        // const binary = hybridEncryption.serializeData(data);
 
         const { preset, encryptedContent, cipherText, nonce } = hybridEncryption.encrypt(
           data,

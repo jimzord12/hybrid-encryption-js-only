@@ -1,7 +1,7 @@
 import { randomBytes } from '@noble/hashes/utils';
 import { Preset } from '../../../src/core/common/enums';
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';
-import { ML_KEM_STATS } from '../../../src/core/encryption/constants/defaults.constants';
+import { ML_KEM_STATS } from '../../../src/core/encryption/constants/encryption.constants';
 
 export type KeyPairType = 'both-good' | 'both-bad' | 'pub-bad' | 'secret-bad';
 

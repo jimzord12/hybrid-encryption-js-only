@@ -35,8 +35,7 @@ export class KeyLifecycleService {
   }
 
   public createNewKeyPair(metadata?: Partial<KeyPair['metadata']>): KeyPair {
-    const newKeys = this.keyProvider.generateKeyPair();
-    const newKeyPair = this.addMetaDataToKeys(newKeys, metadata);
+    const newKeyPair = this.keyProvider.generateKeyPair(metadata);
 
     const { ok, errors } = this.keyProvider.validateKeyPair(newKeyPair);
 
@@ -156,7 +155,7 @@ export class KeyLifecycleService {
   }
 
   public securelyClearKeys(keys: (KeyPair | null)[]): void {
-    keys.forEach(key => this.securelyClearKey(key));
+    keys.forEach((key) => this.securelyClearKey(key));
     console.log('🔐 Key material securely cleared from memory');
   }
 }

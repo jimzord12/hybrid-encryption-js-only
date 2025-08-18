@@ -7,16 +7,15 @@ import { KeyManagerConfig } from '../../../src/core/key-management/types/key-man
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const TEST_CERT_PATH_V2 =
-  process.env.TEST_CERT_PATH_V2 ?? join(__dirname, './test-certs-v2');
+export const TEST_CERT_PATH = process.env.TEST_CERT_PATH ?? join(__dirname, './test-certs');
 
-export const TEST_CONFIG_V2: Required<KeyManagerConfig> = {
-  certPath: TEST_CERT_PATH_V2,
+export const TEST_CONFIG: Required<KeyManagerConfig> = {
+  certPath: TEST_CERT_PATH,
   preset: Preset.NORMAL,
   keyExpiryMonths: 1,
   autoGenerate: true,
   enableFileBackup: true,
-  rotationGracePeriod: 0.05, // 3 seconds for testing
+  rotationGracePeriodInMinutes: 0.05, // 3 seconds for testing
 };
 
 /**
@@ -26,19 +25,19 @@ export async function cleanTestDirectory(): Promise<void> {
   try {
     // Check if directory exists
     try {
-      await access(TEST_CERT_PATH_V2);
+      await access(TEST_CERT_PATH);
     } catch {
       // Directory doesn't exist, create it
-      await mkdir(TEST_CERT_PATH_V2, { recursive: true });
+      await mkdir(TEST_CERT_PATH, { recursive: true });
       return;
     }
 
     // If directory exists, read its contents
-    const files = await readdir(TEST_CERT_PATH_V2);
+    const files = await readdir(TEST_CERT_PATH);
 
     // Delete all files in the directory
-    const deletePromises = files.map(async file => {
-      const filePath = join(TEST_CERT_PATH_V2, file);
+    const deletePromises = files.map(async (file) => {
+      const filePath = join(TEST_CERT_PATH, file);
       const stats = await stat(filePath);
 
       if (stats.isDirectory()) {

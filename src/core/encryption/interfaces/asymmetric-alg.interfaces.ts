@@ -26,21 +26,21 @@ export abstract class AsymmetricAlgorithm {
   /**
    * Generate or derive a shared secret that can be used for symmetric encryption
    * @param publicKey - The recipient's public key
-   * @param privateKey - Optional: sender's private key (for ECDH)
+   * @param secretKey - Optional: sender's secret key (for ECDH)
    * @returns {Object} { sharedSecret: Uint8Array, keyMaterial: Uint8Array }
    */
   abstract createSharedSecret(
     publicKey: Uint8Array,
-    privateKey?: Uint8Array | null,
+    secretKey?: Uint8Array | null,
   ): SharedSecretResult;
 
   /**
    * Recover the shared secret from key material
    * @param keyMaterial - The transmitted key material
-   * @param privateKey - The recipient's private key
+   * @param secretKey - The recipient's secret key
    * @returns The shared secret
    */
-  abstract recoverSharedSecret(keyMaterial: Uint8Array, privateKey: Uint8Array): Uint8Array;
+  abstract recoverSharedSecret(keyMaterial: Uint8Array, secretKey: Uint8Array): Uint8Array;
 
   /**
    * Get algorithm identifier for transmission

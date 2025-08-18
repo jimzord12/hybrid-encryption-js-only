@@ -11,11 +11,14 @@ import { RotationHistoryService } from './rotation-history.service';
 export class KeyRotationService {
   private readonly config: Pick<
     Required<KeyManagerConfig>,
-    'rotationGracePeriod' | 'preset' | 'enableFileBackup'
+    'rotationGracePeriodInMinutes' | 'preset' | 'enableFileBackup'
   >;
 
   constructor(
-    config: Pick<Required<KeyManagerConfig>, 'rotationGracePeriod' | 'preset' | 'enableFileBackup'>,
+    config: Pick<
+      Required<KeyManagerConfig>,
+      'rotationGracePeriodInMinutes' | 'preset' | 'enableFileBackup'
+    >,
   ) {
     this.config = config;
   }
@@ -36,7 +39,7 @@ export class KeyRotationService {
   public isInGracePeriod(rotationState: KeyRotationState): boolean {
     if (!rotationState.rotationStartTime) return false;
 
-    const gracePeriodMs = this.config.rotationGracePeriod * 60 * 1000;
+    const gracePeriodMs = this.config.rotationGracePeriodInMinutes * 60 * 1000;
     const elapsed = Date.now() - rotationState.rotationStartTime.getTime();
 
     return elapsed < gracePeriodMs;

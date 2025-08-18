@@ -1,7 +1,9 @@
 import { ml_kem1024, ml_kem768 } from '@noble/post-quantum/ml-kem';
 import { Preset } from '../../../../common/enums';
 import { createAppropriateError } from '../../../../common/errors';
-import { DEFAULT_ENCRYPTION_OPTIONS, ML_KEM_STATS } from '../../../constants/defaults.constants';
+import { Keys, MlKemSecrets } from '../../../../common/interfaces/keys.interfaces';
+import { DEFAULT_ENCRYPTION_OPTIONS } from '../../../constants/defaults.constants';
+import { ML_KEM_STATS } from '../../../constants/encryption.constants';
 import { AsymmetricAlgorithm } from '../../../interfaces/asymmetric-alg.interfaces';
 
 /**
@@ -13,7 +15,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     super('ML-KEM', keySize);
   }
 
-  generateKeyPair() {
+  generateKeyPair(): Keys {
     try {
       const keyPair = this.preset === Preset.NORMAL ? ml_kem768.keygen() : ml_kem1024.keygen();
       return {
@@ -21,16 +23,19 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
         secretKey: keyPair.secretKey,
       };
     } catch (error) {
-      throw createAppropriateError('Failed to generate ML-KEM-768 key pair', {
-        errorType: 'algorithm-asymmetric',
-        operation: 'generateKeyPair',
-        preset: this.preset,
-        cause: error instanceof Error ? error : undefined,
-      });
+      throw createAppropriateError(
+        `Failed to generate ML-KEM-${ML_KEM_STATS.keySize[this.preset]} key pair`,
+        {
+          errorType: 'algorithm-asymmetric',
+          operation: 'generateKeyPair',
+          preset: this.preset,
+          cause: error instanceof Error ? error : undefined,
+        },
+      );
     }
   }
 
-  createSharedSecret(publicKey: Uint8Array) {
+  createSharedSecret(publicKey: Uint8Array): MlKemSecrets {
     // Validate input
     if (!publicKey || !(publicKey instanceof Uint8Array)) {
       throw createAppropriateError('Invalid public key: must be a Uint8Array', {
@@ -84,7 +89,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     }
   }
 
-  recoverSharedSecret(receivedCipherText: Uint8Array, secretKey: Uint8Array) {
+  recoverSharedSecret(receivedCipherText: Uint8Array, secretKey: Uint8Array): Uint8Array {
     // Validate inputs
     if (!receivedCipherText || !(receivedCipherText instanceof Uint8Array)) {
       throw createAppropriateError('Invalid key material', {
@@ -95,7 +100,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
     }
 
     if (!secretKey || !(secretKey instanceof Uint8Array)) {
-      throw createAppropriateError('Invalid private key', {
+      throw createAppropriateError('Invalid secret key', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
         preset: this.preset,
@@ -141,7 +146,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       this.preset === Preset.HIGH_SECURITY &&
       secretKey.length !== ML_KEM_STATS.secretKeyLength[Preset.HIGH_SECURITY]
     ) {
-      throw createAppropriateError('Invalid ML-KEM-1024 private key length', {
+      throw createAppropriateError('Invalid ML-KEM-1024 secret key length', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
         preset: this.preset,
@@ -150,7 +155,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
 
     // ML-KEM uses decapsulation to recover the shared secret
     // 🚨 Note: ML-KEM uses "implicit rejection" - it will not throw errors for wrong
-    // private keys or malformed ciphertext. Instead, it returns a pseudorandom
+    // secret keys or malformed ciphertext. Instead, it returns a pseudorandom
     // shared secret that looks valid but is different from the original.
     // This is a security feature to prevent timing attacks.
     const sharedSecret =

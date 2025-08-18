@@ -1,7 +1,8 @@
 import { gcm } from '@noble/ciphers/aes';
 import { Preset } from '../../../common/enums';
 import { createAppropriateError } from '../../../common/errors';
-import { AES_GCM_STATS, DEFAULT_ENCRYPTION_OPTIONS } from '../../constants/defaults.constants';
+import { DEFAULT_ENCRYPTION_OPTIONS } from '../../constants/defaults.constants';
+import { AES_GCM_STATS } from '../../constants/encryption.constants';
 import {
   AEADParams,
   SymmetricAlgorithm,

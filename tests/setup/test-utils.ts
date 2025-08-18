@@ -66,7 +66,7 @@ export class AssertionHelpers {
    * Assert that two arrays are deeply equal
    */
   static expectArraysEqual<T>(actual: T[], expected: T[], message?: string): void {
-    expectDeepEqual(actual, expected, {}, message || 'Arrays should be deeply equal');
+    expectDeepEqual(actual, expected, {}, message ?? 'Arrays should be deeply equal');
   }
 
   /**
@@ -77,7 +77,7 @@ export class AssertionHelpers {
     expected: Record<string, any>,
     message?: string,
   ): void {
-    expectDeepEqual(actual, expected, {}, message || 'Objects should be deeply equal');
+    expectDeepEqual(actual, expected, {}, message ?? 'Objects should be deeply equal');
   }
 
   /**

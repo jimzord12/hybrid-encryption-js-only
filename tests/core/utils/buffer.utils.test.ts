@@ -142,7 +142,7 @@ describe('BufferUtils', () => {
     it('should handle different lengths', () => {
       const lengths = [1, 16, 32, 64, 128, 256];
 
-      lengths.forEach(length => {
+      lengths.forEach((length) => {
         const result = BufferUtils.getSecureRandomBytes(length);
         expect(result.length).toBe(length);
         expect(result).toBeInstanceOf(Uint8Array);

@@ -115,7 +115,7 @@ describe('KeyDerivation', () => {
     it('should work with edge case shared secret sizes', () => {
       const sizes = [16, 17, 31, 32, 33, 63, 64, 65, 127, 128];
 
-      sizes.forEach(size => {
+      sizes.forEach((size) => {
         const sharedSecret = BufferUtils.getSecureRandomBytes(size);
         const derivedKey = KeyDerivation.deriveKey(Preset.NORMAL, sharedSecret);
 
