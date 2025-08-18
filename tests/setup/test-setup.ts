@@ -1,6 +1,7 @@
 // Global test setup for Vitest
 // This file runs before all tests to ensure proper isolation
 
+import fs from 'node:fs/promises';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { waitFor } from '../core/utils/debug/async';
 
@@ -11,6 +12,13 @@ beforeEach(async () => {
 
 afterEach(async () => {
   // Add small delay to ensure cleanup completes
+  await waitFor(50);
+});
+
+afterAll(async () => {
+  // Add small delay to ensure all tests are complete
+  await fs.rm('./config', { recursive: true, force: true }).catch(() => {});
+
   await waitFor(50);
 });
 

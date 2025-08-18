@@ -1,6 +1,6 @@
-import fs from 'fs/promises';
+import fs from 'node:fs/promises';
 import os from 'os';
-import path from 'path';
+import path from 'node:path';
 
 export async function directoryExists(path: string): Promise<boolean> {
   try {

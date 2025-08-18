@@ -1,9 +1,9 @@
+import { Base64 } from '../common/types';
 import { Preset } from '../core/common/enums';
 import { EncryptedData } from '../core/common/interfaces/encryption.interfaces';
 import { HybridEncryption } from '../core/encryption';
 import { DEFAULT_ENCRYPTION_OPTIONS } from '../core/encryption/constants/defaults.constants';
 import { decodeBase64 } from '../core/utils';
-import { Base64 } from './types';
 import { createAppropriateError } from './utils';
 
 export class ClientEncryption {

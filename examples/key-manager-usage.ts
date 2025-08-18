@@ -1,4 +1,4 @@
-import { rm } from 'fs/promises';
+import { rm } from 'node:fs/promises';
 import { Preset } from '../src/core/common/enums';
 import { KeyManager } from '../src/core/key-management/key-manager';
 

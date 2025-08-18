@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import fs from 'fs/promises';
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { TEST_CERT_PATH, TEST_CONFIG, cleanTestDirectory } from './test-utils';
 
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import fs from 'fs/promises';
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';
 import { KeyLifecycleService } from '../../../src/core/key-management/services/key-lifecycle.service';
 import { RotationHistoryService } from '../../../src/core/key-management/services/rotation-history.service';

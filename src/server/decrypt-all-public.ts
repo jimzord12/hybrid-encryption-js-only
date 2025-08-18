@@ -70,12 +70,7 @@ export class ServerDecryptionAllPublic {
         preset: this.preset,
       });
 
-      console.log('Server Decrytpion PRESET: ', this.preset);
-      console.log('🔑 KeyManager Config: ', this.keyManager.getConfig());
-      console.log('🔑 Provided Config: ', config);
-
       await this.keyManager.initialize();
-      console.log('🔑 KeyManager initialized successfully');
 
       // Initialize HybridEncryption with the same preset
       this.encryptionInstance = new HybridEncryption(this.preset);
@@ -245,6 +240,16 @@ export class ServerDecryptionAllPublic {
       healthy: issues.length === 0,
       issues,
     };
+  }
+
+  public async getPublicKey(): Promise<Uint8Array | null> {
+    await this.initializeIfNeeded();
+    return this.keyManager ? await this.keyManager.getPublicKey() : null;
+  }
+
+  public async getPublicKeyBase64(): Promise<string | null> {
+    await this.initializeIfNeeded();
+    return this.keyManager ? await this.keyManager.getPublicKeyBase64() : null;
   }
 }
 
