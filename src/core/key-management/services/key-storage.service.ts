@@ -24,6 +24,7 @@ export class KeyStorageService {
           return; // Directory already exists
         }
       } catch (error) {
+        console.log('⚠️ [ensureCertDirectory] Failed to access cert directory:', error);
         // Directory doesn't exist, continue with creation
       }
 
@@ -181,6 +182,7 @@ export class KeyStorageService {
           await fs.mkdir(backupDir, { recursive: true });
         }
       } catch (error) {
+        console.log('⚠️ [backupExpiredKeys] Failed to access backup directory:', error);
         // Directory doesn't exist, create it
         await fs.mkdir(backupDir, { recursive: true });
       }

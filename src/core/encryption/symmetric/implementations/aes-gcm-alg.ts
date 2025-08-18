@@ -97,6 +97,7 @@ export class AESGCMAlgorithm extends SymmetricAlgorithm {
         errorType: 'algorithm-symmetric',
         preset,
         operation: 'decrypt',
+        cause: error instanceof Error ? error : undefined,
       });
     }
   }

@@ -37,7 +37,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
 
   createSharedSecret(publicKey: Uint8Array): MlKemSecrets {
     // Validate input
-    if (!publicKey || !(publicKey instanceof Uint8Array)) {
+    if (publicKey == null || !(publicKey instanceof Uint8Array)) {
       throw createAppropriateError('Invalid public key: must be a Uint8Array', {
         errorType: 'algorithm-asymmetric',
         operation: 'createSharedSecret',
@@ -91,7 +91,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
 
   recoverSharedSecret(receivedCipherText: Uint8Array, secretKey: Uint8Array): Uint8Array {
     // Validate inputs
-    if (!receivedCipherText || !(receivedCipherText instanceof Uint8Array)) {
+    if (receivedCipherText == null || !(receivedCipherText instanceof Uint8Array)) {
       throw createAppropriateError('Invalid key material', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -99,7 +99,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
       });
     }
 
-    if (!secretKey || !(secretKey instanceof Uint8Array)) {
+    if (secretKey == null || !(secretKey instanceof Uint8Array)) {
       throw createAppropriateError('Invalid secret key', {
         errorType: 'algorithm-asymmetric',
         operation: 'recoverSharedSecret',
@@ -164,7 +164,7 @@ export class MLKEMAlgorithm extends AsymmetricAlgorithm {
         : ml_kem1024.decapsulate(receivedCipherText, secretKey);
 
     // Validate that we got a valid shared secret
-    if (!sharedSecret || sharedSecret.length !== 32) {
+    if (sharedSecret == null || sharedSecret.length !== 32) {
       throw createAppropriateError(
         'Failed to recover shared secret: invalid output from decapsulation',
         {

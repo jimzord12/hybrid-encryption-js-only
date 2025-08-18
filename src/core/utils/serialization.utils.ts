@@ -85,7 +85,7 @@ export class Serialization {
    */
   static deserializeFromDecryption<T = any>(data: Uint8Array): T {
     try {
-      if (!data || data.length === 0) {
+      if (data == null || data.length === 0) {
         throw createAppropriateError('Cannot deserialize empty data', {
           errorType: 'validation',
           preset: Preset.NORMAL,
@@ -93,12 +93,8 @@ export class Serialization {
         });
       }
 
-      let binaryData: Uint8Array;
-
-      binaryData = data;
-
       // Convert binary data to UTF-8 string using BufferUtils
-      const jsonString = BufferUtils.binaryToString(binaryData);
+      const jsonString = BufferUtils.binaryToString(data);
 
       // Parse JSON string back to JavaScript value
       const parsedData = Serialization.fromJsonString(jsonString);

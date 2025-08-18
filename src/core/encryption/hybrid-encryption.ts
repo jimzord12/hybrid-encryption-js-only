@@ -45,12 +45,12 @@ export class HybridEncryption {
   static validateKeyPair(keyPair: KeyPair): boolean {
     try {
       // Validate that keyPair exists and has required properties
-      if (!keyPair || typeof keyPair !== 'object') {
+      if (keyPair == null || typeof keyPair !== 'object') {
         return false;
       }
 
       // Check for required properties
-      if (!keyPair.publicKey || !keyPair.secretKey) {
+      if (keyPair.publicKey == null || keyPair.secretKey == null) {
         return false;
       }
 
@@ -69,6 +69,7 @@ export class HybridEncryption {
 
       return hasValidPkLength && hasValidSkLength;
     } catch (error) {
+      console.log('⚠️ [validateKeyPair] Failed to validate key pair:', error);
       return false;
     }
   }

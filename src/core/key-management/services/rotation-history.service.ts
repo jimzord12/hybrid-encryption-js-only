@@ -110,6 +110,7 @@ export class RotationHistoryService {
 
       return history;
     } catch (error) {
+      console.log('⚠️ [getRotationHistory] Failed to read rotation history:', error);
       // If file doesn't exist or is invalid, return a default history
       const defaultHistory = {
         totalRotations: 0,

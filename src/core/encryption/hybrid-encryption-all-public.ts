@@ -46,12 +46,12 @@ export class HybridEncryption {
   static validateKeyPair(keyPair: KeyPair): boolean {
     try {
       // Validate that keyPair exists and has required properties
-      if (!keyPair || typeof keyPair !== 'object') {
+      if (keyPair == null || typeof keyPair !== 'object') {
         return false;
       }
 
       // Check for required properties
-      if (!keyPair.publicKey || !keyPair.secretKey) {
+      if (keyPair.publicKey == null || keyPair.secretKey == null) {
         return false;
       }
 
@@ -70,6 +70,7 @@ export class HybridEncryption {
 
       return hasValidPkLength && hasValidSkLength;
     } catch (error) {
+      console.log('⚠️ [validateKeyPair] Failed to validate key pair:', error);
       return false;
     }
   }
@@ -78,95 +79,91 @@ export class HybridEncryption {
    * Instance method for encryption with specific registry configuration
    */
   encrypt(data: any, publicKey: Uint8Array): EncryptedData {
-    try {
-      // Validate inputs
-      // Note: null and undefined are valid JSON values, so we don't reject them
+    // Validate inputs
+    // Note: null and undefined are valid JSON values, so we don't reject them
 
-      if (!publicKey || !(publicKey instanceof Uint8Array)) {
-        throw createAppropriateError('Public key must be a valid Uint8Array', {
-          errorType: 'validation',
-          preset: this.preset,
-          operation: 'encrypt',
-        });
-      }
-
-      // Validate public key length using constants - use AlgorithmAsymmetricError for key issues
-      const expectedLength = ML_KEM_STATS.publicKeyLength[this.preset];
-      if (publicKey.length !== expectedLength) {
-        throw createAppropriateError(
-          `Invalid ML-KEM-${this.preset === Preset.NORMAL ? '768' : '1024'} public key length`,
-          {
-            errorType: 'algorithm-asymmetric',
-            preset: this.preset,
-            operation: 'encrypt',
-          },
-        );
-      }
-
-      // Step 1: Serialize data to binary format
-      // 🧪 Needs to be Tested - Check all possible edge cases
-      const serializedData = this.serializeData(data);
-
-      // console.log('Step 1: Serialized Data: ', serializedData);
-
-      // Step 2: Get algorithms from registries
-      // 🧪 Needs to be Tested - Check if they are loaded correctly
-      const asymmetric = this.asymmetricAlgorithm;
-      const symmetric = this.symmetricAlgorithm;
-
-      // Step 3: Generate shared secret & Ciphertext using KEM
-      // 🧪 Needs to be Tested - Check that they have the correct length based on pre
-      const { sharedSecret, cipherText: kemCipherText } = asymmetric.createSharedSecret(publicKey);
-
-      // console.log('Step 3: KEM Shared Secret: ', sharedSecret);
-      // console.log('Step 3: KEM Cipher Text: ', kemCipherText);
-
-      // Step 4: Use the Shared Secret to create the Symmetric key
-      const derivedKey = KeyDerivation.deriveKey(this.preset, sharedSecret);
-
-      // console.log('Step 4: Derived Key: ', derivedKey);
-
-      // Step 5: Create KeyMaterial (Key + Nonce) object for symmetric algorithm
-      const nonceSize = AES_GCM_STATS.nonceLength[this.preset];
-      const keyMaterial: AEADParams = {
-        key: derivedKey,
-        nonce: randomBytes(nonceSize), // AES-GCM nonce size based on preset
-      };
-
-      // console.log('Step 5: Key Material: ', keyMaterial);
-
-      // Step 6: Encrypt data with AES-GCM algorithm
-      const { encryptedData, nonce } = symmetric.encrypt(serializedData, keyMaterial);
-
-      // console.log('Step 6: Encrypted Data: ', encryptedData);
-      // console.log('Step 6: Nonce: ', nonce);
-
-      // Step 7: Construct result with algorithm metadata
-      const result: EncryptedData = {
+    if (publicKey == null || !(publicKey instanceof Uint8Array)) {
+      throw createAppropriateError('Public key must be a valid Uint8Array', {
+        errorType: 'validation',
         preset: this.preset,
-        encryptedContent: this.encodeBase64(encryptedData),
-        cipherText: this.encodeBase64(kemCipherText),
-        nonce: this.encodeBase64(nonce),
-      };
-
-      // console.log('Step 7: Encrypted Data Structure: ', result);
-
-      // Validate result structure
-      const validation = validateEncryptedData(result);
-      if (!validation.isValid) {
-        console.log('[Encryption Validation Errors: ', validation.errors);
-        throw createAppropriateError('Generated encrypted data is invalid', {
-          preset: this.preset,
-          errorType: 'validation',
-          operation: 'encrypt',
-          cause: new Error(validation.errors.join(', ')),
-        });
-      }
-
-      return result;
-    } catch (error) {
-      throw error;
+        operation: 'encrypt',
+      });
     }
+
+    // Validate public key length using constants - use AlgorithmAsymmetricError for key issues
+    const expectedLength = ML_KEM_STATS.publicKeyLength[this.preset];
+    if (publicKey.length !== expectedLength) {
+      throw createAppropriateError(
+        `Invalid ML-KEM-${this.preset === Preset.NORMAL ? '768' : '1024'} public key length`,
+        {
+          errorType: 'algorithm-asymmetric',
+          preset: this.preset,
+          operation: 'encrypt',
+        },
+      );
+    }
+
+    // Step 1: Serialize data to binary format
+    // 🧪 Needs to be Tested - Check all possible edge cases
+    const serializedData = this.serializeData(data);
+
+    // console.log('Step 1: Serialized Data: ', serializedData);
+
+    // Step 2: Get algorithms from registries
+    // 🧪 Needs to be Tested - Check if they are loaded correctly
+    const asymmetric = this.asymmetricAlgorithm;
+    const symmetric = this.symmetricAlgorithm;
+
+    // Step 3: Generate shared secret & Ciphertext using KEM
+    // 🧪 Needs to be Tested - Check that they have the correct length based on pre
+    const { sharedSecret, cipherText: kemCipherText } = asymmetric.createSharedSecret(publicKey);
+
+    // console.log('Step 3: KEM Shared Secret: ', sharedSecret);
+    // console.log('Step 3: KEM Cipher Text: ', kemCipherText);
+
+    // Step 4: Use the Shared Secret to create the Symmetric key
+    const derivedKey = KeyDerivation.deriveKey(this.preset, sharedSecret);
+
+    // console.log('Step 4: Derived Key: ', derivedKey);
+
+    // Step 5: Create KeyMaterial (Key + Nonce) object for symmetric algorithm
+    const nonceSize = AES_GCM_STATS.nonceLength[this.preset];
+    const keyMaterial: AEADParams = {
+      key: derivedKey,
+      nonce: randomBytes(nonceSize), // AES-GCM nonce size based on preset
+    };
+
+    // console.log('Step 5: Key Material: ', keyMaterial);
+
+    // Step 6: Encrypt data with AES-GCM algorithm
+    const { encryptedData, nonce } = symmetric.encrypt(serializedData, keyMaterial);
+
+    // console.log('Step 6: Encrypted Data: ', encryptedData);
+    // console.log('Step 6: Nonce: ', nonce);
+
+    // Step 7: Construct result with algorithm metadata
+    const result: EncryptedData = {
+      preset: this.preset,
+      encryptedContent: this.encodeBase64(encryptedData),
+      cipherText: this.encodeBase64(kemCipherText),
+      nonce: this.encodeBase64(nonce),
+    };
+
+    // console.log('Step 7: Encrypted Data Structure: ', result);
+
+    // Validate result structure
+    const validation = validateEncryptedData(result);
+    if (!validation.isValid) {
+      console.log('[Encryption Validation Errors: ', validation.errors);
+      throw createAppropriateError('Generated encrypted data is invalid', {
+        preset: this.preset,
+        errorType: 'validation',
+        operation: 'encrypt',
+        cause: new Error(validation.errors.join(', ')),
+      });
+    }
+
+    return result;
   }
 
   /**
