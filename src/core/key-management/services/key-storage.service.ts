@@ -1,8 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createAppropriateError } from '../../../core/common/errors';
-import { KeyPair, SerializableKeyPair } from '../../../core/common/interfaces/keys.interfaces';
+import { KeyPair } from '../../../core/common/interfaces/keys.interfaces';
 import { KeyManagerConfig } from '../../../core/key-management/types/key-manager.types';
+import { SerializedKeyMetadata } from '../../common/interfaces/serialization.interfaces';
 
 export class KeyStorageService {
   private readonly config: Pick<Required<KeyManagerConfig>, 'certPath' | 'preset'>;
@@ -123,7 +124,7 @@ export class KeyStorageService {
 
     try {
       // Create metadata with key information
-      const metadata: SerializableKeyPair['metadata'] = {
+      const metadata: SerializedKeyMetadata = {
         preset: this.config.preset,
         version: keyPair.metadata.version,
         createdAt: keyPair.metadata.createdAt.toISOString(),

@@ -14,15 +14,6 @@ export interface KeyPair extends Keys {
   };
 }
 
-export type SerializableKeyPair = Keys & {
-  metadata: {
-    preset: Preset;
-    version: number;
-    createdAt: string;
-    expiresAt: string;
-  };
-};
-
 export interface MlKemSecrets {
   sharedSecret: Uint8Array<ArrayBufferLike>;
   cipherText: Uint8Array<ArrayBufferLike>;

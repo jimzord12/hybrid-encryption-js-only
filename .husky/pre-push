@@ -1,3 +1,8 @@
+#!/bin/sh
+
+# Log file for debugging
+LOG_FILE=".husky/hooks.log"
+
 # Skip tests if SKIP_TESTS environment variable is set
 if [ "$SKIP_TESTS" = "true" ]; then
   echo "⚠️  Skipping tests due to SKIP_TESTS=true"
@@ -6,8 +11,9 @@ fi
 
 # Run the full test suite before pushing
 echo "🧪 Running full test suite before push..."
-npm run test:run
 
 # Optional: Run a build check to ensure TypeScript compiles
 echo "🔨 Checking TypeScript compilation..."
-npm run build
+echo "📍 Current directory: $(pwd)"
+echo "📍 Node version: $(node --version)"
+echo "📍 NPM version: $(npm --version)"

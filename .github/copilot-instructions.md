@@ -11,12 +11,12 @@ security features.
 ### Key Features
 
 - **Hybrid Encryption**: ML-KEM + AES-GCM for optimal security and performance
+- **2 Final Packages**: Client & Server Packages
 - **Automatic Key Management**: Singleton-based key manager with rotation
   support
-- **Strategy Pattern Architecture**: Algorithm-agnostic design for future
-  cryptographic algorithm support
 - **Production Ready**: Comprehensive error handling, logging, and monitoring
-- **Cross-Platform**: Works in Node.js environments with filesystem operations
+- **Cross-Platform**: Client Package works everywhere, but Server required
+  Node.js environments with filesystem operations
 - **TypeScript First**: Full type safety and IntelliSense support
 
 ## Architecture & Design Patterns
@@ -24,10 +24,8 @@ security features.
 ### Core Modules
 
 - **`src/core/`**: Core encryption and key management logic
-- **`src/sender/`**: Utilities required for Sending Encrypted Messages
-- **`src/receiver/`**: Utilities required for Receiving Encrypted Messages
-- **`src/server/`**: Server-side middleware, routes, and cron jobs
-- **`src/types/`**: Shared TypeScript type definitions
+- **`src/client/`**: A Facade for Client-side Encryption
+- **`src/server/`**: A Facade for Server-side Decryption + Express v4-v5 support
 
 ### Design Patterns Applied
 
@@ -83,7 +81,6 @@ src/
 │   └── utils/        # Core utilities
 ├── server/           # Server-side components
 │   ├── index.ts      # Server exports
-│   ├── cron/         # Scheduled tasks
 │   ├── middleware/   # Express middleware
 │   ├── routes/       # API endpoints
 │   └── storage/      # Storage abstractions
@@ -111,86 +108,24 @@ config/              # Configuration files and certificates
 
 ### TypeScript Guidelines
 
-```typescript
-// ✅ Always use explicit return types for public APIs
-export function generateKeyPair(keySize: number): RSAKeyPair {
-  // implementation
-}
-
-// ✅ Use proper interface definitions
-interface KeyManagerConfig {
-  certPath?: string;
-  algorithm?: 'rsa' | 'ecc' | 'ed25519';
-  keySize?: number;
-}
-
-// ✅ Use type guards for runtime validation
-function isValidKeyPair(obj: unknown): obj is RSAKeyPair {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    'publicKey' in obj &&
-    'privateKey' in obj
-  );
-}
-
-// ✅ Use generic types for reusable functions
-function decrypt<T = any>(data: EncryptedData, privateKey: string): T {
-  // implementation
-}
-```
+- Always use explicit return types for public APIs
+- Use proper interface definitions
+- Use type guards for runtime validation
+- Use generic types for reusable functions
 
 ### Error Handling Patterns
 
-```typescript
-// ✅ Always wrap async operations in try-catch
-try {
-  const result = await cryptographicOperation();
-  return result;
-} catch (error) {
-  throw new Error(
-    `Operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-  );
-}
-
-// ✅ Use custom error types for specific scenarios
-class KeyRotationError extends Error {
-  constructor(
-    message: string,
-    public readonly cause?: Error,
-  ) {
-    super(message);
-    this.name = 'KeyRotationError';
-  }
-}
-```
+- Always wrap async operations in try-catch
+- Use custom error types for specific scenarios
+- IMPORTANT! Use the `createAppropriateError` utility function to create errors
 
 ### Testing Requirements
 
-```typescript
-// ✅ Every public function must have unit tests
-describe('KeyManager', () => {
-  beforeEach(() => {
-    KeyManager.resetInstance(); // Clean state for each test
-  });
-
-  it('should generate valid key pairs', async () => {
-    const manager = KeyManager.getInstance();
-    await manager.initialize();
-    const keyPair = await manager.getKeyPair();
-
-    expect(keyPair).toBeDefined();
-    expect(keyPair.publicKey).toContain('BEGIN PUBLIC KEY');
-  });
-});
-
-// ✅ Test error conditions
-it('should throw when invalid config provided', () => {
-  expect(() => {
-    new KeyManager({ keySize: 1024 }); // Too small
-  }).toThrow('Key size must be at least 2048 bits');
-});
-```
+- Every public function must have unit tests
+- Test all error conditions
+- Create realistic test scenarios
+- Use descriptive test names
+-
 
 ### Logging and Monitoring
 
@@ -202,57 +137,14 @@ console.warn('⚠️ Failed to backup expired keys:', error);
 console.error('❌ Key validation failed:', errors);
 
 // ✅ Include context in error messages
-throw new Error(
-  `Key generation failed for algorithm ${algorithm}: ${error.message}`,
-);
+throw createAppropriateError('Validation failed', {
+  errorType: 'validation',
+  preset,
+  operation: 'key-generation',
+});
 ```
 
 ## Strategy Pattern Implementation
-
-### Key Provider Interface
-
-When implementing new cryptographic algorithms, always follow this pattern:
-
-```typescript
-export class NewAlgorithmKeyProvider implements KeyProvider {
-  getAlgorithm(): 'new-algorithm' {
-    return 'new-algorithm';
-  }
-
-  generateKeyPair(config: KeyGenerationConfig): CryptoKeyPair {
-    // Algorithm-specific implementation
-  }
-
-  validateKeyPair(keyPair: CryptoKeyPair): boolean {
-    // Algorithm-specific validation
-  }
-
-  // ... implement all required methods
-}
-
-// Register with factory
-KeyProviderFactory.registerProvider(
-  'new-algorithm',
-  () => new NewAlgorithmKeyProvider(),
-);
-```
-
-### Backward Compatibility Rules
-
-- **NEVER** break existing RSA functionality
-- **ALWAYS** maintain file format compatibility
-- **ENSURE** all existing tests continue to pass
-- **PROVIDE** migration paths for configuration changes
-
-## Security Requirements
-
-### Cryptographic Standards
-
-- **RSA**: Minimum 2048-bit keys (default), support up to 4096-bit
-- **AES**: Use AES-GCM with 256-bit keys (configurable: 128, 192, 256)
-- **Random Generation**: Use cryptographically secure random number generation
-- **Key Storage**: Private keys stored with 0o600 permissions (owner read/write
-  only)
 
 ### Input Validation
 

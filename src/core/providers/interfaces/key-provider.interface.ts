@@ -1,5 +1,5 @@
 import { KeyPair } from '../../common/interfaces/keys.interfaces';
-import { SerializedKeys } from '../../common/interfaces/serialization.interfaces';
+import { SerializedKeyPair } from '../../common/interfaces/serialization.interfaces';
 import { ValidationResult } from '../../common/interfaces/validation.interfaces';
 
 /**
@@ -28,14 +28,14 @@ export abstract class KeyProvider {
   /**
    * Serialize key pair for storage
    */
-  serializeKeyPair(_keyPair: KeyPair): SerializedKeys {
+  serializeKeyPair(_keyPair: KeyPair): SerializedKeyPair {
     throw new Error('serializeKeyPair method not implemented');
   }
 
   /**
    * Deserialize key pair from storage
    */
-  deserializeKeyPair(_data: SerializedKeys): KeyPair {
+  deserializeKeyPair(_data: SerializedKeyPair): KeyPair {
     throw new Error('deserializeKeyPair method not implemented');
   }
 }

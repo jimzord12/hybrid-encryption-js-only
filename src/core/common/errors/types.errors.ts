@@ -6,4 +6,5 @@ export type ErrorType =
   | 'operation'
   | 'format'
   | 'config'
+  | 'client-encryption-error'
   | 'keymanager';

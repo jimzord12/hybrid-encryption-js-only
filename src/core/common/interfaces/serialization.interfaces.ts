@@ -25,7 +25,7 @@ export interface SerializedKeyMetadata {
  * Serialized keys interface - for storage and transmission
  * Keys are Base64 encoded for storage in JSON/text formats
  */
-export interface SerializedKeys {
+export interface SerializedKeyPair {
   publicKey: Base64; // Base64 encoded binary key
   secretKey: Base64; // Base64 encoded binary key
   metadata: SerializedKeyMetadata;

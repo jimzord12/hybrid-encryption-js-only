@@ -18,7 +18,7 @@ export class EncryptionError extends Error {
 
   constructor(
     message: string,
-    public readonly algorithm?: string,
+    public readonly preset: Preset,
     public readonly operation?: string,
     public readonly cause?: Error,
   ) {
@@ -39,8 +39,8 @@ export class EncryptionError extends Error {
   toJSON() {
     return {
       name: this.name,
+      preset: this.preset,
       message: this.message,
-      algorithm: this.algorithm,
       operation: this.operation,
       timestamp: this.timestamp.toISOString(),
       errorId: this.errorId,
@@ -202,12 +202,13 @@ export class AlgorithmKDFError extends AlgorithmError {
 export class KeyDerivationError extends EncryptionError {
   constructor(
     message: string,
+    preset: Preset,
     public readonly kdfAlgorithm: string,
     public readonly inputLength?: number,
     public readonly outputLength?: number,
     cause?: Error,
   ) {
-    super(message, kdfAlgorithm, 'key-derivation', cause);
+    super(message, preset, 'key-derivation', cause);
     this.name = 'KeyDerivationError';
   }
 
@@ -229,12 +230,12 @@ export class CryptographicOperationError extends EncryptionError {
   constructor(
     message: string,
     operation: 'encrypt' | 'decrypt' | 'sign' | 'verify' | 'key-generation',
-    algorithm?: string,
+    preset: Preset,
     public readonly inputSize?: number,
     public readonly expectedOutputSize?: number,
     cause?: Error,
   ) {
-    super(message, algorithm, operation, cause);
+    super(message, preset, operation, cause);
     this.name = 'CryptographicOperationError';
   }
 
@@ -243,6 +244,28 @@ export class CryptographicOperationError extends EncryptionError {
       ...super.toJSON(),
       inputSize: this.inputSize,
       expectedOutputSize: this.expectedOutputSize,
+    };
+  }
+}
+
+/**
+ * Error for cryptographic operation failures
+ * Covers encryption, decryption, signing, verification operations
+ */
+export class ClientEncryptionError extends EncryptionError {
+  constructor(
+    message: string,
+    preset: Preset,
+    operation?: 'validation' | 'operation' | 'initialization' | 'unknown',
+    cause?: Error,
+  ) {
+    super(message, preset, operation ?? 'operation', cause);
+    this.name = 'ClientEncryptionError';
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
     };
   }
 }
@@ -399,6 +422,63 @@ export class KeyManagerError extends Error {
 }
 
 /**
+ * Error for KeyManager operation failures
+ * Covers key rotation, key storage, initialization, and lifecycle management
+ */
+export class ClientError extends Error {
+  public readonly timestamp: Date;
+  public readonly errorId: string;
+
+  constructor(
+    message: string,
+    public readonly operation:
+      | 'initialization'
+      | 'rotation'
+      | 'storage'
+      | 'validation'
+      | 'retrieval'
+      | 'backup'
+      | 'cleanup',
+    public readonly keyVersion?: number,
+    public readonly algorithm?: string,
+    public readonly filePath?: string,
+    public readonly rotationState?: string,
+    public readonly cause?: Error,
+  ) {
+    super(message);
+    this.name = 'KeyManagerError';
+    this.timestamp = new Date();
+    this.errorId = `km-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, KeyManagerError);
+    }
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      operation: this.operation,
+      keyVersion: this.keyVersion,
+      algorithm: this.algorithm,
+      filePath: this.filePath,
+      rotationState: this.rotationState,
+      timestamp: this.timestamp.toISOString(),
+      errorId: this.errorId,
+      stack: this.stack,
+      cause: this.cause
+        ? {
+            name: this.cause.name,
+            message: this.cause.message,
+            stack: this.cause.stack,
+          }
+        : undefined,
+    };
+  }
+}
+
+/**
  * Utility function to create appropriate error based on context
  * Helps choose the right error type for different scenarios
  */
@@ -449,7 +529,7 @@ export function createAppropriateError(
     case 'config':
       return new AlgorithmConfigurationError(
         message,
-        preset || 'unknown',
+        preset,
         additionalContext.parameterName,
         additionalContext.parameterValue,
         additionalContext.validValues,
@@ -466,6 +546,9 @@ export function createAppropriateError(
         additionalContext.rotationState,
         cause,
       );
+
+    case 'client-encryption-error':
+      return new ClientEncryptionError(message, preset, (operation as any) || 'operation', cause);
 
     default:
       return new EncryptionError(message, preset, operation, cause);

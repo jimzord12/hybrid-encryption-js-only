@@ -2,7 +2,8 @@ import { Preset } from '../common/enums';
 import { createAppropriateError } from '../common/errors';
 import { isValidPreset } from '../common/guards/enum.guards';
 import { KeyPair } from '../common/interfaces/keys.interfaces';
-import { SerializedKeys } from '../common/interfaces/serialization.interfaces';
+import { SerializedKeyPair } from '../common/interfaces/serialization.interfaces';
+
 import { ValidationResult } from '../common/interfaces/validation.interfaces';
 import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
 import { DEFAULT_KEY_MANAGER_OPTIONS } from '../key-management/constants/defaults.constants';
@@ -112,7 +113,7 @@ export class MlKemKeyProvider implements KeyProvider {
   /**
    * Serialize key pair for storage (converts to Base64 strings)
    */
-  serializeKeyPair(keyPair: KeyPair): SerializedKeys {
+  serializeKeyPair(keyPair: KeyPair): SerializedKeyPair {
     const { secretKey: sk, publicKey: pk, metadata } = keyPair;
     // For binary format, we already have Uint8Array keys
     if (!(pk instanceof Uint8Array) || !(sk instanceof Uint8Array)) {
@@ -140,7 +141,7 @@ export class MlKemKeyProvider implements KeyProvider {
   /**
    * Deserialize key pair from storage (converts from Base64 strings)
    */
-  deserializeKeyPair(data: SerializedKeys): KeyPair {
+  deserializeKeyPair(data: SerializedKeyPair): KeyPair {
     const { publicKey, secretKey, metadata } = data;
 
     const pk = BufferUtils.decodeBase64(publicKey);
