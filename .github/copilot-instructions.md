@@ -45,7 +45,8 @@ security features.
 
 ### Cryptography Libraries
 
-- **`node-forge`**: RSA key generation and RSA encryption/decryption
+- **`@noble/post-quantum`**: Modern ML-KEM implementation for asymmetric
+  encryption
 - **`@noble/ciphers`**: Modern AES-GCM implementation for symmetric encryption
 
 ### Testing & Development
@@ -71,6 +72,8 @@ src/
 │   ├── encrypt.ts    # Client encryption utilities
 │   ├── index.ts      # Client exports
 │   └── utils.ts      # Client helper functions
+│   ├── enums.ts      # Client enums
+│   └── types.d.ts    # Client type definitions
 ├── core/             # Core cryptographic logic
 │   ├── constants.ts  # Global constants
 │   ├── index.ts      # Core exports

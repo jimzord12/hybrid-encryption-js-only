@@ -12,7 +12,7 @@ import { KeyManagerConfig, KeyManagerStatus, KeyRotationState } from './types/ke
 export class KeyManager {
   public static instance: KeyManager | null = null;
 
-  private readonly config: Required<KeyManagerConfig>;
+  private config: Required<KeyManagerConfig>;
 
   // Services
   private readonly configService: KeyConfigurationService;
@@ -86,7 +86,10 @@ export class KeyManager {
   public async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
+    console.log('🔑 KeyManager initializing...');
+
     try {
+      console.log('🔑 Config to Validate: ', this.config);
       // 1. Validate configuration
       this.configService.validateConfig(this.config);
 

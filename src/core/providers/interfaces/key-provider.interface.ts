@@ -3,8 +3,7 @@ import { SerializedKeyPair } from '../../common/interfaces/serialization.interfa
 import { ValidationResult } from '../../common/interfaces/validation.interfaces';
 
 /**
- * Generic interface for cryptographic key providers
- * This allows the KeyManager to work with different algorithms (RSA, ECC, Ed25519, etc.)
+ * ML-KEM Key Provider Interface
  */
 export abstract class KeyProvider {
   /**

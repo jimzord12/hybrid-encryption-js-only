@@ -1,19 +1,38 @@
 #!/bin/sh
 
-# Log file for debugging
-LOG_FILE=".husky/hooks.log"
-
 # Skip tests if SKIP_TESTS environment variable is set
 if [ "$SKIP_TESTS" = "true" ]; then
   echo "⚠️  Skipping tests due to SKIP_TESTS=true"
   exit 0
 fi
 
+echo "🔍 Running pre-push checks..."
+
+# Check linting
+echo "📝 Running ESLint..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "❌ Linting failed. Please fix linting errors before pushing."
+  exit 1
+fi
+
 # Run the full test suite before pushing
 echo "🧪 Running full test suite before push..."
+npm run test
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix failing tests before pushing."
+  exit 1
+fi
 
-# Optional: Run a build check to ensure TypeScript compiles
+# Run a build check to ensure TypeScript compiles
 echo "🔨 Checking TypeScript compilation..."
+npm run build
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript compilation failed. Please fix compilation errors before pushing."
+  exit 1
+fi
+
+echo "✅ All pre-push checks passed!"
 echo "📍 Current directory: $(pwd)"
 echo "📍 Node version: $(node --version)"
 echo "📍 NPM version: $(npm --version)"

@@ -1,13 +1,11 @@
 import { createAppropriateError } from '../../../core/common/errors';
-import { KeyPair, Keys } from '../../../core/common/interfaces/keys.interfaces';
+import { KeyPair } from '../../../core/common/interfaces/keys.interfaces';
 import {
   KeyManagerConfig,
   KeyValidationResult,
 } from '../../../core/key-management/types/key-manager.types';
 import { MlKemKeyProvider } from '../../../core/providers';
 import { KeyProvider } from '../../../core/providers/interfaces/key-provider.interface';
-
-const MONTH = 30 * 24 * 60 * 60 * 1000;
 
 export class KeyLifecycleService {
   private readonly keyProvider: KeyProvider;
@@ -16,22 +14,6 @@ export class KeyLifecycleService {
   constructor(config: Pick<Required<KeyManagerConfig>, 'preset' | 'keyExpiryMonths'>) {
     this.config = config;
     this.keyProvider = new MlKemKeyProvider(config.preset);
-  }
-
-  public addMetaDataToKeys(keys: Keys, metadata?: Partial<KeyPair['metadata']>): KeyPair {
-    const { publicKey, secretKey } = keys;
-
-    return {
-      publicKey,
-      secretKey,
-      metadata: {
-        preset: this.config.preset,
-        createdAt: new Date(),
-        expiresAt:
-          metadata?.expiresAt || new Date(Date.now() + this.config.keyExpiryMonths * MONTH),
-        version: metadata?.version || 1,
-      },
-    };
   }
 
   public createNewKeyPair(metadata?: Partial<KeyPair['metadata']>): KeyPair {

@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Run lint-staged for code quality checks
 echo "🔍 Running code quality checks on staged files..."
 npx lint-staged
