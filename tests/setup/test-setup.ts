@@ -1,9 +1,9 @@
 // Global test setup for Vitest
 // This file runs before all tests to ensure proper isolation
 
-import fs from 'node:fs/promises';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { waitFor } from '../core/utils/debug/async';
+import { cleanTestDirectory } from '../test-utils';
 
 beforeEach(async () => {
   // Add small delay to prevent tests from stressing the computer
@@ -17,7 +17,8 @@ afterEach(async () => {
 
 afterAll(async () => {
   // Add small delay to ensure all tests are complete
-  await fs.rm('./config', { recursive: true, force: true }).catch(() => {});
+  await cleanTestDirectory('./config');
+  await cleanTestDirectory('./tests/core/key-management/test-certs');
 
   await waitFor(50);
 });

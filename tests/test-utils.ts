@@ -1,5 +1,5 @@
 import { access, mkdir, readdir, rm, rmdir, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { deepEqual, type DeepComparisonOptions } from '../src/core/utils/comparison.utils';
 
 /**
@@ -97,10 +97,10 @@ export class AssertionHelpers {
   }
 }
 
-export const getDirnameESM = (filePath: string): string => {
-  const __dirname = new URL('.', import.meta.url).pathname;
-  return resolve(__dirname, filePath);
-};
+// export const getDirnameESM = (filePath: string): string => {
+//   const __dirname = new URL('.', import.meta.url).pathname;
+//   return resolve(__dirname, filePath);
+// };
 
 /**
  * Clean test directory utility

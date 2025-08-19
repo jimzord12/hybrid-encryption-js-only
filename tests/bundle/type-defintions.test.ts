@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { getDirnameESM } from '../test-utils';
 
 // const baseDir = '../../dist';
 
@@ -19,11 +18,11 @@ import { getDirnameESM } from '../test-utils';
 
 describe('Type Definition Tests', () => {
   // const distPath = resolve(__dirname, '../dist');
-  const distPath = getDirnameESM('../../dist');
+  const distPath = resolve(process.cwd(), 'dist');
   const moduleNames = ['server', 'client', 'core', 'utils'];
   const moduleNamesCJS = ['server', 'core', 'utils'];
   const modulePathTemplate = '###/###.d.ts';
-  const modulePathTemplateCJS = '###/###.d.ts';
+  const modulePathTemplateCJS = '###/###.d.cts';
   const moduleDirs = moduleNames.map((module) =>
     resolve(distPath, modulePathTemplate.replace(/###/g, module)),
   );
@@ -36,6 +35,7 @@ describe('Type Definition Tests', () => {
       moduleDirs.forEach((modDir) => {
         const splitted = modDir.split('/');
         const name = splitted[splitted.length - 2];
+        console.log(`Checking ESM module: ${name}`);
         expect(existsSync(modDir)).toBe(true);
 
         const content = readFileSync(modDir, 'utf-8');
@@ -58,6 +58,7 @@ describe('Type Definition Tests', () => {
 
     it('should have CommonJS declaration files where needed', () => {
       moduleDirsCJS.forEach((modDir) => {
+        console.log(`Checking CJS module: ${modDir}`);
         expect(existsSync(modDir)).toBe(true);
 
         const content = readFileSync(modDir, 'utf-8');
@@ -124,8 +125,8 @@ describe('Type Definition Tests', () => {
 
           // Content should be similar (allowing for module format differences)
           // This is a basic check - in practice, the structure should be equivalent
-          const esmExports = (esmContent.match(/export/g) || []).length;
-          const cjsExports = (cjsContent.match(/export/g) || []).length;
+          const esmExports = (esmContent.match(/export/g) ?? []).length;
+          const cjsExports = (cjsContent.match(/export/g) ?? []).length;
 
           expect(Math.abs(esmExports - cjsExports)).toBeLessThanOrEqual(1);
         }

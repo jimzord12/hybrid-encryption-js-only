@@ -1,10 +1,10 @@
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { getDirnameESM } from '../test-utils';
 
 describe('Bundle Integration Tests', () => {
-  const distPath = getDirnameESM('../../dist');
+  // const distPath = getDirnameESM('../../dist');
+  const distPath = resolve(process.cwd(), 'dist');
   console.log(distPath);
 
   beforeAll(() => {
