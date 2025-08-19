@@ -8,7 +8,6 @@ const serverDir = `${baseDir}/server/server.js`;
 // const serverDirCJS = `${baseDir}/server/server.cjs`;
 
 const clientDir = `${baseDir}/client/client.js`;
-// const clientDirCJS = `${baseDir}/client/client.cjs`;
 
 const coreDir = `${baseDir}/core/core.js`;
 // const coreDirCJS = `${baseDir}/core/core.cjs`;

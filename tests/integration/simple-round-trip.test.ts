@@ -1,6 +1,6 @@
-import { ClientEncryption } from '../../../src/client';
-import { Preset } from '../../../src/common/types';
-import { ServerDecryptionAllPublic } from '../../../src/server/decrypt-all-public';
+import { ClientEncryption } from '../../src/client';
+import { Preset } from '../../src/common/types';
+import { ServerDecryptionAllPublic } from '../../src/server/decrypt-all-public';
 
 describe('Simple Round Trip Encryption', () => {
   let cencrypt: ClientEncryption;

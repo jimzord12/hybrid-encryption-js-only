@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Comprehensive deep comparison utilities for objects, arrays, and primitives
  * Provides strict equality checking for complex data structures
@@ -67,7 +69,7 @@ function deepEqualInternal(
   visited: Set<any>,
 ): boolean {
   // Check maximum depth
-  if (depth > (options.maxDepth || 100)) {
+  if (depth > (options.maxDepth ?? 100)) {
     throw new Error(`Maximum comparison depth of ${options.maxDepth} exceeded`);
   }
 

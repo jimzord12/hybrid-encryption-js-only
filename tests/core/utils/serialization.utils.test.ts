@@ -604,12 +604,12 @@ describe('Serialization', () => {
           console.log('1.1 | Typeof Data: ', typeof input);
           const serialized = Serialization.serializeForEncryption(input as any);
           console.log('2 | Serialized Data: ', serialized);
-          const deserialized = Serialization.deserializeFromDecryption(serialized);
+          const deserialized = Serialization.deserializeFromDecryption<typeof input>(serialized);
           console.log('3 | Deserialized Data: ', deserialized);
 
           expect(serialized).toBeInstanceOf(Uint8Array);
           expect(deserialized).toBeDefined(); // Just verify it doesn't throw
-          if (input instanceof Date) {
+          if (input instanceof Date && typeof deserialized === 'string') {
             console.log('3.1 | Deserialized Data: ', new Date(deserialized));
 
             expect(deepEqual(deserialized, input.toISOString())).toBe(true); // Just verify it doesn't throw

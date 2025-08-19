@@ -13,7 +13,7 @@
  */
 
 import { randomBytes } from '@noble/hashes/utils';
-import { Buffer } from 'buffer';
+import { Buffer } from 'node:buffer';
 import { Base64, HexString } from '../common/types/branded-types.types';
 
 /**

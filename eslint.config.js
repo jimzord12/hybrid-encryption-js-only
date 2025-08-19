@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import typescript from '@typescript-eslint/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
+import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 
 export default [
   js.configs.recommended,
@@ -32,6 +33,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': typescript,
+      unicorn: eslintPluginUnicorn,
     },
     rules: {
       // TypeScript specific rules
@@ -42,6 +44,7 @@ export default [
           varsIgnorePattern: '^_|^error$', // Allow unused 'error' variables
         },
       ],
+      'unicorn/prefer-node-protocol': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off', // Too strict for this project
       '@typescript-eslint/explicit-module-boundary-types': 'off', // Too strict for this project

@@ -1,7 +1,7 @@
-import { ClientEncryption } from '../../../src/client';
-import { Preset } from '../../../src/common/types';
-import { EncryptedData } from '../../../src/core/common/interfaces/encryption.interfaces';
-import { ServerDecryptionAllPublic } from '../../../src/server/decrypt-all-public';
+import { ClientEncryption } from '../../src/client';
+import { Preset } from '../../src/common/types';
+import { EncryptedData } from '../../src/core/common/interfaces/encryption.interfaces';
+import { ServerDecryptionAllPublic } from '../../src/server/decrypt-all-public';
 
 describe('Error Handling & Edge Cases Integration Tests', () => {
   let client: ClientEncryption;

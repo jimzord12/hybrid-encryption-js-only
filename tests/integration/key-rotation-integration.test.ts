@@ -1,7 +1,7 @@
-import { ClientEncryption } from '../../../src/client';
-import { Preset } from '../../../src/common/types';
-import { KeyManager } from '../../../src/core/key-management/key-manager';
-import { ServerDecryptionAllPublic } from '../../../src/server/decrypt-all-public';
+import { ClientEncryption } from '../../src/client';
+import { Preset } from '../../src/common/types';
+import { KeyManager } from '../../src/core/key-management/key-manager';
+import { ServerDecryptionAllPublic } from '../../src/server/decrypt-all-public';
 
 describe('Key Rotation & Grace Period Integration Tests', () => {
   let client: ClientEncryption;

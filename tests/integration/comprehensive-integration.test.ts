@@ -1,7 +1,7 @@
-import { ClientEncryption } from '../../../src/client';
-import { Preset } from '../../../src/common/types';
-import { EncryptedData } from '../../../src/core/common/interfaces/encryption.interfaces';
-import { ServerDecryptionAllPublic } from '../../../src/server/decrypt-all-public';
+import { ClientEncryption } from '../../src/client';
+import { Preset } from '../../src/common/types';
+import { EncryptedData } from '../../src/core/common/interfaces/encryption.interfaces';
+import { ServerDecryptionAllPublic } from '../../src/server/decrypt-all-public';
 
 describe('Comprehensive Client-Server Integration Tests', () => {
   let clientNormal: ClientEncryption;
@@ -28,7 +28,7 @@ describe('Comprehensive Client-Server Integration Tests', () => {
   });
 
   describe('Data Type Compatibility', () => {
-    it('should handle various JavaScript data types correctly', async () => {
+    it('should handle various JavaScript data types correctly (NORMAL)', async () => {
       const publicKey = await serverNormal.getPublicKeyBase64();
       expect(publicKey).not.toBeNull();
 
@@ -63,22 +63,57 @@ describe('Comprehensive Client-Server Integration Tests', () => {
       }
     });
 
-    it('should handle large data objects efficiently', async () => {
+    it('should handle various JavaScript data types correctly (HS)', async () => {
+      const publicKey = await serverHighSec.getPublicKeyBase64();
+      expect(publicKey).not.toBeNull();
+
+      const testCases = [
+        { name: 'string', data: 'Hello, World!' },
+        { name: 'number', data: 42 },
+        { name: 'boolean true', data: true },
+        { name: 'boolean false', data: false },
+        { name: 'null', data: null },
+        { name: 'array', data: [1, 2, 3, 'test'] },
+        { name: 'nested object', data: { user: { id: 123, name: 'John', active: true } } },
+        { name: 'empty object', data: {} },
+        { name: 'empty array', data: [] },
+        {
+          name: 'complex nested',
+          data: {
+            users: [
+              { id: 1, profile: { name: 'Alice', settings: { theme: 'dark' } } },
+              { id: 2, profile: { name: 'Bob', settings: { theme: 'light' } } },
+            ],
+            meta: { total: 2, version: '1.0.0' },
+          },
+        },
+      ];
+
+      for (const testCase of testCases) {
+        const encrypted = clientHighSec.encryptData(testCase.data, publicKey!);
+        const decrypted = await serverHighSec.decryptData(encrypted);
+
+        expect(decrypted).toStrictEqual(testCase.data);
+        console.log(`✅ ${testCase.name} type handled correctly`);
+      }
+    });
+
+    it('should handle large data objects efficiently (NORMAL)', async () => {
       const publicKey = await serverNormal.getPublicKeyBase64();
       expect(publicKey).not.toBeNull();
 
       // Create a large object
       const largeData = {
-        users: Array.from({ length: 1000 }, (_, i) => ({
+        users: Array.from({ length: 3000 }, (_, i) => ({
           id: i,
           name: `User${i}`,
           email: `user${i}@example.com`,
           data: Array.from({ length: 10 }, (_, j) => `data-${i}-${j}`),
         })),
         metadata: {
-          total: 1000,
+          total: 3000,
           generated: new Date().toISOString(),
-          description: 'A'.repeat(1000), // 1KB string
+          description: 'A'.repeat(15_000), // 15KB string
         },
       };
 
@@ -88,6 +123,42 @@ describe('Comprehensive Client-Server Integration Tests', () => {
 
       const decryptStartTime = Date.now();
       const decrypted = await serverNormal.decryptData(encrypted);
+      const decryptTime = Date.now() - decryptStartTime;
+
+      expect(decrypted).toStrictEqual(largeData);
+
+      console.log(`📊 Performance: Encrypt=${encryptTime}ms, Decrypt=${decryptTime}ms`);
+
+      // Performance assertions (reasonable thresholds)
+      expect(encryptTime).toBeLessThan(5000); // 5 seconds
+      expect(decryptTime).toBeLessThan(5000); // 5 seconds
+    });
+
+    it('should handle large data objects efficiently (HS)', async () => {
+      const publicKey = await serverHighSec.getPublicKeyBase64();
+      expect(publicKey).not.toBeNull();
+
+      // Create a large object
+      const largeData = {
+        users: Array.from({ length: 3000 }, (_, i) => ({
+          id: i,
+          name: `User${i}`,
+          email: `user${i}@example.com`,
+          data: Array.from({ length: 10 }, (_, j) => `data-${i}-${j}`),
+        })),
+        metadata: {
+          total: 3000,
+          generated: new Date().toISOString(),
+          description: 'A'.repeat(15_000), // 15KB string
+        },
+      };
+
+      const startTime = Date.now();
+      const encrypted = clientHighSec.encryptData(largeData, publicKey!);
+      const encryptTime = Date.now() - startTime;
+
+      const decryptStartTime = Date.now();
+      const decrypted = await serverHighSec.decryptData(encrypted);
       const decryptTime = Date.now() - decryptStartTime;
 
       expect(decrypted).toStrictEqual(largeData);

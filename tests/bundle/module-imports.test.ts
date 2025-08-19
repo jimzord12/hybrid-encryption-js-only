@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { describe, expect, it } from 'vitest';
 
 const baseDir = '../../dist';
@@ -6,15 +7,14 @@ const serverDir = `${baseDir}/server/server.js`;
 const serverDirCJS = `${baseDir}/server/server.cjs`;
 
 const clientDir = `${baseDir}/client/client.js`;
-const clientDirCJS = `${baseDir}/client/client.cjs`;
 
 const coreDir = `${baseDir}/core/core.js`;
-// const coreDirCJS = `${baseDir}/core/core.cjs`;
+const coreDirCJS = `${baseDir}/core/core.cjs`;
 
 const utilsDir = `${baseDir}/utils/utils.js`;
 const utilsDirCJS = `${baseDir}/utils/utils.cjs`;
 
-describe.skip('Module Import Tests', () => {
+describe('Module Import Tests', () => {
   describe('ESM Imports', () => {
     it('should import server module (ESM)', async () => {
       const serverModule = await import(serverDir);
@@ -62,7 +62,7 @@ describe.skip('Module Import Tests', () => {
     });
 
     it('should import core module (CJS)', () => {
-      const coreModule = require(clientDirCJS);
+      const coreModule = require(coreDirCJS);
       expect(coreModule).toBeDefined();
       expect(typeof coreModule).toBe('object');
     });

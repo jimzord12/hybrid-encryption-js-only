@@ -40,7 +40,7 @@ export class Serialization {
       if (!Serialization.isSerializable(data)) {
         throw createAppropriateError('Data is not serializable', {
           errorType: 'validation',
-          preset: undefined as any,
+          preset: undefined as never,
           operation: 'serialize',
         });
       }
@@ -83,7 +83,7 @@ export class Serialization {
    * @param options - Deserialization options
    * @returns Original data in its native JavaScript type
    */
-  static deserializeFromDecryption<T = any>(data: Uint8Array): T {
+  static deserializeFromDecryption<T = unknown>(data: Uint8Array): T {
     try {
       if (data == null || data.length === 0) {
         throw createAppropriateError('Cannot deserialize empty data', {
@@ -125,7 +125,7 @@ export class Serialization {
       if (data == null)
         throw createAppropriateError('Cannot encode null or undefined data', {
           errorType: 'validation',
-          preset: undefined as any,
+          preset: undefined as never,
           operation: 'encodeBase64',
         });
 
@@ -161,7 +161,7 @@ export class Serialization {
         throw createAppropriateError('Invalid Base64 input: must be a non-empty string', {
           operation: 'Base64 decoding',
           errorType: 'validation',
-          preset: undefined as any,
+          preset: undefined as never,
         });
       }
 
@@ -175,7 +175,7 @@ export class Serialization {
       throw createAppropriateError('Base64 decoding failed', {
         operation: 'Base64 decoding',
         errorType: 'format',
-        preset: undefined as any,
+        preset: undefined as never,
       });
     }
   }
@@ -186,7 +186,7 @@ export class Serialization {
    * @param data - Data to validate
    * @returns True if data is serializable
    */
-  static isSerializable(data: any): boolean {
+  static isSerializable(data: unknown): boolean {
     if (!Serialization.isTypeSerializable(data)) return false;
 
     try {
@@ -204,7 +204,7 @@ export class Serialization {
   /**
    * Determine the JavaScript data type of a value
    */
-  private static getDataType(data: any): string {
+  private static getDataType(data: unknown): string {
     if (data === null) return 'null';
     if (data === undefined) return 'undefined';
     if (data instanceof Uint8Array) return 'Uint8Array';
@@ -216,7 +216,7 @@ export class Serialization {
   /**
    * Convert data to JSON string with type preservation
    */
-  private static toJsonString(data: any, originalType: string): string {
+  private static toJsonString(data: unknown, originalType: string): string {
     if (originalType === 'undefined') {
       return JSON.stringify({ __type: 'undefined', value: null });
     }
@@ -240,7 +240,7 @@ export class Serialization {
   /**
    * Parse JSON string back to original type
    */
-  private static fromJsonString(jsonString: string, _originalType?: string): any {
+  private static fromJsonString(jsonString: string, _originalType?: string): unknown {
     const parsed: (object & { __type: string; value: SerializableData }) | null =
       JSON.parse(jsonString);
 

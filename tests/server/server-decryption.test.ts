@@ -97,7 +97,7 @@ describe('ServerDecryption', () => {
     it('should accept custom configuration', async () => {
       // Clean up any existing keys to force regeneration with new config
       await new Promise<void>((resolve) => {
-        import('fs').then(({ rm }) => {
+        import('node:fs').then(({ rm }) => {
           rm('./config/test-certs', { recursive: true, force: true }, () => resolve());
           rm('./config/certs', { recursive: true, force: true }, () => resolve());
         });
@@ -125,7 +125,7 @@ describe('ServerDecryption', () => {
 
       // Clean up any existing keys to force regeneration with new config
       await new Promise<void>((resolve) => {
-        import('fs').then(({ rm }) => {
+        import('node:fs').then(({ rm }) => {
           rm('./config/test-certs', { recursive: true, force: true }, () => resolve());
           rm('./config/certs', { recursive: true, force: true }, () => resolve());
         });

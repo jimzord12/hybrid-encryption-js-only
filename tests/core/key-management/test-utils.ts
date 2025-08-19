@@ -1,6 +1,6 @@
 import { access, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from 'node:url';
 import { Preset } from '../../../src/core/common/enums';
 import { KeyManagerConfig } from '../../../src/core/key-management/types/key-manager.types';
 
