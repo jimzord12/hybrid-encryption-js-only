@@ -48,9 +48,7 @@ export class KeyManager {
   }
 
   public static getInstance(config?: KeyManagerConfig): KeyManager {
-    if (!KeyManager.instance) {
-      KeyManager.instance = new KeyManager(config);
-    }
+    KeyManager.instance ??= new KeyManager(config);
     return KeyManager.instance;
   }
 

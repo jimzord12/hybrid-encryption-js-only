@@ -37,8 +37,12 @@ const myData = {
 
 ### Step 3: Encrypt
 
+⚠️ This is **NOT** your Public key, BUT the **Receiver's (Server)** Public Key
+
 ```typescript
-const publicKey = 'your-base64-public-key-here';
+const publicKey = "receiver's-base64-public-key-here";
+// encryptData also support Uint8Array format
+// const publicKey = new Uint8Array([...]);
 const encrypted = encryption.encryptData(myData, publicKey);
 ```
 
