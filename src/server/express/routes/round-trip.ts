@@ -1,5 +1,5 @@
 import express, { type Request, Response } from 'express';
-import { expectDeepEqual } from '../../../../tests/setup/test-utils';
+import { expectDeepEqual } from '../../../../tests/test-utils';
 import { EncryptedData } from '../../../core';
 import { ServerDecryption } from '../../decrypt';
 

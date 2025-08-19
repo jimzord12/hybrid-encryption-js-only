@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { getDirnameESM } from '../setup/test-utils';
+import { getDirnameESM } from '../test-utils';
 
 // const baseDir = '../../dist';
 

@@ -36,7 +36,6 @@ export class Serialization {
    */
   static serializeForEncryption(data: SerializableData): Uint8Array {
     try {
-      console.log('Daata:', data);
       if (!Serialization.isSerializable(data)) {
         throw createAppropriateError('Data is not serializable', {
           errorType: 'validation',
@@ -194,7 +193,7 @@ export class Serialization {
       JSON.stringify(data);
       return true;
     } catch (error) {
-      console.log(error);
+      console.warn('Serialization validation failed:', error);
       return false;
     }
   }

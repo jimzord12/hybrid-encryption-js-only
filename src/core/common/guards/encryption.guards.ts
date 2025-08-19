@@ -1,11 +1,10 @@
 /**
- * Type Guards for Modern Encryption System
+ * Type Guards for Encryption System
  *
- * Runtime validation functions for modern encryption interfaces
+ * Runtime validation functions for encryption interfaces
  * ensuring type safety when working with external data
  */
 
-import { KeyGenerationConfig } from '../../key-management/types/key-manager.types';
 import { decodeBase64 } from '../../utils';
 import { Preset } from '../enums';
 import { EncryptedData } from '../interfaces/encryption.interfaces';
@@ -52,23 +51,6 @@ export function isKeyPair(obj: any): obj is KeyPair {
 }
 
 /**
- * Type guard for ModernKeyGenerationConfig
- * Validates key generation configuration
- */
-export function isKeyGenerationConfig(obj: any): obj is KeyGenerationConfig {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof obj.algorithm === 'string' &&
-    // Optional fields
-    (obj.keySize === undefined || typeof obj.keySize === 'number') &&
-    (obj.parameters === undefined ||
-      (typeof obj.parameters === 'object' && obj.parameters !== null)) &&
-    (obj.metadata === undefined || (typeof obj.metadata === 'object' && obj.metadata !== null))
-  );
-}
-
-/**
  * Validates that a Uint8Array represents a valid key
  * Basic validation - non-empty and reasonable size bounds
  */
@@ -104,22 +86,19 @@ export function validateEncryptedData(obj: any): { isValid: boolean; errors: str
     // Validate Base64 strings
     try {
       decodeBase64(obj.encryptedContent as Base64);
-    } catch (error) {
-      console.log('encryptedContent decode error:', error);
+    } catch {
       errors.push('Invalid Base64 format for encryptedContent');
     }
 
     try {
       decodeBase64(obj.cipherText as Base64);
-    } catch (error) {
-      console.log('cipherText decode error:', error);
+    } catch {
       errors.push('Invalid Base64 format for cipherText');
     }
 
     try {
       decodeBase64(obj.nonce as Base64);
-    } catch (error) {
-      console.log('nonce decode error:', error);
+    } catch {
       errors.push('Invalid Base64 format for nonce');
     }
   }

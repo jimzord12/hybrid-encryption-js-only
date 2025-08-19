@@ -1,5 +1,6 @@
-import { resolve } from 'node:path';
-import { deepEqual, type DeepComparisonOptions } from '../../src/core/utils/comparison.utils';
+import { access, mkdir, readdir, rm, stat } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { deepEqual, type DeepComparisonOptions } from '../src/core/utils/comparison.utils';
 
 /**
  * Test utilities for consistent testing across the hybrid encryption library
@@ -100,3 +101,73 @@ export const getDirnameESM = (filePath: string): string => {
   const __dirname = new URL('.', import.meta.url).pathname;
   return resolve(__dirname, filePath);
 };
+
+/**
+ * Clean test directory utility
+ */
+export async function cleanTestDirectory(dir: string, skipCreation = false): Promise<void> {
+  try {
+    // Check if directory exists
+    try {
+      await access(dir);
+    } catch {
+      if (!skipCreation) {
+        // Directory doesn't exist, create it
+        await mkdir(dir, { recursive: true });
+      }
+      return;
+    }
+
+    // If directory exists, read its contents
+    const files = await readdir(dir);
+
+    // Delete all files in the directory
+    const deletePromises = files.map(async (file) => {
+      const filePath = join(dir, file);
+      const stats = await stat(filePath);
+
+      if (stats.isDirectory()) {
+        await rm(filePath, { recursive: true, force: true });
+      } else {
+        await rm(filePath, { force: true });
+      }
+    });
+
+    await Promise.all(deletePromises);
+
+    await deleteDirectoryIfEmpty(dir);
+  } catch (error) {
+    console.warn('Failed to clean test directory:', error);
+  }
+}
+
+/**
+ * Delete the directory at `dir` only if it exists and is empty.
+ *
+ * Returns `true` when the directory was removed, `false` otherwise.
+ */
+export async function deleteDirectoryIfEmpty(dir: string): Promise<boolean> {
+  try {
+    const stats = await stat(dir);
+
+    if (!stats.isDirectory()) {
+      // Not a directory — nothing to delete
+      return false;
+    }
+
+    const entries = await readdir(dir);
+    if (entries.length !== 0) {
+      // Directory not empty
+      return false;
+    }
+
+    // Directory exists and is empty — remove it
+    await rm(dir, { force: true });
+    return true;
+  } catch (error: any) {
+    // If the directory doesn't exist, treat as not removed
+    if (error && error.code === 'ENOENT') return false;
+    console.warn('Failed to remove empty directory:', error);
+    return false;
+  }
+}

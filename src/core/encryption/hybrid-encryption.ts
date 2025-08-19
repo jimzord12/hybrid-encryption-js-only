@@ -106,8 +106,6 @@ export class HybridEncryption {
     // 🧪 Needs to be Tested - Check all possible edge cases
     const serializedData = this.serializeData(data);
 
-    // console.log('Step 1: Serialized Data: ', serializedData);
-
     // Step 2: Get algorithms from registries
     // 🧪 Needs to be Tested - Check if they are loaded correctly
     const asymmetric = this.asymmetricAlgorithm;
@@ -117,13 +115,8 @@ export class HybridEncryption {
     // 🧪 Needs to be Tested - Check that they have the correct length based on pre
     const { sharedSecret, cipherText: kemCipherText } = asymmetric.createSharedSecret(publicKey);
 
-    // console.log('Step 3: KEM Shared Secret: ', sharedSecret);
-    // console.log('Step 3: KEM Cipher Text: ', kemCipherText);
-
     // Step 4: Use the Shared Secret to create the Symmetric key
     const derivedKey = KeyDerivation.deriveKey(this.preset, sharedSecret);
-
-    // console.log('Step 4: Derived Key: ', derivedKey);
 
     // Step 5: Create KeyMaterial (Key + Nonce) object for symmetric algorithm
     const nonceSize = AES_GCM_STATS.nonceLength[this.preset];
@@ -132,13 +125,8 @@ export class HybridEncryption {
       nonce: randomBytes(nonceSize), // AES-GCM nonce size based on preset
     };
 
-    // console.log('Step 5: Key Material: ', keyMaterial);
-
     // Step 6: Encrypt data with AES-GCM algorithm
     const { encryptedData, nonce } = symmetric.encrypt(serializedData, keyMaterial);
-
-    // console.log('Step 6: Encrypted Data: ', encryptedData);
-    // console.log('Step 6: Nonce: ', nonce);
 
     // Step 7: Construct result with algorithm metadata
     const result: EncryptedData = {
@@ -148,12 +136,9 @@ export class HybridEncryption {
       nonce: this.encodeBase64(nonce),
     };
 
-    // console.log('Step 7: Encrypted Data Structure: ', result);
-
     // Validate result structure
     const validation = validateEncryptedData(result);
     if (!validation.isValid) {
-      console.log('[Encryption Validation Errors: ', validation.errors);
       throw createAppropriateError('Generated encrypted data is invalid', {
         preset: this.preset,
         errorType: 'validation',
@@ -168,7 +153,7 @@ export class HybridEncryption {
   /**
    * Instance method for decryption with specific registry configuration
    */
-  decrypt<T = any>(encryptedData: EncryptedData, secretKey: Uint8Array): T {
+  decrypt<T = unknown>(encryptedData: EncryptedData, secretKey: Uint8Array): T {
     try {
       // Validate encrypted data structure
       const validation = validateEncryptedData(encryptedData);
@@ -246,7 +231,7 @@ export class HybridEncryption {
   /**
    * Instance method for decryption with grace period support
    */
-  decryptWithGracePeriod<T = any>(encryptedData: EncryptedData, secretKeys: Uint8Array[]): T {
+  decryptWithGracePeriod<T = unknown>(encryptedData: EncryptedData, secretKeys: Uint8Array[]): T {
     if (!secretKeys || secretKeys.length === 0) {
       createAppropriateError('At least one secret key must be provided', {
         preset: this.preset,
@@ -261,12 +246,6 @@ export class HybridEncryption {
     for (let i = 0; i < secretKeys.length; i++) {
       try {
         const result = this.decrypt<T>(encryptedData, secretKeys[i]);
-
-        // Log successful fallback if not using primary key
-        if (i > 0) {
-          console.log(`🔄 Decryption successful with fallback key ${i} during grace period`);
-        }
-
         return result;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown decryption error');

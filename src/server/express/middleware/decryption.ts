@@ -4,7 +4,6 @@ import { isEncryptedData } from '../../../core/common/guards';
 import { ServerDecryption } from '../../decrypt';
 import { DecryptionError } from '../errors/express.errors';
 
-// ✅ Extend Request interface properly
 interface DecryptedRequest extends Request {
   body: {
     data: EncryptedData | unknown;

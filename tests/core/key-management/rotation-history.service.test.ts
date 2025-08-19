@@ -5,7 +5,8 @@ import path from 'node:path';
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';
 import { KeyLifecycleService } from '../../../src/core/key-management/services/key-lifecycle.service';
 import { RotationHistoryService } from '../../../src/core/key-management/services/rotation-history.service';
-import { TEST_CERT_PATH, TEST_CONFIG, cleanTestDirectory } from './test-utils';
+import { cleanTestDirectory } from '../../test-utils';
+import { TEST_CERT_PATH, TEST_CONFIG } from './test-utils';
 
 describe('RotationHistoryService', () => {
   let historyService: RotationHistoryService;

@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { KeyManager_TEST } from '../../../src/core/key-management/key-manager-testing';
 import { KeyManagerConfig } from '../../../src/core/key-management/types/key-manager.types';
-import { cleanTestDirectory } from '../../core/key-management/test-utils';
 import { waitFor } from '../../core/utils/debug/async';
 import { directoryExists } from '../../core/utils/debug/filesystem';
+import { cleanTestDirectory } from '../../test-utils';
 
 const __dirname = new URL('.', import.meta.url).pathname;
 const TEST_CERT_PATH_AA = path.join(__dirname, './certs');

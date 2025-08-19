@@ -28,7 +28,6 @@ export class ServerDecryptionAllPublic {
     }
 
     this.preset = preset ?? DEFAULT_ENCRYPTION_OPTIONS.preset;
-    console.log('🔐 ServerDecryptionAllPublic initializing...');
   }
 
   public static getInstance(preset?: Preset): ServerDecryptionAllPublic {
@@ -72,11 +71,9 @@ export class ServerDecryptionAllPublic {
 
       await this.keyManager.initialize();
 
-      // Initialize HybridEncryption with the same preset
       this.encryptionInstance = new HybridEncryption(this.preset);
 
       this.isInitialized = true;
-      console.log('✅ ServerDecryptionAllPublic initialized successfully');
     } catch (error) {
       throw createAppropriateError('ServerDecryptionAllPublic initialization failed', {
         errorType: 'config',

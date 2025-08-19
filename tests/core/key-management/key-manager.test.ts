@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { KeyManager } from '../../../src/core/key-management/key-manager';
-import { cleanTestDirectory, TEST_CERT_PATH, TEST_CONFIG } from './test-utils';
+import { cleanTestDirectory } from '../../test-utils';
+import { TEST_CERT_PATH, TEST_CONFIG } from './test-utils';
 
 describe('KeyManager', () => {
   beforeEach(async () => {

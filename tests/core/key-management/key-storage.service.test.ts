@@ -2,11 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { TEST_CERT_PATH, TEST_CONFIG, cleanTestDirectory } from './test-utils';
+import { TEST_CERT_PATH, TEST_CONFIG } from './test-utils';
 
 import { KeyPair } from '../../../src/core/common/interfaces/keys.interfaces';
 import { KeyLifecycleService } from '../../../src/core/key-management/services/key-lifecycle.service';
 import { KeyStorageService } from '../../../src/core/key-management/services/key-storage.service';
+import { cleanTestDirectory } from '../../test-utils';
 
 describe('KeyStorageService', () => {
   let storageService: KeyStorageService;

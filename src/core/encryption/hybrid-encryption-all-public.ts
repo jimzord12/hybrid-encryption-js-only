@@ -107,8 +107,6 @@ export class HybridEncryption {
     // 🧪 Needs to be Tested - Check all possible edge cases
     const serializedData = this.serializeData(data);
 
-    // console.log('Step 1: Serialized Data: ', serializedData);
-
     // Step 2: Get algorithms from registries
     // 🧪 Needs to be Tested - Check if they are loaded correctly
     const asymmetric = this.asymmetricAlgorithm;
@@ -117,9 +115,6 @@ export class HybridEncryption {
     // Step 3: Generate shared secret & Ciphertext using KEM
     // 🧪 Needs to be Tested - Check that they have the correct length based on pre
     const { sharedSecret, cipherText: kemCipherText } = asymmetric.createSharedSecret(publicKey);
-
-    // console.log('Step 3: KEM Shared Secret: ', sharedSecret);
-    // console.log('Step 3: KEM Cipher Text: ', kemCipherText);
 
     // Step 4: Use the Shared Secret to create the Symmetric key
     const derivedKey = KeyDerivation.deriveKey(this.preset, sharedSecret);
@@ -169,7 +164,7 @@ export class HybridEncryption {
   /**
    * Instance method for decryption with specific registry configuration
    */
-  decrypt<T = any>(encryptedData: EncryptedData, secretKey: Uint8Array): T {
+  decrypt<T = unknown>(encryptedData: EncryptedData, secretKey: Uint8Array): T {
     try {
       // Validate encrypted data structure
       const validation = validateEncryptedData(encryptedData);

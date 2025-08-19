@@ -7,8 +7,9 @@ import { KeyLifecycleService } from '../../../src/core/key-management/services/k
 import { KeyRotationService } from '../../../src/core/key-management/services/key-rotation.service';
 import { KeyStorageService } from '../../../src/core/key-management/services/key-storage.service';
 import { RotationHistoryService } from '../../../src/core/key-management/services/rotation-history.service';
+import { cleanTestDirectory } from '../../test-utils';
 import { waitFor } from '../utils/debug/async';
-import { cleanTestDirectory, TEST_CERT_PATH, TEST_CONFIG } from './test-utils';
+import { TEST_CERT_PATH, TEST_CONFIG } from './test-utils';
 
 describe('KeyRotationService', () => {
   let rotationService: KeyRotationService;

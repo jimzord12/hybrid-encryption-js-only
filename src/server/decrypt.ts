@@ -23,7 +23,6 @@ export class ServerDecryption {
     }
 
     this.preset = config.preset ?? DEFAULT_ENCRYPTION_OPTIONS.preset;
-    console.log('🔐 ServerDecryption initializing...');
   }
 
   public static getInstance(config: KeyManagerConfig = {}): ServerDecryption {
@@ -72,7 +71,6 @@ export class ServerDecryption {
       this.encryptionInstance = new HybridEncryption(this.preset);
 
       this.isInitialized = true;
-      console.log('✅ ServerDecryption initialized successfully');
     } catch (error) {
       throw createAppropriateError('ServerDecryption initialization failed', {
         errorType: 'config',

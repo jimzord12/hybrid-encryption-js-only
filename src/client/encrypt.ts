@@ -15,7 +15,6 @@ export class ClientEncryption {
   private preset: Preset | null = null;
 
   private constructor(preset: Preset = DEFAULT_ENCRYPTION_OPTIONS.preset) {
-    // Runtime guard to prevent direct instantiation
     if (!ClientEncryption.isInstantiating) {
       throw new Error(
         'ClientEncryption cannot be instantiated directly. Use ClientEncryption.getInstance() instead.',
@@ -24,7 +23,6 @@ export class ClientEncryption {
 
     this.preset = preset;
     this.encryptionInstance = new HybridEncryption(preset);
-    console.log('🔐 ClientEncryption initialized successfully ✅');
   }
 
   public static getInstance(preset: Preset = DEFAULT_ENCRYPTION_OPTIONS.preset): ClientEncryption {
