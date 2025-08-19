@@ -91,15 +91,15 @@ export class KeyManager_TEST {
   public async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
-    console.log('🔑 KeyManager initializing...');
+    console.log('[TEST-KeyManager] 🔑 KeyManager initializing...');
 
-    if (!isJobScheduled('Key Rotation Job')) {
-      console.log('🔑 KeyManager | Registering Rotation Cron Job');
+    if (!isJobScheduled('Test Key Rotation Job')) {
+      console.log('[TEST-KeyManager] 🔑 KeyManager | Registering Rotation Cron Job');
       registerRotationJob_TEST();
     }
 
     try {
-      console.log('🔑 Config to Validate: ', this.config);
+      console.log('[TEST-KeyManager] 🔑 Config to Validate: ', this.config);
       // 1. Validate configuration
       this.configService.validateConfig(this.config);
 
@@ -110,7 +110,9 @@ export class KeyManager_TEST {
       let keys = await this.storageService.loadKeysFromFile();
       if (!keys) {
         if (this.config.autoGenerate) {
-          console.log(`🔑 Generating new key pair (PRESET: ${this.config.preset})...`);
+          console.log(
+            `[TEST-KeyManager] 🔑 Generating new key pair (PRESET: ${this.config.preset})...`,
+          );
           const nextVersion = (await this.historyService.getNextVersionNumber()) ?? 1;
           keys = this.lifecycleService.createNewKeyPair({ version: nextVersion });
           if (this.config.enableFileBackup) {
@@ -140,7 +142,7 @@ export class KeyManager_TEST {
 
       this.isInitialized = true;
       this.lastValidation = new Date();
-      console.log('✅ KeyManager initialized successfully');
+      console.log('[TEST-KeyManager] ✅ KeyManager initialized successfully');
     } catch (error) {
       const initError = createAppropriateError(
         `KeyManager initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`,

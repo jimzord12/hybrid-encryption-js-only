@@ -53,7 +53,7 @@ describe('KeyRotationService', () => {
     it('should perform a key rotation successfully', async () => {
       KeyManager.resetInstance();
       const keyManager = KeyManager.getInstance({ preset: Preset.NORMAL });
-      keyManager.initialize();
+      await keyManager.initialize();
 
       const currentkeyPair = lifecycleService.createNewKeyPair();
 

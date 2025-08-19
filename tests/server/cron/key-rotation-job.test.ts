@@ -30,8 +30,13 @@ describe('Key Rotation Job', () => {
 
   it('should correctly rotate keys', async () => {
     const keyManager = KeyManager_TEST.getInstance(TEST_CONFIG_AA);
-    keyManager.initialize();
+    await keyManager.initialize();
+    console.log('1 | GET STATUS: ', await keyManager.getStatus());
+
+    console.log('============================');
     const keyPair_01 = await keyManager.getKeyPair();
+    console.log('2 | GET STATUS: ', await keyManager.getStatus());
+    console.log('============================');
 
     expect(keyPair_01).toBeDefined();
     expect(keyPair_01.metadata).toBeDefined();
@@ -50,7 +55,18 @@ describe('Key Rotation Job', () => {
     expect(history_01.rotations).toHaveLength(1);
     expect(history_01.totalRotations).toBe(1);
 
-    await waitFor(5 * 1000); // Waiting for Cron Job
+    console.log('');
+    console.log('######### | END of ROTATION #1 | #########');
+    console.log('');
+    console.log('Waiting for 3 seconds...');
+
+    await waitFor(2 * 1000); // Waiting for Cron Job
+
+    console.log('');
+    console.log('######### | START of ROTATION #2 | #########');
+    console.log('');
+
+    /////////// #1 //////////////
 
     const keyPair_02 = await keyManager.getKeyPair();
 
@@ -66,9 +82,20 @@ describe('Key Rotation Job', () => {
     expect(history_02.rotations).toHaveLength(2);
     expect(history_02.totalRotations).toBe(2);
 
-    await waitFor(3 * 1000); // Waiting for Cron Job
+    console.log('');
+    console.log('######### | END of ROTATION #2 | #########');
+    console.log('');
+    console.log('Waiting for 2 seconds...');
+
+    await waitFor(2 * 1000 + 100); // Waiting for Cron Job
 
     const keyPair_03 = await keyManager.getKeyPair();
+
+    console.log('');
+    console.log('######### | START of ROTATION #3 | #########');
+    console.log('');
+
+    /////////// #2 //////////////
 
     expect(keyPair_03.metadata.version).not.toBe(keyPair_02.metadata.version);
     expect(keyPair_03.publicKey.slice(50)).not.toBe(keyPair_02.publicKey.slice(50));
@@ -81,6 +108,10 @@ describe('Key Rotation Job', () => {
     expect(history_03).toBeDefined();
     expect(history_03.rotations).toHaveLength(3);
     expect(history_03.totalRotations).toBe(3);
+
+    console.log('');
+    console.log('######### | END of ROTATION #3 | #########');
+    console.log('');
 
     // Add assertions to verify key rotation
   });

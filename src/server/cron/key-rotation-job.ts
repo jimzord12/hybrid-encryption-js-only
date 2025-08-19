@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { KeyManager } from '../../core';
+import { KeyManager_TEST } from '../../core/key-management/key-manager-testing';
 
 export const registerRotationJob = (weeks = 3) => {
   const days = weeks * 7;
@@ -34,7 +35,7 @@ export const registerRotationJob_TEST = (intervalSeconds = 2) => {
     async () => {
       try {
         console.log('TEST: Running key rotation job at:', new Date().toISOString());
-        const keyManager = KeyManager.getInstance();
+        const keyManager = KeyManager_TEST.getInstance();
         await keyManager.rotateKeys();
         console.log('TEST: Key rotation completed successfully');
       } catch (error) {
@@ -42,7 +43,7 @@ export const registerRotationJob_TEST = (intervalSeconds = 2) => {
       }
     },
     {
-      name: `Test Key Rotation Job (every ${intervalSeconds}s)`,
+      name: 'Test Key Rotation Job',
       timezone: 'UTC',
     },
   );
