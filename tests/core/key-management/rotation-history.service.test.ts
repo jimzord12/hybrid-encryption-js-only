@@ -13,14 +13,14 @@ describe('RotationHistoryService', () => {
   let testKeys: KeyPair;
 
   beforeEach(async () => {
-    await cleanTestDirectory();
+    await cleanTestDirectory(TEST_CERT_PATH);
     historyService = new RotationHistoryService(TEST_CONFIG);
     lifecycleService = new KeyLifecycleService(TEST_CONFIG);
     testKeys = lifecycleService.createNewKeyPair();
   });
 
   afterEach(async () => {
-    await cleanTestDirectory();
+    await cleanTestDirectory(TEST_CERT_PATH);
   });
 
   describe('getRotationHistory and updateRotationHistory', () => {

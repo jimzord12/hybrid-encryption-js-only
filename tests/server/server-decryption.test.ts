@@ -110,6 +110,7 @@ describe('ServerDecryption', () => {
         rotationGracePeriodInMinutes: 15,
         certPath: './config/test-certs', // Use different path for testing
         autoGenerate: true,
+        rotationIntervalInWeeks: 2,
       };
 
       let server = getServerDecryption();
@@ -138,6 +139,7 @@ describe('ServerDecryption', () => {
         rotationGracePeriodInMinutes: 33,
         certPath: './config/AAAAAAAAAAAAAAA/test-certs', // Use different path for testing
         autoGenerate: true,
+        rotationIntervalInWeeks: 4,
       };
 
       server = ServerDecryption.getInstance();

@@ -16,28 +16,29 @@ export const TEST_CONFIG: Required<KeyManagerConfig> = {
   autoGenerate: true,
   enableFileBackup: true,
   rotationGracePeriodInMinutes: 0.05, // 3 seconds for testing
+  rotationIntervalInWeeks: 1,
 };
 
 /**
  * Clean test directory utility
  */
-export async function cleanTestDirectory(): Promise<void> {
+export async function cleanTestDirectory(dir: string): Promise<void> {
   try {
     // Check if directory exists
     try {
-      await access(TEST_CERT_PATH);
+      await access(dir);
     } catch {
       // Directory doesn't exist, create it
-      await mkdir(TEST_CERT_PATH, { recursive: true });
+      await mkdir(dir, { recursive: true });
       return;
     }
 
     // If directory exists, read its contents
-    const files = await readdir(TEST_CERT_PATH);
+    const files = await readdir(dir);
 
     // Delete all files in the directory
     const deletePromises = files.map(async (file) => {
-      const filePath = join(TEST_CERT_PATH, file);
+      const filePath = join(dir, file);
       const stats = await stat(filePath);
 
       if (stats.isDirectory()) {

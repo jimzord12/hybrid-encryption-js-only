@@ -64,7 +64,8 @@ export class KeyRotationService {
   ): Promise<{ newKeys: KeyPair; previousKeys: KeyPair | null }> {
     console.log('🔄 Starting key rotation...');
 
-    console.log('Current Keys: ', currentKeys);
+    console.log('Current Keys | PK: ', currentKeys?.publicKey.length || -1, 'bytes');
+    console.log('Current Keys | SK: ', currentKeys?.secretKey.length || -1, 'bytes');
 
     try {
       // Generate new keys
@@ -72,7 +73,8 @@ export class KeyRotationService {
       const nextVersion = (await historyService.getNextVersionNumber()) ?? 1;
       const newKeyPair = lifecycleService.createNewKeyPair({ version: nextVersion });
 
-      console.log('New Keys: ', newKeyPair);
+      console.log('New Keys | PK: ', newKeyPair.publicKey.length || -1, 'bytes');
+      console.log('New Keys | SK: ', newKeyPair.secretKey.length || -1, 'bytes');
 
       // Backup old keys if they exist
       if (currentKeys && this.config.enableFileBackup) {

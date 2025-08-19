@@ -59,13 +59,14 @@ export class ServerDecryption {
     if (this.isInitialized) return;
 
     try {
-      // Initialize KeyManager
+      // Create KeyManager Instance with desired Config
       this.keyManager = KeyManager.getInstance({
         preset: this.preset,
         ...config,
       });
 
-      await this.keyManager.initialize();
+      // ⚠️ KeyManager does NOT initialize automatically!
+      await this.keyManager.initialize(); // Don't forget to initialize
 
       // Initialize HybridEncryption with the same preset
       this.encryptionInstance = new HybridEncryption(this.preset);

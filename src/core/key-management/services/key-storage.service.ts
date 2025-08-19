@@ -102,7 +102,8 @@ export class KeyStorageService {
         },
       };
 
-      console.log('3. Loaded Key Pair:', keyPair);
+      console.log('3.1 Loaded Key Pair (PK):', keyPair.publicKey.length, 'bytes');
+      console.log('3.1 Loaded Key Pair (SK):', keyPair.secretKey.length, 'bytes');
 
       return keyPair;
     } catch (error) {
@@ -172,7 +173,7 @@ export class KeyStorageService {
    * Backup expired keys
    */
   public async backupExpiredKeys(keyPair: KeyPair): Promise<void> {
-    const timestamp = new Date().toISOString().slice(0, 7); // YYYY-MM format
+    const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
     const backupDir = path.join(this.config.certPath, 'backup');
 
     try {

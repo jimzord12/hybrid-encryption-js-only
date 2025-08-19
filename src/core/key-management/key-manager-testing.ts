@@ -1,5 +1,5 @@
 import { isJobScheduled } from '../../server/cron/cron-utils';
-import { registerRotationJob } from '../../server/cron/key-rotation-job';
+import { registerRotationJob_TEST } from '../../server/cron/key-rotation-job';
 import { createAppropriateError } from '../common/errors';
 import { KeyPair } from '../common/interfaces/keys.interfaces';
 import { BufferUtils } from '../utils';
@@ -11,17 +11,22 @@ import { KeyStorageService } from './services/key-storage.service';
 import { RotationHistoryService } from './services/rotation-history.service';
 import { KeyManagerConfig, KeyManagerStatus, KeyRotationState } from './types/key-manager.types';
 
-export class KeyManager {
-  public static instance: KeyManager | null = null;
+/**
+ * 🧪 THIS IS A TEST VERSION OF THE CLASS 🧪
+ * ⚠️ ALL METHODS ARE PUBLIC FOR TESTING PURPOSES ⚠️
+ * 🚨 DO NOT USE IN PRODUCTION - DO NOT EXPORT TO PUBLIC API 🚨
+ */
+export class KeyManager_TEST {
+  public static instance: KeyManager_TEST | null = null;
 
-  private config: Required<KeyManagerConfig>;
+  public config: Required<KeyManagerConfig>;
 
   // Services
-  private readonly configService: KeyConfigurationService;
-  private readonly storageService: KeyStorageService;
-  private readonly lifecycleService: KeyLifecycleService;
-  private readonly rotationService: KeyRotationService;
-  private readonly historyService: RotationHistoryService;
+  public readonly configService: KeyConfigurationService;
+  public readonly storageService: KeyStorageService;
+  public readonly lifecycleService: KeyLifecycleService;
+  public readonly rotationService: KeyRotationService;
+  public readonly historyService: RotationHistoryService;
 
   // State
   public currentKeys: KeyPair | null = null;
@@ -30,7 +35,7 @@ export class KeyManager {
   public lastValidation: Date | null = null;
   public cleanupTimer: NodeJS.Timeout | null = null;
 
-  private constructor(config: KeyManagerConfig = {}) {
+  public constructor(config: KeyManagerConfig = {}) {
     this.config = { ...DEFAULT_KEY_MANAGER_OPTIONS, ...config };
 
     // Instantiate services
@@ -49,19 +54,19 @@ export class KeyManager {
     };
   }
 
-  public static getInstance(config?: KeyManagerConfig): KeyManager {
-    KeyManager.instance ??= new KeyManager(config);
-    return KeyManager.instance;
+  public static getInstance(config?: KeyManagerConfig): KeyManager_TEST {
+    KeyManager_TEST.instance ??= new KeyManager_TEST(config);
+    return KeyManager_TEST.instance;
   }
 
   public static resetInstance(): void {
-    if (KeyManager.instance) {
-      KeyManager.instance.cleanup();
+    if (KeyManager_TEST.instance) {
+      KeyManager_TEST.instance.cleanup();
     }
-    KeyManager.instance = null;
+    KeyManager_TEST.instance = null;
   }
 
-  private cleanup(): void {
+  public cleanup(): void {
     if (this.cleanupTimer) {
       clearTimeout(this.cleanupTimer);
       this.cleanupTimer = null;
@@ -90,7 +95,7 @@ export class KeyManager {
 
     if (!isJobScheduled('Key Rotation Job')) {
       console.log('🔑 KeyManager | Registering Rotation Cron Job');
-      registerRotationJob(this.config.rotationIntervalInWeeks);
+      registerRotationJob_TEST();
     }
 
     try {

@@ -1,8 +1,8 @@
+import path from 'node:path';
+import process from 'node:process';
 import { createAppropriateError } from '../../../core/common/errors';
 import { isValidPreset } from '../../../core/common/guards/enum.guards';
 import { KeyManagerConfig } from '../../../core/key-management/types/key-manager.types';
-import path from 'node:path';
-import process from 'node:process';
 
 export class KeyConfigurationService {
   public validateConfig(config: Required<KeyManagerConfig>): void {
@@ -43,6 +43,14 @@ export class KeyConfigurationService {
         errors.push('Certificate path contains unsafe path traversal patterns');
       }
     }
+
+    // Validate rotationIntervalInWeeks
+    if (config.rotationIntervalInWeeks <= 0)
+      errors.push(`Rotation interval must be positive (got ${config.rotationIntervalInWeeks})`);
+    if (config.rotationIntervalInWeeks > 30)
+      errors.push(
+        `Rotation interval must be at most 30weeks (got ${config.rotationIntervalInWeeks})`,
+      );
 
     if (errors.length > 0) {
       throw createAppropriateError(`Invalid configuration: ${errors.join(', ')}`, {

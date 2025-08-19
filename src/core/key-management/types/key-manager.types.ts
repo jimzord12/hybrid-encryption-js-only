@@ -22,6 +22,7 @@ export interface KeyManagerConfig {
   autoGenerate?: boolean; // Auto-generate keys (default: true)
   enableFileBackup?: boolean; // Backup keys to filesystem (default: true)
   rotationGracePeriodInMinutes?: number; // Grace period in minutes during rotation (default: 15)
+  rotationIntervalInWeeks?: number; // Rotation interval in weeks (default: 2)
 }
 
 export interface KeyRotationState {
