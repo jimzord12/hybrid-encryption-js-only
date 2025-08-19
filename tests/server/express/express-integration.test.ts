@@ -9,7 +9,7 @@
  * 5. Verifies data integrity throughout the process
  */
 
-import express, { Application } from 'express';
+import express, { Application, NextFunction, Request, Response } from 'express';
 import { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ClientEncryption } from '../../../src/client/index.js';
@@ -19,6 +19,13 @@ import {
   decryptMiddleware,
   decryptionRouter,
 } from '../../../src/server/index.js';
+
+interface APIError {
+  success: boolean;
+  error: string;
+  message: string;
+  name: string;
+}
 
 describe('Express.js v5 Server Integration Tests', () => {
   let app: Application;
@@ -122,22 +129,24 @@ describe('Express.js v5 Server Integration Tests', () => {
     });
 
     // Error handling middleware
-    app.use((err: any, _req: any, res: any) => {
-      console.error('🚨 Server error:', err);
+    app.use((err: Error, _req: Request, res: Response<APIError>, _next: NextFunction) => {
+      console.log('🚨 Server error:', err);
 
       if (err instanceof DecryptionError) {
         return res.status(400).json({
           success: false,
           error: 'Decryption failed',
           message: err.message,
-        });
+          name: err.name,
+        } as APIError);
       }
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Internal server error',
         message: err.message,
-      });
+        name: err.name,
+      } as APIError);
     });
 
     // Start the server
@@ -388,11 +397,14 @@ describe('Express.js v5 Server Integration Tests', () => {
         body: JSON.stringify({ data: invalidData }),
       });
 
-      expect(response.status).toBe(500); // Express error handler
+      expect(response.status).toBe(400); // Express error handler
 
-      const result = await response.json();
+      const result = (await response.json()) as APIError;
       expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(result.error).toBe('Decryption failed');
+      expect(result.name).toBe('DecryptionError');
+      expect(result.message).toBe('Invalid structure of encrypted data format');
+      expect(result.success).toBe(false);
 
       console.log('✅ Invalid data error handling verified');
     });
@@ -406,7 +418,15 @@ describe('Express.js v5 Server Integration Tests', () => {
         body: JSON.stringify({ notData: 'missing data field' }),
       });
 
-      expect(response.status).toBe(500); // Express error handler
+      expect(response.status).toBe(400);
+
+      const result = (await response.json()) as APIError;
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Decryption failed');
+      expect(result.name).toBe('DecryptionError');
+      expect(result.message).toBe('Invalid structure of encrypted data format');
+      expect(result.success).toBe(false);
+
       console.log('✅ Missing data field error handling verified');
     });
   });

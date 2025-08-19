@@ -20,7 +20,7 @@ export const decryptMiddleware = async (
   const { data: encryptedData } = req.body;
 
   if (!isEncryptedData(encryptedData)) {
-    throw new DecryptionError('Invalid encrypted data format');
+    throw new DecryptionError('Invalid structure of encrypted data format');
   }
 
   const decryptService = ServerDecryption.getInstance();
