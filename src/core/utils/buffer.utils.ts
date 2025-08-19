@@ -13,7 +13,8 @@
  */
 
 import { randomBytes } from '@noble/hashes/utils';
-import { Buffer } from 'node:buffer';
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer';
 import { Base64, HexString } from '../common/types/branded-types.types';
 
 /**

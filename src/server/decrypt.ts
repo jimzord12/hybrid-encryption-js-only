@@ -237,6 +237,21 @@ export class ServerDecryption {
       issues,
     };
   }
+
+  public async getPublicKey(): Promise<Uint8Array | null> {
+    await this.initializeIfNeeded();
+    return this.keyManager ? await this.keyManager.getPublicKey() : null;
+  }
+
+  public async getPublicKeyBase64(): Promise<string | null> {
+    await this.initializeIfNeeded();
+    return this.keyManager ? await this.keyManager.getPublicKeyBase64() : null;
+  }
+
+  public async rotateKeys(): Promise<void | null> {
+    await this.initializeIfNeeded();
+    return this.keyManager ? await this.keyManager.rotateKeys() : null;
+  }
 }
 
 // Direct export of the getInstance method (Option 1)

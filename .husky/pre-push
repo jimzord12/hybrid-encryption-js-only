@@ -16,19 +16,27 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Run the full test suite before pushing
-echo "🧪 Running full test suite before push..."
-npm run test
+# Run a build check to ensure TypeScript compiles
+echo "🔨 Checking TypeScript Types..."
+npm run type-check
 if [ $? -ne 0 ]; then
-  echo "❌ Tests failed. Please fix failing tests before pushing."
+  echo "❌ TypeScript type check failed. Please fix type errors before pushing."
   exit 1
 fi
 
 # Run a build check to ensure TypeScript compiles
 echo "🔨 Checking TypeScript compilation..."
-npm run build
+npm run bundle
 if [ $? -ne 0 ]; then
   echo "❌ TypeScript compilation failed. Please fix compilation errors before pushing."
+  exit 1
+fi
+
+# Run the full test suite before pushing
+echo "🧪 Running full test suite before push..."
+npm run test
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix failing tests before pushing."
   exit 1
 fi
 
