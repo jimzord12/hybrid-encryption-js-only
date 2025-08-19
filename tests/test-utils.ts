@@ -1,4 +1,4 @@
-import { access, mkdir, readdir, rm, stat } from 'node:fs/promises';
+import { access, mkdir, readdir, rm, rmdir, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { deepEqual, type DeepComparisonOptions } from '../src/core/utils/comparison.utils';
 
@@ -162,7 +162,7 @@ export async function deleteDirectoryIfEmpty(dir: string): Promise<boolean> {
     }
 
     // Directory exists and is empty — remove it
-    await rm(dir, { force: true });
+    await rmdir(dir);
     return true;
   } catch (error: any) {
     // If the directory doesn't exist, treat as not removed
