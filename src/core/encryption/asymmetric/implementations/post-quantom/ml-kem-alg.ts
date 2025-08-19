@@ -1,6 +1,6 @@
 import { ml_kem1024, ml_kem768 } from '@noble/post-quantum/ml-kem';
 import { Preset } from '../../../../common/enums';
-import { createAppropriateError } from '../../../../common/errors';
+import { createAppropriateError } from '../../../../common/errors/encryption.errors';
 import { Keys, MlKemSecrets } from '../../../../common/interfaces/keys.interfaces';
 import { DEFAULT_ENCRYPTION_OPTIONS } from '../../../constants/defaults.constants';
 import { ML_KEM_STATS } from '../../../constants/encryption.constants';

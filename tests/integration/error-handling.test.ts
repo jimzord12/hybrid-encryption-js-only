@@ -1,5 +1,4 @@
-import { ClientEncryption } from '../../src/client';
-import { Preset } from '../../src/common/types';
+import { ClientEncryption, Preset } from '../../src/client';
 import { EncryptedData } from '../../src/core/common/interfaces/encryption.interfaces';
 import { ServerDecryptionAllPublic } from '../../src/server/decrypt-all-public';
 

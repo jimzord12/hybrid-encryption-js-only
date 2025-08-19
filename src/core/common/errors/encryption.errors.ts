@@ -6,7 +6,7 @@
  */
 
 import { Preset } from '../enums';
-import { ErrorType } from './types.errors';
+import { ErrorType } from './types.errors.js';
 
 /**
  * Base class for all modern encryption errors

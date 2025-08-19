@@ -1,6 +1,6 @@
 import express, { type Request, Response } from 'express';
 import { expectDeepEqual } from '../../../../tests/setup/test-utils';
-import { EncryptedData } from '../../../common/types';
+import { EncryptedData } from '../../../core';
 import { ServerDecryption } from '../../decrypt';
 
 const roundTripTest = express.Router();

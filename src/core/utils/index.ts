@@ -1,4 +1,4 @@
-import { SerializableData } from '../common/interfaces/serialization.interfaces';
+import { SerializableData } from '../common/interfaces/serialization.interfaces.js';
 import {
   BufferUtils,
   binaryToString,
@@ -7,16 +7,16 @@ import {
   encodeBase64,
   getSecureRandomBytes,
   stringToBinary,
-} from './buffer.utils';
+} from './buffer.utils.js';
 import {
   ComparisonUtils,
   arraysDeepEqual,
   deepEqual,
   objectsDeepEqual,
   type DeepComparisonOptions,
-} from './comparison.utils';
-import { KeyDerivation } from './key-derivation.utils';
-import { Serialization } from './serialization.utils';
+} from './comparison.utils.js';
+import { KeyDerivation } from './key-derivation.utils.js';
+import { Serialization } from './serialization.utils.js';
 
 // Note: Other utility functions will be added in subsequent phases
 // - Random bytes generation now uses @noble/hashes for cryptographic security

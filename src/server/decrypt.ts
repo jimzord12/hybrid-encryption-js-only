@@ -1,5 +1,5 @@
+import { createAppropriateError } from '../core';
 import { Preset } from '../core/common/enums';
-import { createAppropriateError } from '../core/common/errors';
 import { EncryptedData } from '../core/common/interfaces/encryption.interfaces';
 import { HybridEncryption } from '../core/encryption';
 import { DEFAULT_ENCRYPTION_OPTIONS } from '../core/encryption/constants/defaults.constants';

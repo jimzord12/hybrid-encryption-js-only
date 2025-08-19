@@ -1,1 +1,1 @@
-export { MlKemKeyProvider } from './ml-kem-provider';
+export { MlKemKeyProvider } from './ml-kem-provider.js';

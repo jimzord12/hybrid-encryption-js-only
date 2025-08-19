@@ -1,7 +1,7 @@
 import express from 'express';
-import publicKeyRoute from './public-key';
-import keyRotationRoute from './rotate-keys';
-import roundTripTest from './round-trip';
+import publicKeyRoute from './public-key.js';
+import keyRotationRoute from './rotate-keys.js';
+import roundTripTest from './round-trip.js';
 
 const decryptionRouter = express.Router();
 

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "./dist/server/server.cjs",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -72,6 +71,7 @@
       "prettier --write"
     ]
   },
+  "main": "./dist/server/server.cjs",
   "module": "./dist/server/server.js",
   "types": "./dist/server/server.d.cts",
   "exports": {

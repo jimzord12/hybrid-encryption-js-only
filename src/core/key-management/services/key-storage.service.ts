@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createAppropriateError } from '../../../core/common/errors';
 import { KeyPair } from '../../../core/common/interfaces/keys.interfaces';
 import { KeyManagerConfig } from '../../../core/key-management/types/key-manager.types';
+import { createAppropriateError } from '../../common/errors/encryption.errors';
 import { SerializedKeyMetadata } from '../../common/interfaces/serialization.interfaces';
 
 export class KeyStorageService {
@@ -189,8 +189,8 @@ export class KeyStorageService {
         await fs.mkdir(backupDir, { recursive: true });
       }
 
-      const backupPublicPath = path.join(backupDir, `pub-key-expired-${timestamp}.pem`);
-      const backupSecretPath = path.join(backupDir, `secret-key-expired-${timestamp}.pem`);
+      const backupPublicPath = path.join(backupDir, `pub-key-expired-${timestamp}.bin`);
+      const backupSecretPath = path.join(backupDir, `secret-key-expired-${timestamp}.bin`);
 
       if (!keyPair.secretKey) {
         throw new Error('No secret key data found for backup');

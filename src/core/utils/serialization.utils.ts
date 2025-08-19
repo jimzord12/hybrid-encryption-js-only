@@ -1,8 +1,8 @@
 import { Preset } from '../common/enums';
-import { createAppropriateError, ValidationError } from '../common/errors';
+import { createAppropriateError, ValidationError } from '../common/errors/encryption.errors';
 import { SerializableData } from '../common/interfaces/serialization.interfaces';
 import { Base64 } from '../common/types/branded-types.types';
-import { BufferUtils } from './buffer.utils';
+import { BufferUtils } from './buffer.utils.js';
 
 export const serializableTypes = new Set<SerializableData>([
   'string',

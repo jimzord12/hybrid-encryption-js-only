@@ -1,8 +1,8 @@
 import path from 'node:path';
 import process from 'node:process';
-import { createAppropriateError } from '../../../core/common/errors';
 import { isValidPreset } from '../../../core/common/guards/enum.guards';
 import { KeyManagerConfig } from '../../../core/key-management/types/key-manager.types';
+import { createAppropriateError } from '../../common/errors/encryption.errors';
 
 export class KeyConfigurationService {
   public validateConfig(config: Required<KeyManagerConfig>): void {

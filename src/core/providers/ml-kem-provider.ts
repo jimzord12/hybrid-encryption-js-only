@@ -1,14 +1,14 @@
-import { Preset } from '../common/enums';
-import { createAppropriateError } from '../common/errors';
-import { isValidPreset } from '../common/guards/enum.guards';
-import { KeyPair } from '../common/interfaces/keys.interfaces';
-import { SerializedKeyPair } from '../common/interfaces/serialization.interfaces';
+import { Preset } from '../common/enums/index.js';
+import { createAppropriateError } from '../common/errors/encryption.errors.js';
+import { isValidPreset } from '../common/guards/enum.guards.js';
+import { KeyPair } from '../common/interfaces/keys.interfaces.js';
+import { SerializedKeyPair } from '../common/interfaces/serialization.interfaces.js';
 
-import { ValidationResult } from '../common/interfaces/validation.interfaces';
-import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg';
-import { DEFAULT_KEY_MANAGER_OPTIONS } from '../key-management/constants/defaults.constants';
-import { BufferUtils } from '../utils';
-import { KeyProvider } from './interfaces/key-provider.interface';
+import { ValidationResult } from '../common/interfaces/validation.interfaces.js';
+import { MLKEMAlgorithm } from '../encryption/asymmetric/implementations/post-quantom/ml-kem-alg.js';
+import { DEFAULT_KEY_MANAGER_OPTIONS } from '../key-management/constants/defaults.constants.js';
+import { BufferUtils } from '../utils/index.js';
+import { KeyProvider } from './interfaces/key-provider.interface.js';
 
 /**
  * ML-KEM (Kyber) Key Provider

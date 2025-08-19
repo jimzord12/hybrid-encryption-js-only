@@ -1,10 +1,12 @@
-import { Base64 } from '../common/types';
-import { Preset } from '../core/common/enums';
-import { EncryptedData } from '../core/common/interfaces/encryption.interfaces';
-import { HybridEncryption } from '../core/encryption';
 import { DEFAULT_ENCRYPTION_OPTIONS } from '../core/encryption/constants/defaults.constants';
-import { decodeBase64 } from '../core/utils';
-import { createAppropriateError } from './utils';
+import {
+  Base64,
+  createAppropriateError,
+  decodeBase64,
+  EncryptedData,
+  HybridEncryption,
+  Preset,
+} from '../core/encryption/index.js';
 
 export class ClientEncryption {
   private static instance: ClientEncryption | null = null;

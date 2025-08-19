@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { EncryptedData } from '../../../common/types';
+import { EncryptedData } from '../../../core';
 import { isEncryptedData } from '../../../core/common/guards';
 import { ServerDecryption } from '../../decrypt';
 import { DecryptionError } from '../errors/express.errors';

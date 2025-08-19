@@ -1,5 +1,4 @@
-import { ClientEncryption } from '../src/client';
-import { Preset } from '../src/client/enums';
+import { ClientEncryption, Preset } from '../src/client';
 
 /**
  * Example 1: Basic Client-Side Encryption

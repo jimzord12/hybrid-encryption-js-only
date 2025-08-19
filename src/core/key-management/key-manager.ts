@@ -1,15 +1,15 @@
-import { isJobScheduled } from '../../server/cron/cron-utils';
-import { registerRotationJob } from '../../server/cron/key-rotation-job';
-import { createAppropriateError } from '../common/errors';
-import { KeyPair } from '../common/interfaces/keys.interfaces';
-import { BufferUtils } from '../utils';
-import { DEFAULT_KEY_MANAGER_OPTIONS } from './constants/defaults.constants';
-import { KeyConfigurationService } from './services/key-configuration.service';
-import { KeyLifecycleService } from './services/key-lifecycle.service';
-import { KeyRotationService } from './services/key-rotation.service';
-import { KeyStorageService } from './services/key-storage.service';
-import { RotationHistoryService } from './services/rotation-history.service';
-import { KeyManagerConfig, KeyManagerStatus, KeyRotationState } from './types/key-manager.types';
+import { isJobScheduled } from '../../server/cron/cron-utils.js';
+import { registerRotationJob } from '../../server/cron/key-rotation-job.js';
+import { createAppropriateError } from '../common/errors/encryption.errors.js';
+import { KeyPair } from '../common/interfaces/keys.interfaces.js';
+import { BufferUtils } from '../utils/index.js';
+import { DEFAULT_KEY_MANAGER_OPTIONS } from './constants/defaults.constants.js';
+import { KeyConfigurationService } from './services/key-configuration.service.js';
+import { KeyLifecycleService } from './services/key-lifecycle.service.js';
+import { KeyRotationService } from './services/key-rotation.service.js';
+import { KeyStorageService } from './services/key-storage.service.js';
+import { RotationHistoryService } from './services/rotation-history.service.js';
+import { KeyManagerConfig, KeyManagerStatus, KeyRotationState } from './types/key-manager.types.js';
 
 export class KeyManager {
   public static instance: KeyManager | null = null;

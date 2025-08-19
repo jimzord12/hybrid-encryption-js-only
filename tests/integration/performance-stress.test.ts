@@ -1,5 +1,4 @@
-import { ClientEncryption } from '../../src/client';
-import { Preset } from '../../src/common/types';
+import { ClientEncryption, Preset } from '../../src/client';
 import { ServerDecryptionAllPublic } from '../../src/server/decrypt-all-public';
 
 describe('Performance & Stress Integration Tests', () => {

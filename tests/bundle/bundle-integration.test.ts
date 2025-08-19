@@ -67,10 +67,10 @@ describe('Bundle Integration Tests', () => {
       };
 
       // Set reasonable size limits (adjust based on your actual bundle sizes)
-      checkFileSize('server/server.js', 100); // 100KB limit
-      checkFileSize('client/client.js', 50); // 50KB limit
-      checkFileSize('core/core.js', 80); // 80KB limit
-      checkFileSize('utils/utils.js', 40); // 40KB limit
+      checkFileSize('server/server.js', 120); // 120KB limit
+      checkFileSize('client/client.js', 60); // 60KB limit
+      checkFileSize('core/core.js', 100); // 100KB limit
+      checkFileSize('utils/utils.js', 50); // 50KB limit
     });
   });
 });

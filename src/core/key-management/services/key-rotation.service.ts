@@ -1,12 +1,12 @@
-import { createAppropriateError } from '../../../core/common/errors';
 import { KeyPair } from '../../../core/common/interfaces/keys.interfaces';
 import {
   KeyManagerConfig,
   KeyRotationState,
 } from '../../../core/key-management/types/key-manager.types';
-import { KeyLifecycleService } from './key-lifecycle.service';
-import { KeyStorageService } from './key-storage.service';
-import { RotationHistoryService } from './rotation-history.service';
+import { createAppropriateError } from '../../common/errors/encryption.errors';
+import { KeyLifecycleService } from './key-lifecycle.service.js';
+import { KeyStorageService } from './key-storage.service.js';
+import { RotationHistoryService } from './rotation-history.service.js';
 
 export class KeyRotationService {
   private readonly config: Pick<

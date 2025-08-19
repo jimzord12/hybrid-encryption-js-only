@@ -3,7 +3,7 @@ import { sha256, sha512 } from '@noble/hashes/sha2';
 import { randomBytes } from '@noble/hashes/utils';
 import { stringToBinary } from '.';
 import { Preset } from '../common/enums';
-import { createAppropriateError } from '../common/errors';
+import { createAppropriateError } from '../common/errors/encryption.errors';
 
 /**
  * Supported key derivation algorithms

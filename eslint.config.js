@@ -199,6 +199,7 @@ export default [
       'config/certs/**',
       'demo-certs-*/**',
       'examples/**', // Ignore examples as they may not be in tsconfig
+      '**/*.mjs',
     ],
   },
 ];

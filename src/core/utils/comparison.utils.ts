@@ -39,19 +39,6 @@ const DEFAULT_OPTIONS: DeepComparisonOptions = {
  * @param options - Comparison options
  * @returns True if values are deeply equal, false otherwise
  * @throws {Error} When maximum depth is exceeded
- *
- * @example
- * ```typescript
- * const obj1 = { a: 1, b: [2, 3, { c: 4 }] };
- * const obj2 = { a: 1, b: [2, 3, { c: 4 }] };
- *
- * console.log(deepEqual(obj1, obj2)); // true
- * console.log(obj1 === obj2); // false
- *
- * const arr1 = [1, 2, { a: 'test' }];
- * const arr2 = [1, 2, { a: 'test' }];
- * console.log(deepEqual(arr1, arr2)); // true
- * ```
  */
 export function deepEqual(a: any, b: any, options: DeepComparisonOptions = {}): boolean {
   const opts = { ...DEFAULT_OPTIONS, ...options };

@@ -1,4 +1,3 @@
-import { createAppropriateError } from '../../../core/common/errors';
 import { KeyPair } from '../../../core/common/interfaces/keys.interfaces';
 import {
   KeyManagerConfig,
@@ -6,6 +5,7 @@ import {
 } from '../../../core/key-management/types/key-manager.types';
 import { MlKemKeyProvider } from '../../../core/providers';
 import { KeyProvider } from '../../../core/providers/interfaces/key-provider.interface';
+import { createAppropriateError } from '../../common/errors/encryption.errors';
 
 export class KeyLifecycleService {
   private readonly keyProvider: KeyProvider;

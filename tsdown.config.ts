@@ -11,7 +11,16 @@ const serverConfig = defineConfig({
   exports: true,
   platform: 'node',
   outDir: 'dist/server',
-  external: ['node:fs/promises', 'node:path', 'node:process', 'node:crypto'],
+  external: [
+    'node:fs/promises',
+    'node:path',
+    'node:process',
+    'node:crypto',
+    'node:fs',
+    'express',
+    'node-cron',
+  ],
+  minify: false,
 });
 
 const clientConfig = defineConfig({
@@ -24,8 +33,8 @@ const clientConfig = defineConfig({
   sourcemap: true,
   exports: true,
   outDir: 'dist/client',
-  
   platform: 'browser',
+  minify: false,
 });
 
 const utilsConfig = defineConfig({
@@ -38,6 +47,7 @@ const utilsConfig = defineConfig({
   sourcemap: true,
   outDir: 'dist/utils',
   platform: 'browser',
+  minify: false,
 });
 
 const coreConfig = defineConfig({
@@ -50,7 +60,16 @@ const coreConfig = defineConfig({
   sourcemap: true,
   platform: 'node',
   outDir: 'dist/core',
-  external: ['node:fs/promises', 'node:path', 'node:process', 'node:crypto'],
+  external: [
+    'node:fs/promises',
+    'node:fs',
+    'node:path',
+    'node:process',
+    'node:crypto',
+    'express',
+    'node-cron',
+  ],
+  minify: false,
 });
 
 export default [serverConfig, clientConfig, utilsConfig, coreConfig];
