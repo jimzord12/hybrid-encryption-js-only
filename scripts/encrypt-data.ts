@@ -26,14 +26,22 @@ async function testEncryption() {
     console.log('Attempting remote key encryption...');
     const serverUrl = `${baseUrl}/v2/encryption`; // Base URL only - client will append /public-key
 
-    const readyForSending = await enc.encryptDataWithRemoteKey(testData, serverUrl);
+    const encryptedData = await enc.encryptDataWithRemoteKey(testData, serverUrl);
+
+    fetch(`${baseUrl}/v2/encryption`, {
+      body: JSON.stringify({ data: encryptedData }),
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     console.log(
-      isEncryptedData(readyForSending) ? 'Data is encrypted ✅' : 'Data is NOT encrypted ❌',
+      isEncryptedData(encryptedData) ? 'Data is encrypted ✅' : 'Data is NOT encrypted ❌',
     );
     console.log('Remote encryption successful! 🎉\n');
     console.log('Encrypted data structure:');
-    console.log(JSON.stringify(readyForSending, null, 2));
+    console.log(JSON.stringify(encryptedData, null, 2));
   } catch (error) {
     console.log('❌ Remote encryption failed (server not available)');
     console.log('Error:', error instanceof Error ? error.message : String(error));

@@ -16,16 +16,20 @@ export const decryptMiddleware = async (
   _res: Response,
   next: NextFunction,
 ) => {
-  const { data: encryptedData } = req.body;
+  try {
+    const { data: encryptedData } = req.body;
 
-  if (!isEncryptedData(encryptedData)) {
-    throw new DecryptionError('Invalid structure of encrypted data format');
+    if (!isEncryptedData(encryptedData)) {
+      throw new DecryptionError('Invalid structure of encrypted data format');
+    }
+
+    const decryptService = ServerDecryption.getInstance();
+    const data = await decryptService.decryptData<unknown>(encryptedData);
+
+    req.body = { data };
+
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  const decryptService = ServerDecryption.getInstance();
-  const data = await decryptService.decryptData<unknown>(encryptedData);
-
-  req.body = { data };
-
-  next();
 };

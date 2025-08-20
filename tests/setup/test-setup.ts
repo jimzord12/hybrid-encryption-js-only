@@ -52,8 +52,11 @@ afterEach(async () => {
 
 afterAll(async () => {
   // Add small delay to ensure all tests are complete
-  await cleanTestDirectory('./config');
-  await cleanTestDirectory('./tests/core/key-management/test-certs');
+  await cleanTestDirectory('./config', true);
+
+  await waitFor(50);
+
+  await cleanTestDirectory('./tests/core/key-management/test-certs', true);
 
   await waitFor(50);
 

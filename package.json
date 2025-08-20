@@ -1,7 +1,7 @@
 {
   "name": "hybrid-encryption-js-only",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.2-beta",
+  "description": "ICS Hybrid Encryption JavaScript Library",
   "type": "module",
   "scripts": {
     "build": "tsc",
@@ -24,7 +24,8 @@
     "quality-check": "npm run lint:errors && npm run type-check",
     "prepare": "husky",
     "pre-commit": "lint-staged",
-    "bundle": "tsdown"
+    "bundle": "tsdown",
+    "build:packages": "./scripts/build-packages.sh"
   },
   "repository": {
     "type": "git",

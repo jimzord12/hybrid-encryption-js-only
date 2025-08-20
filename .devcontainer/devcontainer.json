@@ -25,6 +25,7 @@
     }
   },
   "forwardPorts": [3000, 8080],
+  "runArgs": ["--add-host=host.docker.internal:host-gateway"],
   "postCreateCommand": "chmod +x .devcontainer/setup.sh && .devcontainer/setup.sh",
   "remoteUser": "root"
 }
