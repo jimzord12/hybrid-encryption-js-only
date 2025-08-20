@@ -1,16 +1,41 @@
+import fs from 'node:fs/promises';
 import { AddressInfo } from 'node:net';
+import path from 'node:path';
 import { ExpressTestServerModule } from '../setup/setup-express.js';
 
 describe('Client-Server Integration Tests using Bundled Code', () => {
   let expressServer: ExpressTestServerModule;
-  let clientPkg: typeof import('../../dist/client/client.d.ts');
-  let serverPkg: typeof import('../../dist/server/server.d.ts');
+  let clientPkg: typeof import('../../dist/client/client.js');
+  let serverPkg: typeof import('../../dist/server/server.js');
   // Integration tests go here
   beforeAll(async () => {
     // Setup code for the tests
     expressServer = await import('../setup/setup-express.js');
-    clientPkg = await import('../../dist/client/client.js');
-    serverPkg = await import('../../dist/server/server.js');
+
+    const clientPath = path.resolve('./dist/client/client.js');
+    const serverPath = path.resolve('./dist/server/server.js');
+
+    console.log('Client path: ', clientPath);
+    console.log('Server path: ', serverPath);
+
+    try {
+      await fs.access(clientPath);
+      console.log(`✅ Client path exists: ${clientPath}`);
+    } catch (error) {
+      console.log(`❌ Client path does not exist: ${clientPath}`);
+      throw error;
+    }
+
+    try {
+      await fs.access(serverPath);
+      console.log(`✅ Server path exists: ${serverPath}`);
+    } catch (error) {
+      console.log(`❌ Server path does not exist: ${serverPath}`);
+      throw error;
+    }
+
+    clientPkg = await import(clientPath);
+    serverPkg = await import(serverPath);
   });
 
   afterAll(async () => {
