@@ -1,4 +1,4 @@
-import { ClientEncryption, Preset } from '../src/client';
+import { Base64, ClientEncryption, Preset } from '../src/client';
 
 /**
  * Example 1: Basic Client-Side Encryption
@@ -38,7 +38,7 @@ async function basicEncryptionExample() {
     // Encrypt the data
     console.log('📝 Data to encrypt:', JSON.stringify(sensitiveUserData, null, 2));
 
-    const encryptedResult = encryption.encryptData(sensitiveUserData, mockPublicKey);
+    const encryptedResult = encryption.encryptData(sensitiveUserData, mockPublicKey as Base64);
 
     console.log('\n✅ Encryption successful!');
     console.log('📦 Encrypted data structure:');
@@ -172,7 +172,7 @@ async function errorHandlingExample() {
   console.log('Test 1: Invalid Base64 public key');
   try {
     const invalidBase64Key = 'this-is-not-valid-base64!!!';
-    encryption.encryptData({ test: 'data' }, invalidBase64Key);
+    encryption.encryptData({ test: 'data' }, invalidBase64Key as Base64);
     console.log('❌ Unexpected: Invalid key accepted');
   } catch (error) {
     console.log('✅ Correctly caught invalid Base64 error:', (error as any).message);
@@ -239,7 +239,7 @@ class SecureApiClient {
       console.log(`🌐 Sending secure data to ${endpoint}`);
 
       // Encrypt the data
-      const encryptedData = this.encryption.encryptData(data, this.serverPublicKey);
+      const encryptedData = this.encryption.encryptData(data, this.serverPublicKey as Base64);
       console.log('🔐 Data encrypted successfully');
 
       // In a real application, you would make an HTTP request here

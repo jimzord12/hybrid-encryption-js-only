@@ -1,3 +1,4 @@
+import nodeCron from 'node-cron';
 import path from 'node:path';
 import { KeyManager_TEST } from '../../../src/core/key-management/key-manager-testing';
 import { KeyManagerConfig } from '../../../src/core/key-management/types/key-manager.types';
@@ -19,6 +20,9 @@ describe('Key Rotation Job', () => {
     if (await directoryExists(TEST_CERT_PATH_AA)) {
       cleanTestDirectory(TEST_CERT_PATH_AA);
     }
+
+    // Enable cron jobs for this specific test
+    process.env.DISABLE_KEY_ROTATION_CRON = 'false';
   });
 
   afterAll(async () => {
@@ -26,11 +30,26 @@ describe('Key Rotation Job', () => {
     if (await directoryExists(TEST_CERT_PATH_AA)) {
       cleanTestDirectory(TEST_CERT_PATH_AA);
     }
+
+    nodeCron.getTask('Test Key Rotation Job')?.destroy();
+
+    // Restore test environment setting
+    process.env.DISABLE_KEY_ROTATION_CRON = 'true';
   });
 
   it('should correctly rotate keys', async () => {
+    // Explicitly enable cron job for this test
+    process.env.DISABLE_KEY_ROTATION_CRON = 'false';
+
     const keyManager = KeyManager_TEST.getInstance(TEST_CONFIG_AA);
     await keyManager.initialize();
+
+    // Manually start the cron job since we enabled it after initialization
+    const { registerRotationJob_TEST } = await import(
+      '../../../src/server/cron/key-rotation-job.js'
+    );
+    registerRotationJob_TEST();
+
     console.log('1 | GET STATUS: ', await keyManager.getStatus());
 
     console.log('============================');

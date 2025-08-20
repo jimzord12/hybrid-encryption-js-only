@@ -1,7 +1,7 @@
 import { createAppropriateError } from '../core';
 import { Preset } from '../core/common/enums';
 import { EncryptedData } from '../core/common/interfaces/encryption.interfaces';
-import { HybridEncryption } from '../core/encryption';
+import { Base64, HybridEncryption } from '../core/encryption';
 import { DEFAULT_ENCRYPTION_OPTIONS } from '../core/encryption/constants/defaults.constants';
 import { KeyManager } from '../core/key-management/key-manager';
 import { KeyManagerConfig } from '../core/key-management/types/key-manager.types';
@@ -244,7 +244,7 @@ export class ServerDecryptionAllPublic {
     return this.keyManager ? await this.keyManager.getPublicKey() : null;
   }
 
-  public async getPublicKeyBase64(): Promise<string | null> {
+  public async getPublicKeyBase64(): Promise<Base64 | null> {
     await this.initializeIfNeeded();
     return this.keyManager ? await this.keyManager.getPublicKeyBase64() : null;
   }

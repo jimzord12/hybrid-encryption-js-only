@@ -93,7 +93,11 @@ export class KeyManager_TEST {
 
     console.log('[TEST-KeyManager] 🔑 KeyManager initializing...');
 
-    if (!isJobScheduled('Test Key Rotation Job')) {
+    // Skip cron job registration during tests or when explicitly disabled
+    const shouldRegisterCronJob =
+      process.env.NODE_ENV !== 'test' && process.env.DISABLE_KEY_ROTATION_CRON !== 'true';
+
+    if (shouldRegisterCronJob && !isJobScheduled('Test Key Rotation Job')) {
       console.log('[TEST-KeyManager] 🔑 KeyManager | Registering Rotation Cron Job');
       registerRotationJob_TEST();
     }

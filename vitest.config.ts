@@ -5,6 +5,10 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./tests/setup/test-setup.ts'],
+    env: {
+      NODE_ENV: 'test',
+      DISABLE_KEY_ROTATION_CRON: 'true',
+    },
     coverage: {
       provider: 'v8', // Required in newer versions
       reporter: ['text', 'html', 'json'],
@@ -13,10 +17,6 @@ export default defineConfig({
     testTimeout: 30000, // 30 seconds for crypto operations
     hookTimeout: 10000, // 10 seconds for setup
     teardownTimeout: 10000,
-    reporters: ['verbose', 'html'],
-    outputFile: {
-      html: './test-results/index.html',
-    },
     // Force sequential execution to prevent race conditions
     pool: 'forks',
     poolOptions: {
