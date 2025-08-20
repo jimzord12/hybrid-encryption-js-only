@@ -37,7 +37,7 @@ npm install
 npm run build:packages
 ```
 
-## �🔐 Quick Start - Client Encryption
+## 🔐 Quick Start - Client Encryption
 
 ```typescript
 import { ClientEncryption, Preset } from '@hybrid-encryption/client';
@@ -51,17 +51,21 @@ const userData = {
   creditCard: '4111-1111-1111-1111',
 };
 
+// If you have the Server's Public key in Base64 or Uint8Array format...
 const encrypted = enc.encryptData(userData, serverPublicKey);
 
-// Method 2: NEW! Encrypt with remote public key
+// Method 2: NEW! Encrypt by using the Server's endpoint (url)
 const encrypted2 = await enc.encryptDataWithRemoteKey(
   userData,
-  'https://your-server.com/api/public-key',
+  'https://your-server.com/api', ✅
+  // 'https://your-server.com/api/public-key', ❌
 );
-
-// Ready to send securely to your server!
-// 🚨 The Server must use the same library!
 ```
+
+🚨 Do **NOT** add `/public-key` at the end, if you use the provided
+`decryptionRoutes`
+
+🚨 The Server must use the same library!
 
 ## ⚡ Quick Start - Express Server
 
