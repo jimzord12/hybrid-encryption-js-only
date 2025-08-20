@@ -31,6 +31,7 @@ export default [
         require: 'readonly',
         fetch: 'readonly',
         module: 'readonly',
+        import: 'readonly',
       },
     },
     plugins: {

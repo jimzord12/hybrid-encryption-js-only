@@ -11,7 +11,7 @@ import {
   deepEqual,
   objectsDeepEqual,
   type DeepComparisonOptions,
-} from '../src/core/utils/comparison.utils.js';
+} from '../../src/core/utils/comparison.utils.js';
 
 console.log('🔧 Deep Comparison Utility Examples\n');
 

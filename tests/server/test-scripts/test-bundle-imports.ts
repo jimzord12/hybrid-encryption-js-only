@@ -13,15 +13,16 @@
 
 import console from 'node:console';
 import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { EncryptedData } from '../src';
-import { cleanTestDirectory } from './test-utils';
+import { EncryptedData } from '../../../src';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const distPath = join(__dirname, '../dist');
-const rootPath = join(__dirname, '../');
+const distPath = resolve(__dirname, '..', '..', '..', 'dist');
+
+console.log('GGGGGG: ', distPath);
+// const rootPath = join(__dirname, '../');
 
 console.log('🚀 Starting Bundle Import & Roundtrip Test\n');
 
@@ -128,7 +129,7 @@ function deepEqual(obj1: object, obj2: object) {
 // Main Test Function
 // ============================================================================
 
-async function runTests() {
+export async function runAllBundleTests() {
   let clientModule, serverModule, coreModule, utilsModule;
 
   try {
@@ -215,16 +216,14 @@ async function runTests() {
     // ========================================================================
     console.log('\n🔑 Initializing Key Manager...');
 
+    // Ensure cron jobs are disabled for bundle tests
+    process.env.DISABLE_KEY_ROTATION_CRON = 'true';
+
     const { KeyManager } = serverModule;
     const keyManager = KeyManager.getInstance();
 
-    // Initialize with test configuration
-    await keyManager.initialize({
-      algorithm: 'ml-kem-768',
-      keyStoragePath: './tmp/test-keys',
-      rotationIntervalMs: 24 * 60 * 60 * 1000, // 24 hours
-      enableBackup: true,
-    });
+    // Initialize (this method doesn't take parameters - it uses default config)
+    await keyManager.initialize();
 
     console.log('✅ Key Manager initialized successfully');
 
@@ -328,41 +327,41 @@ async function runTests() {
     if ((error as any).stack) {
       console.error('Stack trace:', (error as any).stack);
     }
-    process.exit(1);
+    throw error;
   }
 }
 
-// ============================================================================
-// Error handling and execution
-// ============================================================================
+// // ============================================================================
+// // Error handling and execution
+// // ============================================================================
 
-process.on('uncaughtException', (error) => {
-  console.error('💥 Uncaught Exception:', error.message);
-  process.exit(1);
-});
+// process.on('uncaughtException', (error) => {
+//   console.error('💥 Uncaught Exception:', error.message);
+//   process.exit(1);
+// });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
+// process.on('unhandledRejection', (reason, promise) => {
+//   console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+//   process.exit(1);
+// });
 
-// Run the tests
-runTests()
-  .then(async () => {
-    console.log('\n🎉 All tests passed successfully!');
-    console.log('✅ Bundle imports working correctly');
-    console.log('✅ Roundtrip encryption/decryption verified');
-    console.log('✅ API compatibility confirmed');
+// // Run the tests
+// runAllBundleTests()
+//   .then(async () => {
+//     console.log('\n🎉 All tests passed successfully!');
+//     console.log('✅ Bundle imports working correctly');
+//     console.log('✅ Roundtrip encryption/decryption verified');
+//     console.log('✅ API compatibility confirmed');
 
-    try {
-      await cleanTestDirectory(join(rootPath, 'config'), true);
-    } catch (error) {
-      console.log('⚠️ Failed to clean test directory:', (error as any).message);
-    }
-    console.log('\n🏁 Test completed successfully!');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('\n💥 Test suite failed:', error.message);
-    process.exit(1);
-  });
+//     try {
+//       await cleanTestDirectory(join(rootPath, 'config'), true);
+//     } catch (error) {
+//       console.log('⚠️ Failed to clean test directory:', (error as any).message);
+//     }
+//     console.log('\n🏁 Test completed successfully!');
+//     process.exit(0);
+//   })
+//   .catch((error) => {
+//     console.error('\n💥 Test suite failed:', error.message);
+//     throw error;
+//   });

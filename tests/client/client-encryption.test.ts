@@ -563,45 +563,51 @@ describe('ClientEncryption', () => {
       it('should handle network errors with retry logic', async () => {
         const testUrl = 'https://unreliable-api.example.com';
         let callCount = 0;
+        const originalFetch = global.fetch;
 
-        // Mock global fetch to fail first two times, succeed on third
-        global.fetch = vi.fn().mockImplementation(() => {
-          callCount++;
-          if (callCount < 3) {
-            return Promise.reject(new Error('Network error'));
-          }
-          return Promise.resolve({
-            ok: true,
-            status: 200,
-            statusText: 'OK',
-            headers: new Headers({ 'content-type': 'application/json' }),
-            json: () => Promise.resolve({ publicKey: goodSerializedKeyPair.publicKey }),
+        try {
+          // Mock global fetch to fail first two times, succeed on third
+          global.fetch = vi.fn().mockImplementation(() => {
+            callCount++;
+            if (callCount < 3) {
+              return Promise.reject(new Error('Network error'));
+            }
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              statusText: 'OK',
+              headers: new Headers({ 'content-type': 'application/json' }),
+              json: () => Promise.resolve({ publicKey: goodSerializedKeyPair.publicKey }),
+            });
           });
-        });
 
-        // This should succeed after retries
-        const result = await api.get<{ publicKey: string }>(testUrl + '/public-key', {
-          retries: 3,
-          retryDelay: 10,
-        });
-        expect(result.data.publicKey).toBe(goodSerializedKeyPair.publicKey);
-        expect(callCount).toBe(3);
+          // This should succeed after retries
+          const result = await api.get<{ publicKey: string }>(testUrl + '/public-key', {
+            retries: 3,
+            retryDelay: 10,
+          });
+          expect(result.data.publicKey).toBe(goodSerializedKeyPair.publicKey);
+          expect(callCount).toBe(3);
+        } finally {
+          global.fetch = originalFetch;
+        }
       });
 
       it('should handle HTTP error status codes', async () => {
         const testUrl = 'https://api.example.com';
-
-        // Mock 404 response
-        const mockResponse = new Response('Not Found', {
-          status: 404,
-          statusText: 'Not Found',
-        });
-        global.fetch = vi.fn().mockResolvedValue(mockResponse);
+        const originalFetch = global.fetch;
 
         try {
+          // Mock 404 response
+          const mockResponse = new Response('Not Found', {
+            status: 404,
+            statusText: 'Not Found',
+          });
+          global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
           await expect(api.get(testUrl + '/public-key')).rejects.toThrow();
         } finally {
-          vi.restoreAllMocks();
+          global.fetch = originalFetch;
         }
       });
     });

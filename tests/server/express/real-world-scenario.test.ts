@@ -176,8 +176,6 @@ describe('Real-World Express.js Server Scenario', () => {
       server.close();
       console.log('\n🛑 Server stopped');
     }
-
-    vi.resetAllMocks();
   });
 
   it('should complete the full real-world scenario successfully', async () => {

@@ -10,23 +10,30 @@
 // ============================================================================
 
 // This should only import the specific utilities, not the entire core module
-import { decodeBase64, encodeBase64, getSecureRandomBytes } from '../src/core/utils/index.js';
 
 // This should only import the client class, not server dependencies
-import { ClientEncryption } from '../src/client/index.js';
 
 // This should only import specific types (zero runtime overhead)
-import type { Base64, EncryptedData, KeyManagerConfig } from '../src/types/index.js';
 
 // This should only import the preset enum
-import { Preset } from '../src/core/common/enums/index.js';
 
 // ============================================================================
 // TEST 2: Verify main entry point exports work correctly
 // ============================================================================
 
 // Should be able to import specific items from main entry point
-import { BufferUtils, arraysDeepEqual } from '../src/index.js';
+import {
+  arraysDeepEqual,
+  Base64,
+  BufferUtils,
+  ClientEncryption,
+  decodeBase64,
+  encodeBase64,
+  EncryptedData,
+  getSecureRandomBytes,
+  KeyManagerConfig,
+  Preset,
+} from '../../../src/index.js';
 
 // ============================================================================
 // TEST 3: Demonstrate tree-shaking with actual usage
