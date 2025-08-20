@@ -21,9 +21,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const distPath = resolve(__dirname, '..', '..', '..', 'dist');
 
-console.log('GGGGGG: ', distPath);
-// const rootPath = join(__dirname, '../');
-
 console.log('🚀 Starting Bundle Import & Roundtrip Test\n');
 
 // ============================================================================

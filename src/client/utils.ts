@@ -32,6 +32,8 @@ class TimeoutError extends Error {
   }
 }
 
+const waitFor = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Modern fetch function with TypeScript support and best practices
  */
@@ -237,5 +239,3 @@ try {
   }
 }
 */
-
-const waitFor = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

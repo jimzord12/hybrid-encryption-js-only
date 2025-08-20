@@ -48,7 +48,19 @@ app.post('/api/secure-data', decryptMiddleware, (req, res) => {
 app.post('/api/process-transaction', decryptMiddleware, (req, res) => {
   const { data: aaa } = req.body;
 
-  const data = aaa as any;
+  interface TransactionData {
+    transaction: {
+      [key: string]: any;
+    };
+    user: {
+      id: string;
+      email: string;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  }
+
+  const data = aaa as TransactionData;
 
   // Validate transaction data structure
   if (!data.transaction || !data.user) {
