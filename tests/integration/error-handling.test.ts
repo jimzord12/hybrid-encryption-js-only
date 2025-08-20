@@ -1,4 +1,4 @@
-import { ClientEncryption, Preset } from '../../src/client';
+import { Base64, ClientEncryption, Preset } from '../../src/client';
 import { EncryptedData } from '../../src/core/common/interfaces/encryption.interfaces';
 import { ServerDecryptionAllPublic } from '../../src/server/decrypt-all-public';
 
@@ -33,7 +33,7 @@ describe('Error Handling & Edge Cases Integration Tests', () => {
 
       for (const invalidKey of invalidKeys) {
         expect(() => {
-          client.encryptData(testData, invalidKey);
+          client.encryptData(testData, invalidKey as Base64);
         }).toThrow();
       }
     });
@@ -246,7 +246,7 @@ describe('Error Handling & Edge Cases Integration Tests', () => {
         () => Promise.reject(new Error('Simulated encryption error')),
         () => {
           try {
-            return Promise.resolve(client.encryptData(validData, 'invalid_key'));
+            return Promise.resolve(client.encryptData(validData, 'invalid_key' as Base64));
           } catch (error) {
             return Promise.reject(error);
           }
@@ -391,7 +391,7 @@ describe('Error Handling & Edge Cases Integration Tests', () => {
       const errorTests = [
         () => server.decryptData(null as any),
         () => server.decryptData({ invalid: 'structure' } as any),
-        () => client.encryptData(testData, 'invalid_key'),
+        () => client.encryptData(testData, 'invalid_key' as Base64),
       ];
 
       // Execute error-inducing operations

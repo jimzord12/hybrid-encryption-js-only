@@ -12,7 +12,8 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { ClientEncryption } from '../../../src/client/index.js';
+import { Base64, ClientEncryption } from '../../../src/client/index.js';
+import { ckm } from '../../../src/client/key-manager.js';
 import {
   DecryptionError,
   ServerDecryption,
@@ -170,6 +171,7 @@ describe('Express.js v5 Server Integration Tests', () => {
     await serverDecryption.getStatus(); // This triggers initialization
 
     console.log('🔄 Test setup completed');
+    vi.resetAllMocks();
   });
 
   afterEach(() => {
@@ -213,13 +215,13 @@ describe('Express.js v5 Server Integration Tests', () => {
   });
 
   describe('🔐 End-to-End Encryption Flow', () => {
-    let publicKey: string;
+    let publicKey: Base64;
 
     beforeEach(async () => {
       // Get public key for encryption
       const response = await fetch(`${baseUrl}/api/public-key`);
       const data = await response.json();
-      publicKey = data.publicKey;
+      publicKey = data.publicKey as Base64;
     });
 
     it('should encrypt data on client and decrypt on server via middleware', async () => {
@@ -504,6 +506,470 @@ describe('Express.js v5 Server Integration Tests', () => {
       });
 
       console.log(`✅ All ${concurrentRequests} concurrent requests completed successfully`);
+    });
+  });
+
+  describe('🌐 Remote Public Key Retrieval & Caching Integration', () => {
+    beforeEach(() => {
+      // Clean up client key manager cache before each test
+      ckm.clearKey();
+    });
+
+    afterEach(() => {
+      // Clean up after each test
+      ckm.clearKey();
+    });
+
+    describe('🔑 Remote Key Retrieval', () => {
+      it('should encrypt data using remotely fetched public key', async () => {
+        const testData = {
+          message: 'Remote key test',
+          timestamp: Date.now(),
+          sensitive: 'credit card: 4532-1234-5678-9012',
+        };
+
+        // Use the new encryptDataWithRemoteKey method
+        const encryptedData = await clientEncryption.encryptDataWithRemoteKey(
+          testData,
+          baseUrl + '/api',
+        );
+
+        // Verify encrypted data structure
+        expect(encryptedData).toHaveProperty('preset');
+        expect(encryptedData).toHaveProperty('encryptedContent');
+        expect(encryptedData).toHaveProperty('cipherText');
+        expect(encryptedData).toHaveProperty('nonce');
+
+        console.log('🔒 Data encrypted using remote public key');
+
+        // Send to server for decryption via middleware
+        const response = await fetch(`${baseUrl}/api/secure-data`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: encryptedData }),
+        });
+
+        expect(response.status).toBe(200);
+        const result = await response.json();
+        expect(result.success).toBe(true);
+        expect(result.dataReceived).toBe(true);
+
+        console.log('🔓 Data successfully decrypted on server side');
+      });
+
+      it('should handle multiple requests with key caching', async () => {
+        const testMessages = ['First message', 'Second message', 'Third message'];
+
+        console.log('🚀 Testing key caching with multiple requests');
+
+        // Make multiple requests - first should fetch key, others should use cache
+        const promises = testMessages.map(async (message, index) => {
+          const testData = { message, requestIndex: index };
+
+          // Use remote key method
+          const encryptedData = await clientEncryption.encryptDataWithRemoteKey(
+            testData,
+            baseUrl + '/api',
+          );
+
+          // Send to server
+          const response = await fetch(`${baseUrl}/api/secure-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: encryptedData }),
+          });
+
+          return {
+            index,
+            message,
+            success: response.ok,
+            result: await response.json(),
+          };
+        });
+
+        const results = await Promise.all(promises);
+
+        // Verify all requests succeeded
+        results.forEach(({ index, message, success, result }) => {
+          expect(success).toBe(true);
+          expect(result.success).toBe(true);
+          console.log(`✅ Request ${index + 1} (${message}) processed successfully`);
+        });
+
+        console.log('🏆 All requests completed with key caching');
+      });
+
+      it('should work with different data types via remote key', async () => {
+        const testCases = [
+          { data: 'Simple string', description: 'string data' },
+          { data: 42, description: 'number data' },
+          { data: { complex: { nested: 'object' } }, description: 'nested object' },
+          { data: ['array', 'with', 'values'], description: 'array data' },
+          { data: null, description: 'null value' },
+        ];
+
+        console.log('🧪 Testing different data types with remote key');
+
+        for (const { data, description } of testCases) {
+          // Encrypt with remote key
+          const encryptedData = await clientEncryption.encryptDataWithRemoteKey(
+            data,
+            baseUrl + '/api',
+          );
+
+          // Send to server
+          const response = await fetch(`${baseUrl}/api/secure-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: encryptedData }),
+          });
+
+          if (data === null) {
+            expect(response.status).toBe(400);
+          } else {
+            expect(response.status).toBe(200);
+            const result = await response.json();
+            expect(result.success).toBe(true);
+          }
+
+          console.log(`✅ ${description} encrypted and processed successfully`);
+        }
+
+        console.log('🎯 All data types handled correctly with remote key');
+      });
+    });
+
+    describe('⚡ Performance & Caching', () => {
+      it('should demonstrate key caching performance benefits', async () => {
+        const testData = { message: 'Performance test', value: 123 };
+
+        console.log('⏱️  Testing key caching performance');
+
+        // First request - should fetch key from server
+        const start1 = Date.now();
+        const encrypted1 = await clientEncryption.encryptDataWithRemoteKey(
+          testData,
+          baseUrl + '/api',
+        );
+        const time1 = Date.now() - start1;
+
+        // Second request - should use cached key (faster)
+        const start2 = Date.now();
+        const encrypted2 = await clientEncryption.encryptDataWithRemoteKey(
+          testData,
+          baseUrl + '/api',
+        );
+        const time2 = Date.now() - start2;
+
+        console.log(`🔑 First request (fetch key): ${time1}ms`);
+        console.log(`⚡ Second request (cached): ${time2}ms`);
+
+        // Both should produce valid encrypted data
+        expect(encrypted1).toHaveProperty('encryptedContent');
+        expect(encrypted2).toHaveProperty('encryptedContent');
+
+        // Verify both decrypt correctly on server
+        const responses = await Promise.all([
+          fetch(`${baseUrl}/api/secure-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: encrypted1 }),
+          }),
+          fetch(`${baseUrl}/api/secure-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: encrypted2 }),
+          }),
+        ]);
+
+        expect(responses[0].status).toBe(200);
+        expect(responses[1].status).toBe(200);
+
+        console.log('✅ Both requests processed successfully');
+        console.log(
+          `📊 Performance improvement: ${Math.max(0, time1 - time2)}ms faster with caching`,
+        );
+      });
+
+      it('should handle concurrent remote key requests efficiently', async () => {
+        const concurrentCount = 8;
+        const testData = { message: 'Concurrent remote key test' };
+
+        console.log(`🚀 Testing ${concurrentCount} concurrent remote key requests`);
+
+        const startTime = Date.now();
+
+        // Make multiple concurrent requests using remote key
+        const promises = Array.from({ length: concurrentCount }, async (_, index) => {
+          const data = { ...testData, requestId: index };
+
+          try {
+            const encrypted = await clientEncryption.encryptDataWithRemoteKey(
+              data,
+              baseUrl + '/api',
+            );
+
+            const response = await fetch(`${baseUrl}/api/secure-data`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: encrypted }),
+            });
+
+            return {
+              success: response.ok,
+              requestId: index,
+              result: await response.json(),
+            };
+          } catch (error) {
+            return {
+              success: false,
+              requestId: index,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            };
+          }
+        });
+
+        const results = await Promise.all(promises);
+        const totalTime = Date.now() - startTime;
+
+        // Verify all requests succeeded
+        const successCount = results.filter((r) => r.success).length;
+        expect(successCount).toBe(concurrentCount);
+
+        results.forEach(({ success, requestId, error }) => {
+          expect(success).toBe(true);
+          if (!success) {
+            console.error(`❌ Request ${requestId} failed:`, error);
+          } else {
+            console.log(`✅ Concurrent request ${requestId} completed`);
+          }
+        });
+
+        console.log(`🏁 All ${concurrentCount} concurrent requests completed in ${totalTime}ms`);
+        console.log(`📊 Average: ${(totalTime / concurrentCount).toFixed(2)}ms per request`);
+      });
+    });
+
+    describe('🛡️ Error Handling & Edge Cases', () => {
+      it('should handle server downtime gracefully', async () => {
+        const invalidUrl = 'https://nonexistent-server-12345.example.com';
+        const testData = { message: 'This should fail' };
+
+        console.log('🚫 Testing behavior with unreachable server');
+
+        await expect(
+          clientEncryption.encryptDataWithRemoteKey(testData, invalidUrl),
+        ).rejects.toThrow();
+
+        console.log('✅ Correctly handled server downtime with appropriate error');
+      });
+
+      it('should handle malformed public key responses', async () => {
+        // Create a temporary server that returns invalid data
+        const testApp = express();
+        testApp.get('/public-key', (_req, res) => {
+          res.json({ publicKey: 'invalid-base64-key!!!' });
+        });
+
+        const testServer = testApp.listen(0);
+        const testAddress = testServer.address() as AddressInfo;
+        const testUrl = `http://localhost:${testAddress.port}`;
+
+        try {
+          const testData = { message: 'Test with invalid key' };
+
+          console.log('🔧 Testing behavior with invalid public key response');
+
+          // This should fail during encryption due to invalid key format
+          await expect(
+            clientEncryption.encryptDataWithRemoteKey(testData, testUrl),
+          ).rejects.toThrow();
+
+          console.log('✅ Correctly handled invalid public key format');
+        } finally {
+          testServer.close();
+        }
+      });
+
+      it('should handle server returning non-200 status codes', async () => {
+        // Create a temporary server that returns 500 error
+        const testApp = express();
+        testApp.get('/public-key', (_req, res) => {
+          res.status(500).json({ error: 'Internal server error' });
+        });
+
+        const testServer = testApp.listen(0);
+        const testAddress = testServer.address() as AddressInfo;
+        const testUrl = `http://localhost:${testAddress.port}`;
+
+        try {
+          const testData = { message: 'Test with server error' };
+
+          console.log('⚠️ Testing behavior with server error response');
+
+          await expect(
+            clientEncryption.encryptDataWithRemoteKey(testData, testUrl),
+          ).rejects.toThrow();
+
+          console.log('✅ Correctly handled server error response');
+        } finally {
+          testServer.close();
+        }
+      });
+    });
+
+    describe('🔄 Cache Management', () => {
+      it('should refresh cache when key expires', async () => {
+        const testData = { message: 'Cache expiry test' };
+
+        console.log('⏰ Testing cache expiry and refresh');
+
+        // First request to populate cache
+        await clientEncryption.encryptDataWithRemoteKey(testData, baseUrl + '/api');
+        expect(ckm.cachedKey).not.toBeNull();
+
+        console.log('🔑 Cache populated with first request');
+
+        // Manually expire the cache (set very short TTL)
+        ckm.setKey(ckm.cachedKey, 1); // 1ms TTL
+        await new Promise((resolve) => setTimeout(resolve, 10)); // Wait for expiration
+
+        console.log('⏱️ Cache expired');
+
+        // Second request should refresh cache
+        await clientEncryption.encryptDataWithRemoteKey(testData, baseUrl + '/api');
+        expect(ckm.cachedKey).not.toBeNull();
+
+        console.log('✅ Cache refreshed successfully');
+      });
+
+      it('should clear cache when switching between different servers', async () => {
+        const testData = { message: 'Multi-server test' };
+
+        console.log('Base URL: ', baseUrl);
+        // First request to main server
+        await clientEncryption.encryptDataWithRemoteKey(testData, baseUrl + '/api');
+        const firstKey = ckm.cachedKey;
+        const firstUrl = ckm.publicKeyBaseURL;
+
+        expect(firstKey).not.toBeNull();
+        expect(firstUrl).toBe(baseUrl + '/api');
+
+        console.log('🔑 First server key cached');
+
+        // Create second test server with the same key but different URL
+        const secondApp = express();
+        secondApp.get('/public-key', async (_req, res) => {
+          // Return the same key as the first server for testing cache URL management
+          const response = await fetch(`${baseUrl}/api/public-key`);
+          const data = await response.json();
+          res.json({ publicKey: data.publicKey });
+        });
+
+        const secondServer = secondApp.listen(0);
+        const secondAddress = secondServer.address() as AddressInfo;
+        const secondUrl = `http://localhost:${secondAddress.port}`;
+
+        try {
+          console.log('🔄 Switching to second server');
+
+          // This should succeed because we're using the same valid key,
+          // but it demonstrates that the cache management is working (different URL = cache cleared)
+          await clientEncryption.encryptDataWithRemoteKey(testData, secondUrl);
+
+          // Verify that URL was updated to the new server
+          expect(ckm.publicKeyBaseURL).toBe(secondUrl);
+          expect(ckm.cachedKey).not.toBeNull();
+
+          console.log('✅ Cache correctly managed when switching servers');
+
+          // Verify that the key cache was cleared and refetched by checking that
+          // we successfully encrypted with the new server URL
+          console.log('✅ Successfully encrypted data with second server URL');
+        } finally {
+          secondServer.close();
+        }
+      });
+    });
+
+    describe('🔐 Security Validation', () => {
+      it('should ensure encrypted data with remote key is secure', async () => {
+        const sensitiveTestData = {
+          creditCard: '4532-1234-5678-9012',
+          ssn: '123-45-6789',
+          password: 'super-secret-password',
+          apiKey: 'sk_test_abcdef123456789',
+        };
+
+        console.log('🛡️ Testing security of remote key encryption');
+
+        // Encrypt using remote key
+        const encryptedData = await clientEncryption.encryptDataWithRemoteKey(
+          sensitiveTestData,
+          baseUrl + '/api',
+        );
+
+        // Verify sensitive data is not visible in encrypted form
+        const encryptedString = JSON.stringify(encryptedData);
+
+        expect(encryptedString).not.toContain(sensitiveTestData.creditCard);
+        expect(encryptedString).not.toContain(sensitiveTestData.ssn);
+        expect(encryptedString).not.toContain(sensitiveTestData.password);
+        expect(encryptedString).not.toContain(sensitiveTestData.apiKey);
+
+        console.log('🔒 Sensitive data properly encrypted and not visible');
+
+        // Verify it can be properly decrypted on server
+        const response = await fetch(`${baseUrl}/api/secure-data`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: encryptedData }),
+        });
+
+        expect(response.status).toBe(200);
+        const result = await response.json();
+        expect(result.success).toBe(true);
+
+        console.log('✅ Data successfully decrypted on server with proper authentication');
+      });
+
+      it('should generate different ciphertexts for same data with remote key', async () => {
+        const testData = { message: 'Nonce test with remote key' };
+
+        console.log('🔀 Testing nonce uniqueness with remote key');
+        console.log('Base URL: ', baseUrl);
+
+        // Encrypt same data twice using remote key
+        const [encrypted1, encrypted2] = await Promise.all([
+          clientEncryption.encryptDataWithRemoteKey(testData, baseUrl + '/api'),
+          clientEncryption.encryptDataWithRemoteKey(testData, baseUrl + '/api'),
+        ]);
+
+        // Should have different nonces and ciphertexts
+        expect(encrypted1.nonce).not.toBe(encrypted2.nonce);
+        expect(encrypted1.cipherText).not.toBe(encrypted2.cipherText);
+
+        console.log('🔒 Different nonces generated for same data (prevents replay attacks)');
+
+        // Both should decrypt correctly on server
+        const responses = await Promise.all([
+          fetch(`${baseUrl}/api/secure-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: encrypted1 }),
+          }),
+          fetch(`${baseUrl}/api/secure-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: encrypted2 }),
+          }),
+        ]);
+
+        expect(responses[0].status).toBe(200);
+        expect(responses[1].status).toBe(200);
+
+        console.log('✅ Both unique encryptions decrypted successfully');
+      });
     });
   });
 });

@@ -15,6 +15,8 @@ describe('RotationHistoryService', () => {
 
   beforeEach(async () => {
     await cleanTestDirectory(TEST_CERT_PATH);
+    // Ensure the test directory exists
+    await fs.mkdir(TEST_CERT_PATH, { recursive: true });
     historyService = new RotationHistoryService(TEST_CONFIG);
     lifecycleService = new KeyLifecycleService(TEST_CONFIG);
     testKeys = lifecycleService.createNewKeyPair();

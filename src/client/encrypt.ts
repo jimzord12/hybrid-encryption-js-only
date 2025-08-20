@@ -7,6 +7,7 @@ import {
   HybridEncryption,
   Preset,
 } from '../core/encryption/index.js';
+import { ckm } from './key-manager';
 
 export class ClientEncryption {
   private static instance: ClientEncryption | null = null;
@@ -49,7 +50,7 @@ export class ClientEncryption {
    * @param publicKey - The public key to use for encryption. Can be `Uint8Array` or a Base64-encoded string.
    * @returns The encrypted data.
    */
-  public encryptData(data: unknown, publicKey: string | Uint8Array): EncryptedData {
+  public encryptData(data: unknown, publicKey: Base64 | Uint8Array): EncryptedData {
     const binaryPublicKey = this.keyAdapter(publicKey);
 
     if (this.preset == null) {
@@ -79,6 +80,31 @@ export class ClientEncryption {
         operation: 'encryptData',
       });
     }
+  }
+
+  public async encryptDataWithRemoteKey(
+    data: unknown,
+    publicKeyUrl: string,
+  ): Promise<EncryptedData> {
+    if (this.encryptionInstance == null) {
+      throw createAppropriateError('Encryption instance is not initialized', {
+        errorType: 'operation',
+        preset: this.preset ?? Preset.NORMAL,
+        operation: 'encryptDataWithRemoteKey',
+      });
+    }
+
+    const pkBase64 = await ckm.getKey(publicKeyUrl);
+
+    if (pkBase64 == null) {
+      throw createAppropriateError('Public key not found', {
+        errorType: 'operation',
+        preset: this.preset ?? Preset.NORMAL,
+        operation: 'encryptDataWithRemoteKey',
+      });
+    }
+
+    return this.encryptData(data, pkBase64);
   }
 
   private keyAdapter(key: string | Uint8Array): Uint8Array {

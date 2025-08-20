@@ -2,6 +2,7 @@ import { isJobScheduled } from '../../server/cron/cron-utils.js';
 import { registerRotationJob } from '../../server/cron/key-rotation-job.js';
 import { createAppropriateError } from '../common/errors/encryption.errors.js';
 import { KeyPair } from '../common/interfaces/keys.interfaces.js';
+import { Base64 } from '../encryption/index.js';
 import { BufferUtils } from '../utils/index.js';
 import { DEFAULT_KEY_MANAGER_OPTIONS } from './constants/defaults.constants.js';
 import { KeyConfigurationService } from './services/key-configuration.service.js';
@@ -176,7 +177,7 @@ export class KeyManager {
     return keys.publicKey;
   }
 
-  public async getPublicKeyBase64(): Promise<string> {
+  public async getPublicKeyBase64(): Promise<Base64> {
     const publicKey = await this.getPublicKey();
     return BufferUtils.encodeBase64(publicKey);
   }
@@ -189,7 +190,7 @@ export class KeyManager {
     return keys.secretKey;
   }
 
-  public async getSecretKeyBase64(): Promise<string> {
+  public async getSecretKeyBase64(): Promise<Base64> {
     const secretKey = await this.getSecretKey();
     return BufferUtils.encodeBase64(secretKey);
   }
