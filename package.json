@@ -1,6 +1,6 @@
 {
   "name": "hybrid-encryption-js-only",
-  "version": "0.0.2-beta",
+  "version": "0.0.3-beta",
   "description": "ICS Hybrid Encryption JavaScript Library",
   "type": "module",
   "scripts": {
@@ -25,7 +25,10 @@
     "prepare": "husky",
     "pre-commit": "lint-staged",
     "bundle": "tsdown",
-    "build:packages": "./scripts/build-packages.sh"
+    "build:packages": "./scripts/build-packages.sh",
+    "build:packages:patch": "./scripts/build-packages.sh patch",
+    "build:packages:minor": "./scripts/build-packages.sh minor",
+    "build:packages:major": "./scripts/build-packages.sh major"
   },
   "repository": {
     "type": "git",

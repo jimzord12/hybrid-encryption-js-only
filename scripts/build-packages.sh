@@ -1,13 +1,110 @@
 #!/bin/bash
 
-# Build script for creating distributable npm packages
+# Build script for creating distributable npm packages with version bumping
 set -e
+
+# Function to display usage
+show_usage() {
+    echo "Usage: $0 [patch|minor|major]"
+    echo ""
+    echo "Arguments:"
+    echo "  patch  - Bump patch version (0.0.1 -> 0.0.2)"
+    echo "  minor  - Bump minor version (0.0.1 -> 0.1.0)"
+    echo "  major  - Bump major version (0.0.1 -> 1.0.0)"
+    echo ""
+    echo "Note: Pre-release suffixes (-beta, -alpha) are preserved"
+    echo "Example: 0.0.2-beta -> 0.0.3-beta (patch)"
+    exit 1
+}
+
+# Function to bump version
+bump_version() {
+    local version=$1
+    local bump_type=$2
+
+    # Extract version parts and pre-release suffix
+    if [[ $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-.*)?$ ]]; then
+        local major=${BASH_REMATCH[1]}
+        local minor=${BASH_REMATCH[2]}
+        local patch=${BASH_REMATCH[3]}
+        local prerelease=${BASH_REMATCH[4]}
+
+        case $bump_type in
+            patch)
+                patch=$((patch + 1))
+                ;;
+            minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+            major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+            *)
+                echo "❌ Invalid bump type: $bump_type"
+                show_usage
+                ;;
+        esac
+
+        echo "${major}.${minor}.${patch}${prerelease}"
+    else
+        echo "❌ Invalid version format: $version"
+        exit 1
+    fi
+}
+
+# Function to update package.json version
+update_root_version() {
+    local new_version=$1
+
+    # Create a backup
+    cp package.json package.json.backup
+
+    # Update version using node
+    node -e "
+        const fs = require('fs');
+        const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+        pkg.version = '$new_version';
+        fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+    "
+
+    echo "📝 Updated root package.json version to: $new_version"
+}
 
 echo "🏗️  Building hybrid encryption packages..."
 
-# Read version from root package.json
-ROOT_VERSION=$(node -p "require('./package.json').version")
-echo "📋 Using version: $ROOT_VERSION from root package.json"
+# Check if version bump argument is provided
+if [ $# -eq 1 ]; then
+    BUMP_TYPE=$1
+
+    # Validate bump type
+    if [[ ! "$BUMP_TYPE" =~ ^(patch|minor|major)$ ]]; then
+        echo "❌ Invalid argument: $BUMP_TYPE"
+        show_usage
+    fi
+
+    # Get current version
+    CURRENT_VERSION=$(node -p "require('./package.json').version")
+    echo "📋 Current version: $CURRENT_VERSION"
+
+    # Calculate new version
+    NEW_VERSION=$(bump_version "$CURRENT_VERSION" "$BUMP_TYPE")
+    echo "🔄 Bumping $BUMP_TYPE version: $CURRENT_VERSION -> $NEW_VERSION"
+
+    # Update root package.json
+    update_root_version "$NEW_VERSION"
+
+    ROOT_VERSION=$NEW_VERSION
+elif [ $# -eq 0 ]; then
+    # No arguments - use existing version
+    ROOT_VERSION=$(node -p "require('./package.json').version")
+    echo "📋 Using existing version: $ROOT_VERSION"
+else
+    echo "❌ Too many arguments provided"
+    show_usage
+fi
 
 # Clean and build
 npm run clean
@@ -269,3 +366,12 @@ echo "npm install ./path/to/packages/$ROOT_VERSION/hybrid-encryption-client-$ROO
 echo "npm install ./path/to/packages/$ROOT_VERSION/hybrid-encryption-server-$ROOT_VERSION.tgz"
 echo "npm install ./path/to/packages/$ROOT_VERSION/hybrid-encryption-core-$ROOT_VERSION.tgz"
 echo "npm install ./path/to/packages/$ROOT_VERSION/hybrid-encryption-utils-$ROOT_VERSION.tgz"
+
+# Clean up backup if everything succeeded
+if [ -f "package.json.backup" ]; then
+    rm package.json.backup
+    echo "🧹 Cleaned up backup file"
+fi
+
+echo ""
+echo "🎉 Build completed successfully with version: $ROOT_VERSION"
